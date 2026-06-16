@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Block Builder — Regrouping Math</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1f3c;
+  --bg2: #242952;
+  --card: #2d3561;
+  --card2: #363e72;
+  --tens-color: #f59e0b;
+  --tens-dark: #92610a;
+  --ones-color: #38bdf8;
+  --ones-dark: #0369a1;
+  --carry-color: #fb7185;
+  --carry-dark: #9f1239;
+  --green: #4ade80;
+  --green-dark: #166534;
+  --red: #f87171;
+  --white: #f0f4ff;
+  --muted: #8891c4;
+  --border: rgba(255,255,255,0.1);
+  --radius: 16px;
+  --shadow: rgba(0,0,0,0.3);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--white);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px 48px;
+}
+
+.game-wrap {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Logo */
+.logo {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--tens-color);
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--ones-color); }
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+.mode-group { display: flex; gap: 5px; }
+.mode-btn {
+  padding: 7px 13px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+.mode-btn.active { background: var(--tens-color); border-color: var(--tens-color); color: #1a1a1a; }
+
+.score-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.score-pill span { color: var(--tens-color); }
+
+/* ── COLUMN PROBLEM ─────────────────────────────────── */
+.problem-area {
+  width: 100%;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  border: 1.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.problem-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  align-self: flex-start;
+}
+
+/* Column layout */
+.column-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  width: 100%;
+  max-width: 340px;
+}
+
+/* Column header labels */
+.col-headers {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0;
+  width: 100%;
+  margin-bottom: 4px;
+}
+.col-header {
+  width: 80px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid var(--border);
+}
+.col-header.tens { color: var(--tens-color); }
+.col-header.ones { color: var(--ones-color); }
+
+/* Carry / borrow row */
+.carry-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  height: 32px;
+  align-items: center;
+}
+.carry-cell {
+  width: 80px;
+  text-align: center;
+  position: relative;
+}
+.carry-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--carry-color);
+  color: white;
+  font-size: 14px;
+  font-weight: 900;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.25s, transform 0.25s;
+}
+.carry-bubble.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Number rows */
+.num-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  min-height: 54px;
+}
+.num-cell {
+  width: 80px;
+  text-align: center;
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+}
+.num-cell.tens-digit { color: var(--tens-color); }
+.num-cell.ones-digit { color: var(--ones-color); }
+
+.op-label {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--muted);
+  width: 40px;
+  text-align: right;
+  padding-right: 6px;
+  margin-right: 0;
+  align-self: center;
+}
+
+/* Divider line */
+.divider {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  max-width: 340px;
+  margin: 2px 0;
+  position: relative;
+}
+.divider::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0;
+  width: 200px; height: 3px;
+  background: var(--white);
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+/* Answer input row */
+.answer-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  max-width: 340px;
+  min-height: 60px;
+}
+.answer-cell {
+  width: 80px;
+  text-align: center;
+}
+.digit-input {
+  width: 60px;
+  height: 56px;
+  background: var(--card2);
+  border: 2.5px solid var(--border);
+  border-radius: 12px;
+  color: var(--white);
+  font-size: 34px;
+  font-weight: 900;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  caret-color: var(--tens-color);
+}
+.digit-input::-webkit-inner-spin-button,
+.digit-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.digit-input:focus { border-color: var(--tens-color); background: #3d4880; }
+.digit-input.correct { border-color: var(--green); background: rgba(74,222,128,0.15); color: var(--green); }
+.digit-input.wrong   { border-color: var(--red);   background: rgba(248,113,113,0.15); color: var(--red); animation: shake 0.35s; }
+.digit-input.tens-input:focus { border-color: var(--tens-color); }
+.digit-input.ones-input:focus { border-color: var(--ones-color); }
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+}
+
+/* ── BLOCK VISUAL ───────────────────────────────────── */
+.blocks-area {
+  width: 100%;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.blocks-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.blocks-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.block-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.block-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.block-group-label.t { color: var(--tens-color); }
+.block-group-label.o { color: var(--ones-color); }
+
+.tens-blocks { display: flex; gap: 4px; flex-wrap: wrap; align-items: flex-end; }
+.ones-blocks { display: flex; gap: 3px; flex-wrap: wrap; }
+
+/* A "ten" rod: tall thin rectangle = 10 stacked squares */
+.ten-rod {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.ten-segment {
+  width: 16px; height: 10px;
+  background: var(--tens-color);
+  border-radius: 2px;
+  border: 1px solid var(--tens-dark);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.ten-segment.faded { opacity: 0.25; }
+.ten-segment.carry-out {
+  background: var(--carry-color);
+  border-color: var(--carry-dark);
+  animation: pulse 0.6s infinite alternate;
+}
+@keyframes pulse { from{opacity:1} to{opacity:0.4} }
+
+/* A "one" cube */
+.one-cube {
+  width: 16px; height: 16px;
+  background: var(--ones-color);
+  border-radius: 3px;
+  border: 1px solid var(--ones-dark);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.one-cube.faded { opacity: 0.2; }
+.one-cube.carry-out {
+  background: var(--carry-color);
+  border-color: var(--carry-dark);
+  animation: pulse 0.6s infinite alternate;
+}
+
+.arrow-label {
+  font-size: 18px;
+  align-self: center;
+  color: var(--muted);
+  padding-top: 12px;
+}
+
+/* Regrouping explanation box */
+.regroup-box {
+  background: rgba(251,113,133,0.12);
+  border: 1.5px solid var(--carry-color);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--carry-color);
+  text-align: center;
+  display: none;
+}
+.regroup-box.show { display: block; }
+
+/* Step guide */
+.step-guide {
+  width: 100%;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.step.active { color: var(--white); }
+.step.done   { color: var(--green); }
+.step-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--card2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+.step.active .step-num { background: var(--tens-color); color: #1a1a1a; }
+.step.done   .step-num { background: var(--green); color: #1a1a1a; }
+
+/* Feedback */
+.feedback-banner {
+  width: 100%;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+  display: none;
+}
+.feedback-banner.show { display: block; }
+.feedback-banner.correct { background: rgba(74,222,128,0.18); color: var(--green); border: 1.5px solid var(--green); }
+.feedback-banner.wrong   { background: rgba(248,113,113,0.18); color: var(--red);   border: 1.5px solid var(--red); }
+.feedback-banner .sub { font-size: 13px; font-weight: 500; margin-top: 4px; opacity: 0.85; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 10px; width: 100%; }
+.check-btn, .next-btn {
+  flex: 1;
+  padding: 14px;
+  font-size: 17px;
+  font-weight: 800;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+}
+.check-btn { background: var(--tens-color); color: #1a1a1a; }
+.check-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+.check-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+.next-btn  { background: var(--ones-color); color: #1a1a1a; display: none; }
+.next-btn:hover  { opacity: 0.88; transform: translateY(-2px); }
+.next-btn.show   { display: block; }
+
+/* Progress */
+.progress-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.progress-track { flex:1; height:10px; background:var(--card2); border-radius:10px; overflow:hidden; }
+.progress-fill  { height:100%; background:var(--tens-color); border-radius:10px; transition:width 0.4s ease; }
+.progress-text  { font-size:13px; font-weight:700; color:var(--muted); white-space:nowrap; }
+
+/* End screen */
+.end-screen { display:none; flex-direction:column; align-items:center; text-align:center; gap:16px; padding:10px 0 20px; width:100%; }
+.end-screen.show { display:flex; }
+.end-trophy { font-size:80px; animation: eb 0.9s infinite alternate; }
+@keyframes eb { from{transform:translateY(0)} to{transform:translateY(-12px)} }
+.end-title { font-size:30px; font-weight:900; color:var(--tens-color); }
+.end-msg   { font-size:16px; color:var(--muted); max-width:340px; }
+.end-stats { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+.stat-box  { background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:14px 22px; min-width:90px; }
+.stat-num  { font-size:32px; font-weight:900; color:var(--tens-color); }
+.stat-lbl  { font-size:12px; color:var(--muted); }
+.play-again-btn {
+  padding:14px 40px; font-size:18px; font-weight:800; border:none;
+  border-radius:var(--radius); background:var(--tens-color); color:#1a1a1a;
+  cursor:pointer; transition:transform 0.1s;
+}
+.play-again-btn:hover { transform:translateY(-2px); }
+
+/* Floater */
+.floater { position:fixed; font-size:28px; pointer-events:none; z-index:200; animation:floatUp 1s ease forwards; }
+@keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-110px) scale(1.3);opacity:0} }
+</style>
+</head>
+<body>
+<div class="game-wrap">
+  <div class="logo">🧱 Block <span>Builder</span></div>
+
+  <div class="topbar">
+    <div class="mode-group">
+      <button class="mode-btn active" onclick="setMode('add')">➕ Add</button>
+      <button class="mode-btn"        onclick="setMode('sub')">➖ Sub</button>
+      <button class="mode-btn"        onclick="setMode('mix')">🔀 Mix</button>
+    </div>
+    <div class="score-pill">🧱 <span id="scoreNum">0</span> pts</div>
+  </div>
+
+  <div id="gameArea" style="width:100%;display:flex;flex-direction:column;gap:14px;align-items:center;">
+
+    <!-- Column problem -->
+    <div class="problem-area">
+      <div class="problem-label">Solve step by step</div>
+
+      <div class="column-wrap">
+        <!-- Column headers -->
+        <div class="col-headers" style="padding-right:0;margin-right:0;">
+          <div style="width:40px;"></div><!-- op spacer -->
+          <div class="col-header tens">Tens</div>
+          <div class="col-header ones">Ones</div>
+        </div>
+
+        <!-- Carry / borrow row -->
+        <div class="carry-row" id="carryRow">
+          <div style="width:40px;"></div>
+          <div class="carry-cell" id="carryTens"></div>
+          <div class="carry-cell" id="carryOnes"></div>
+        </div>
+
+        <!-- Top number -->
+        <div class="num-row">
+          <div class="op-label"></div>
+          <div class="num-cell tens-digit" id="topTens">4</div>
+          <div class="num-cell ones-digit" id="topOnes">7</div>
+        </div>
+
+        <!-- Bottom number -->
+        <div class="num-row">
+          <div class="op-label" id="opLabel">+</div>
+          <div class="num-cell tens-digit" id="botTens">3</div>
+          <div class="num-cell ones-digit" id="botOnes">8</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Answer inputs -->
+        <div class="answer-row">
+          <div style="width:40px;"></div>
+          <div class="answer-cell">
+            <input class="digit-input tens-input" id="inTens" type="number" min="0" max="9" maxlength="1" placeholder="?" inputmode="numeric">
+          </div>
+          <div class="answer-cell">
+            <input class="digit-input ones-input" id="inOnes" type="number" min="0" max="9" maxlength="1" placeholder="?" inputmode="numeric">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Block visual -->
+    <div class="blocks-area">
+      <div class="blocks-title">See it with blocks</div>
+      <div id="blocksViz"></div>
+      <div class="regroup-box" id="regroupBox"></div>
+    </div>
+
+    <!-- Step guide -->
+    <div class="step-guide" id="stepGuide">
+      <div class="step active" id="step1">
+        <div class="step-num">1</div>
+        <div id="step1text">Add the <strong style="color:var(--ones-color)">ones</strong> column first</div>
+      </div>
+      <div class="step" id="step2">
+        <div class="step-num">2</div>
+        <div id="step2text">Regroup if needed</div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-num">3</div>
+        <div id="step3text">Add the <strong style="color:var(--tens-color)">tens</strong> column</div>
+      </div>
+    </div>
+
+    <!-- Feedback -->
+    <div class="feedback-banner" id="feedbackBanner">
+      <div id="feedbackMain"></div>
+      <div class="sub" id="feedbackSub"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="check-btn" id="checkBtn" onclick="checkAnswer()">✓ Check answer</button>
+      <button class="next-btn"  id="nextBtn"  onclick="nextQuestion()">Next →</button>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <span class="progress-text" id="progressText">0 / 10</span>
+    </div>
+  </div>
+
+  <div class="end-screen" id="endScreen">
+    <div class="end-trophy" id="endTrophy">🏆</div>
+    <div class="end-title"  id="endTitle">Amazing!</div>
+    <div class="end-msg"    id="endMsg"></div>
+    <div class="end-stats">
+      <div class="stat-box"><div class="stat-num" id="statScore">0</div><div class="stat-lbl">Points</div></div>
+      <div class="stat-box"><div class="stat-num" id="statCorrect">0/10</div><div class="stat-lbl">Correct</div></div>
+    </div>
+    <button class="play-again-btn" onclick="restartGame()">Play again 🧱</button>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+const ROUNDS = 10;
+let gameMode = 'add';
+let questions = [], currentIndex = 0, score = 0, correct = 0;
+let currentQ = null, answered = false, onesCorrect = false;
+
+// ── Mode ──────────────────────────────────────────────────────
+function setMode(m) {
+  gameMode = m;
+  document.querySelectorAll('.mode-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['add','sub','mix'][i]===m);
+  });
+  restartGame();
+}
+
+// ── Question generation ───────────────────────────────────────
+function randInt(lo, hi){ return Math.floor(Math.random()*(hi-lo+1))+lo; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a; }
+
+function makeAddQuestion(forceRegroup) {
+  let a, b;
+  let attempts = 0;
+  do {
+    a = randInt(11, 89);
+    b = randInt(11, 89 - (a - 10));
+    attempts++;
+  } while (
+    a + b > 99 ||
+    (forceRegroup && (a % 10) + (b % 10) < 10 && attempts < 30)
+  );
+  const needsRegroup = (a % 10) + (b % 10) >= 10;
+  return { op: '+', a, b, ans: a + b, needsRegroup };
+}
+
+function makeSubQuestion(forceRegroup) {
+  let a, b;
+  let attempts = 0;
+  do {
+    a = randInt(21, 99);
+    b = randInt(11, a - 10);
+    attempts++;
+  } while (
+    b < 10 || b >= a ||
+    (forceRegroup && (a % 10) >= (b % 10) && attempts < 30)
+  );
+  const needsRegroup = (a % 10) < (b % 10);
+  return { op: '-', a, b, ans: a - b, needsRegroup };
+}
+
+function generateQuestions() {
+  // Mix regrouping and non-regrouping, always include some of each
+  const qs = [];
+  for (let i = 0; i < ROUNDS; i++) {
+    const forceRegroup = i % 2 === 0; // alternate
+    const op = gameMode === 'mix' ? (Math.random()<0.5?'+':'-')
+             : gameMode === 'add' ? '+' : '-';
+    qs.push(op === '+' ? makeAddQuestion(forceRegroup) : makeSubQuestion(forceRegroup));
+  }
+  questions = qs;
+}
+
+// ── Block visual ───────────────────────────────────────────────
+function makeTenRod(faded, carryOut) {
+  const rod = document.createElement('div');
+  rod.className = 'ten-rod';
+  for (let i = 0; i < 10; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'ten-segment' + (faded ? ' faded' : '') + (carryOut ? ' carry-out' : '');
+    rod.appendChild(seg);
+  }
+  return rod;
+}
+
+function makeOneCube(faded, carryOut) {
+  const c = document.createElement('div');
+  c.className = 'one-cube' + (faded ? ' faded' : '') + (carryOut ? ' carry-out' : '');
+  return c;
+}
+
+function buildBlocksViz(q) {
+  const viz = document.getElementById('blocksViz');
+  viz.innerHTML = '';
+
+  const aTens = Math.floor(q.a / 10), aOnes = q.a % 10;
+  const bTens = Math.floor(q.b / 10), bOnes = q.b % 10;
+  const ansTens = Math.floor(q.ans / 10), ansOnes = q.ans % 10;
+
+  if (q.op === '+') {
+    buildAddViz(viz, aTens, aOnes, bTens, bOnes, q.needsRegroup, ansTens, ansOnes, q);
+  } else {
+    buildSubViz(viz, aTens, aOnes, bTens, bOnes, q.needsRegroup, ansTens, ansOnes, q);
+  }
+}
+
+function buildAddViz(viz, aTens, aOnes, bTens, bOnes, regroups, ansTens, ansOnes, q) {
+  // Row 1: first number
+  const row1 = makeBlockRow(`${q.a}  =`, aTens, aOnes, 't');
+  viz.appendChild(row1);
+  // Row 2: second number
+  const op = document.createElement('div');
+  op.style.cssText = 'font-size:20px;font-weight:900;color:var(--muted);padding:4px 0 2px;';
+  op.textContent = '＋';
+  viz.appendChild(op);
+  const row2 = makeBlockRow(`${q.b}  =`, bTens, bOnes, 't');
+  viz.appendChild(row2);
+
+  // Regroup callout
+  const rgBox = document.getElementById('regroupBox');
+  if (regroups) {
+    const onesSum = aOnes + bOnes;
+    rgBox.className = 'regroup-box show';
+    rgBox.innerHTML = `<strong>🔄 Regroup!</strong> ${aOnes} + ${bOnes} = ${onesSum} ones → that's <strong>1 ten</strong> and <strong>${onesSum - 10} ones</strong>. Carry the 1!`;
+  } else {
+    rgBox.className = 'regroup-box';
+  }
+}
+
+function buildSubViz(viz, aTens, aOnes, bTens, bOnes, regroups, ansTens, ansOnes, q) {
+  const row1 = makeBlockRow(`${q.a}  =`, aTens, aOnes, 't');
+  viz.appendChild(row1);
+
+  const op = document.createElement('div');
+  op.style.cssText = 'font-size:20px;font-weight:900;color:var(--muted);padding:4px 0 2px;';
+  op.textContent = '－';
+  viz.appendChild(op);
+
+  const row2 = makeBlockRow(`${q.b}  =`, bTens, bOnes, 's');
+  viz.appendChild(row2);
+
+  const rgBox = document.getElementById('regroupBox');
+  if (regroups) {
+    rgBox.className = 'regroup-box show';
+    rgBox.innerHTML = `<strong>🔄 Regroup!</strong> Can't take ${bOnes} from ${aOnes}. Borrow 1 ten → now we have <strong>${aOnes + 10} ones</strong> and <strong>${aTens - 1} tens</strong>.`;
+  } else {
+    rgBox.className = 'regroup-box';
+  }
+}
+
+function makeBlockRow(label, tens, ones, type) {
+  const row = document.createElement('div');
+  row.className = 'blocks-row';
+
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'font-size:13px;font-weight:700;color:var(--muted);min-width:44px;align-self:center;';
+  lbl.textContent = label;
+  row.appendChild(lbl);
+
+  // Tens group
+  if (tens > 0) {
+    const tg = document.createElement('div');
+    tg.className = 'block-group';
+    const tl = document.createElement('div');
+    tl.className = 'block-group-label t';
+    tl.textContent = `${tens} ten${tens>1?'s':''}`;
+    const tr = document.createElement('div');
+    tr.className = 'tens-blocks';
+    for (let i = 0; i < tens; i++) tr.appendChild(makeTenRod(false, false));
+    tg.appendChild(tl); tg.appendChild(tr);
+    row.appendChild(tg);
+  }
+
+  // Ones group
+  if (ones > 0) {
+    const og = document.createElement('div');
+    og.className = 'block-group';
+    const ol = document.createElement('div');
+    ol.className = 'block-group-label o';
+    ol.textContent = `${ones} one${ones>1?'s':''}`;
+    const or_ = document.createElement('div');
+    or_.className = 'ones-blocks';
+    for (let i = 0; i < ones; i++) or_.appendChild(makeOneCube(false, false));
+    og.appendChild(ol); og.appendChild(or_);
+    row.appendChild(og);
+  }
+
+  return row;
+}
+
+// ── Carry / borrow bubble display ─────────────────────────────
+function showCarryBubble(col, val) {
+  const cell = document.getElementById(col === 'ones' ? 'carryOnes' : 'carryTens');
+  cell.innerHTML = '';
+  const bubble = document.createElement('div');
+  bubble.className = 'carry-bubble';
+  bubble.textContent = val;
+  cell.appendChild(bubble);
+  requestAnimationFrame(() => bubble.classList.add('show'));
+}
+function clearCarry() {
+  ['carryOnes','carryTens'].forEach(id => document.getElementById(id).innerHTML = '');
+}
+
+// ── Steps ─────────────────────────────────────────────────────
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('step'+i);
+    el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+  });
+}
+
+function updateStepText(q) {
+  const onesWord = q.op === '+' ? 'Add' : 'Subtract';
+  const tensWord = q.op === '+' ? 'Add' : 'Subtract';
+  document.getElementById('step1text').innerHTML =
+    `${onesWord} the <strong style="color:var(--ones-color)">ones</strong>: ${q.a%10} ${q.op} ${q.b%10}`;
+  document.getElementById('step2text').innerHTML = q.needsRegroup
+    ? (q.op==='+' ? `🔄 Regroup! Write the ones digit, carry the 1` : `🔄 Regroup! Borrow 1 ten, then subtract`)
+    : `No regrouping needed ✓`;
+  document.getElementById('step3text').innerHTML =
+    `${tensWord} the <strong style="color:var(--tens-color)">tens</strong>: ${Math.floor(q.a/10)} ${q.op} ${Math.floor(q.b/10)}${q.needsRegroup ? (q.op==='+'?' + 1 carried':' (after borrowing)') : ''}`;
+}
+
+// ── Input auto-advance & live feedback ────────────────────────
+function setupInputs(q) {
+  const inOnes = document.getElementById('inOnes');
+  const inTens = document.getElementById('inTens');
+
+  inOnes.value = ''; inTens.value = '';
+  inOnes.className = 'digit-input ones-input';
+  inTens.className = 'digit-input tens-input';
+  inOnes.disabled = false; inTens.disabled = false;
+  inOnes.focus();
+
+  // Live check ones as they type
+  inOnes.oninput = () => {
+    const raw = inOnes.value.replace(/[^0-9]/g,'');
+    inOnes.value = raw.slice(-1);
+    if (inOnes.value === '') return;
+
+    const correctOnes = q.ans % 10;
+    if (parseInt(inOnes.value) === correctOnes) {
+      inOnes.className = 'digit-input ones-input correct';
+      onesCorrect = true;
+      setStep(2);
+      // Show carry/borrow after short delay
+      setTimeout(() => {
+        if (q.needsRegroup) {
+          showCarryBubble('tens', q.op === '+' ? 1 : '↩');
+        }
+        setStep(3);
+        inTens.focus();
+      }, 350);
+    } else {
+      inOnes.className = 'digit-input ones-input wrong';
+      onesCorrect = false;
+    }
+  };
+
+  inTens.oninput = () => {
+    const raw = inTens.value.replace(/[^0-9]/g,'');
+    inTens.value = raw.slice(-1);
+  };
+}
+
+// ── Render question ────────────────────────────────────────────
+function renderQuestion() {
+  const q = questions[currentIndex];
+  currentQ = q;
+  answered = false;
+  onesCorrect = false;
+
+  document.getElementById('opLabel').textContent = q.op;
+  document.getElementById('topTens').textContent = Math.floor(q.a / 10);
+  document.getElementById('topOnes').textContent = q.a % 10;
+  document.getElementById('botTens').textContent = Math.floor(q.b / 10);
+  document.getElementById('botOnes').textContent = q.b % 10;
+
+  clearCarry();
+  buildBlocksViz(q);
+  updateStepText(q);
+  setStep(1);
+
+  document.getElementById('feedbackBanner').className = 'feedback-banner';
+  document.getElementById('checkBtn').disabled = false;
+  document.getElementById('checkBtn').style.display = '';
+  document.getElementById('nextBtn').classList.remove('show');
+
+  const pct = Math.round((currentIndex / ROUNDS) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${currentIndex} / ${ROUNDS}`;
+
+  setupInputs(q);
+}
+
+// ── Check ──────────────────────────────────────────────────────
+function checkAnswer() {
+  if (answered) return;
+  const q = currentQ;
+  const inOnes = document.getElementById('inOnes');
+  const inTens = document.getElementById('inTens');
+
+  const onesVal = parseInt(inOnes.value);
+  const tensVal = parseInt(inTens.value);
+  const correctOnes = q.ans % 10;
+  const correctTens = Math.floor(q.ans / 10);
+
+  const onesOk = onesVal === correctOnes;
+  const tensOk = tensVal === correctTens;
+
+  inOnes.className = 'digit-input ones-input ' + (onesOk ? 'correct' : 'wrong');
+  inTens.className = 'digit-input tens-input ' + (tensOk ? 'correct' : 'wrong');
+
+  const banner = document.getElementById('feedbackBanner');
+  const main   = document.getElementById('feedbackMain');
+  const sub    = document.getElementById('feedbackSub');
+
+  if (onesOk && tensOk) {
+    answered = true;
+    score += q.needsRegroup ? 15 : 10;
+    correct++;
+    document.getElementById('scoreNum').textContent = score;
+    setStep(4); // all done
+
+    const msgs = ['🎉 Perfect!','⭐ Excellent!','🌟 Nailed it!','✅ Great work!'];
+    main.textContent = msgs[0|Math.random()*msgs.length];
+    sub.textContent = q.needsRegroup
+      ? `You handled the regrouping perfectly! ${q.a} ${q.op} ${q.b} = ${q.ans}`
+      : `Well done! ${q.a} ${q.op} ${q.b} = ${q.ans}`;
+    banner.className = 'feedback-banner correct show';
+    spawnFloaters(['🎉','⭐','🧱','✅']);
+
+    inOnes.disabled = true; inTens.disabled = true;
+    document.getElementById('checkBtn').style.display = 'none';
+    document.getElementById('nextBtn').classList.add('show');
+  } else {
+    const hints = [];
+    if (!onesOk) hints.push(`Ones: ${q.a%10} ${q.op} ${q.b%10}${q.needsRegroup && q.op==='-'?' (after borrowing +10)':''} = ${correctOnes}`);
+    if (!tensOk) hints.push(`Tens: ${Math.floor(q.a/10)} ${q.op} ${Math.floor(q.b/10)}${q.needsRegroup?(q.op==='+'?' + 1':' − 1 (borrowed)'):''} = ${correctTens}`);
+    main.textContent = '🤔 Not quite — check your work!';
+    sub.textContent = hints.join('  •  ');
+    banner.className = 'feedback-banner wrong show';
+
+    // Show correct carry if they missed it
+    if (q.needsRegroup) showCarryBubble('tens', q.op === '+' ? 1 : '↩');
+  }
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= ROUNDS) showEndScreen();
+  else renderQuestion();
+}
+
+function showEndScreen() {
+  document.getElementById('gameArea').style.display = 'none';
+  const end = document.getElementById('endScreen');
+  end.className = 'end-screen show';
+  const pct = Math.round((correct/ROUNDS)*100);
+  let trophy, title, msg;
+  if (pct===100) { trophy='🌟'; title='Perfect builder!'; msg='You mastered regrouping — that\'s a seriously big math skill!'; }
+  else if (pct>=70) { trophy='🏆'; title='Great work!'; msg='Regrouping is tricky and you\'re getting it. Keep building!'; }
+  else { trophy='💪'; title='Keep building!'; msg='Regrouping takes practice — play again and the blocks will start to make sense!'; }
+  document.getElementById('endTrophy').textContent = trophy;
+  document.getElementById('endTitle').textContent = title;
+  document.getElementById('endMsg').textContent = msg;
+  document.getElementById('statScore').textContent = score;
+  document.getElementById('statCorrect').textContent = correct+'/'+ROUNDS;
+}
+
+function restartGame() {
+  score=0; correct=0; currentIndex=0;
+  document.getElementById('scoreNum').textContent = 0;
+  document.getElementById('endScreen').className = 'end-screen';
+  document.getElementById('gameArea').style.display = '';
+  generateQuestions();
+  renderQuestion();
+}
+
+function spawnFloaters(emojis) {
+  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+  emojis.forEach((e, i) => {
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = e;
+    el.style.left = (cx + (Math.random()-0.5)*100) + 'px';
+    el.style.top  = (cy + (Math.random()-0.5)*60) + 'px';
+    el.style.animationDelay = (i*0.1)+'s';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 1300);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────
+generateQuestions();
+renderQuestion();
+</script>
+</body>
+</html>

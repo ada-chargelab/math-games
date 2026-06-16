@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corner Store — Math Game</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #fdf6e3; --shelf: #c8a96e; --shelf-dark: #8b6914;
+  --sign-red: #d63031; --sign-green: #00b894; --blue: #0984e3;
+  --text: #2d1b00; --muted: #8b6914; --card: #fffdf5;
+  --gold: #f5a623; --green: #27ae60; --red: #e74c3c;
+  --shadow: rgba(0,0,0,0.12); --radius: 16px;
+}
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; padding: 0 0 60px; overflow-x: hidden;
+}
+/* ── HEADER ── */
+.store-sign { width:100%; background:var(--sign-red); text-align:center; padding:12px 16px; }
+.store-name { font-size:28px; font-weight:900; color:white; letter-spacing:2px; text-shadow:2px 2px 0 rgba(0,0,0,0.3); }
+.store-sub  { font-size:12px; color:rgba(255,255,255,0.8); letter-spacing:3px; text-transform:uppercase; }
+
+/* ── ROLE PICKER ── */
+.role-screen { display:flex; flex-direction:column; align-items:center; gap:20px; padding:32px 16px; width:100%; max-width:640px; margin:0 auto; }
+.role-title  { font-size:22px; font-weight:900; text-align:center; }
+.role-cards  { display:flex; gap:20px; width:100%; flex-wrap:wrap; }
+.role-card   { flex:1; min-width:220px; background:var(--card); border-radius:20px; border:3px solid transparent; padding:28px 20px; text-align:center; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 4px 20px var(--shadow); }
+.role-card:hover { transform:translateY(-4px); box-shadow:0 8px 28px var(--shadow); }
+.role-card.shopper { border-color:var(--blue); }
+.role-card.cashier { border-color:var(--sign-green); }
+.role-emoji { font-size:64px; display:block; margin-bottom:12px; }
+.role-label { font-size:22px; font-weight:900; margin-bottom:6px; }
+.role-card.shopper .role-label { color:var(--blue); }
+.role-card.cashier .role-label { color:var(--sign-green); }
+.role-desc  { font-size:14px; color:var(--muted); line-height:1.5; }
+
+/* ── GAME WRAP ── */
+.game-screen { display:none; flex-direction:column; width:100%; max-width:860px; margin:0 auto; padding:0 12px 20px; gap:14px; }
+.game-screen.show { display:flex; }
+.game-topbar { display:flex; align-items:center; justify-content:space-between; padding:10px 4px 0; gap:10px; }
+.back-btn { padding:7px 14px; border-radius:10px; border:2px solid var(--shelf); background:var(--card); font-size:13px; font-weight:700; cursor:pointer; color:var(--muted); transition:all 0.15s; }
+.back-btn:hover { background:var(--shelf); color:white; }
+.score-pill { display:flex; align-items:center; gap:6px; background:var(--card); border:2px solid var(--shelf); border-radius:20px; padding:6px 14px; font-size:14px; font-weight:800; }
+.score-pill span { color:var(--sign-red); }
+.round-pill { font-size:13px; font-weight:700; color:var(--muted); background:var(--card); border:2px solid var(--shelf); border-radius:20px; padding:6px 14px; }
+
+/* ── STEP INDICATOR ── */
+.step-indicator { display:flex; align-items:center; gap:0; width:100%; }
+.step-dot { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+.step-circle {
+  width:32px; height:32px; border-radius:50%; border:2.5px solid #ddd;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:900; color:#ccc; background:white;
+  transition:all 0.25s;
+}
+.step-circle.active { border-color:var(--blue); color:var(--blue); background:#e8f4ff; }
+.step-circle.done   { border-color:var(--green); color:white; background:var(--green); }
+.step-label { font-size:10px; font-weight:700; color:#ccc; text-align:center; text-transform:uppercase; letter-spacing:0.5px; transition:color 0.25s; }
+.step-label.active { color:var(--blue); }
+.step-label.done   { color:var(--green); }
+.step-line { height:2.5px; flex:1; background:#eee; margin-top:-18px; transition:background 0.25s; }
+.step-line.done { background:var(--green); }
+
+/* ── STORE LAYOUT ── */
+.store-layout { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:580px) { .store-layout { grid-template-columns:1fr; } }
+
+.shelves-panel { background:var(--card); border-radius:var(--radius); border:2px solid var(--shelf); overflow:hidden; box-shadow:0 3px 16px var(--shadow); }
+.panel-header  { background:var(--shelf); padding:10px 14px; font-size:13px; font-weight:800; color:white; text-transform:uppercase; letter-spacing:0.8px; display:flex; align-items:center; gap:8px; }
+
+.shelves-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:12px; }
+.shelf-item {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  background:var(--bg); border-radius:12px; border:2px solid transparent;
+  padding:10px 6px 8px; cursor:pointer; transition:all 0.15s; position:relative;
+}
+.shelf-item:hover { border-color:var(--blue); background:#e8f4ff; transform:scale(1.04); }
+.shelf-item.in-cart { border-color:var(--green); background:#e8f8ee; }
+.shelf-item.disabled { opacity:0.45; cursor:default; pointer-events:none; }
+.item-emoji { font-size:28px; }
+.item-name  { font-size:11px; font-weight:700; text-align:center; }
+.item-price { font-size:12px; font-weight:900; background:var(--sign-red); color:white; border-radius:6px; padding:2px 7px; }
+.cart-badge { position:absolute; top:-6px; right:-6px; width:20px; height:20px; background:var(--green); color:white; border-radius:50%; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+
+.cart-panel  { background:var(--card); border-radius:var(--radius); border:2px solid var(--shelf); overflow:hidden; box-shadow:0 3px 16px var(--shadow); display:flex; flex-direction:column; }
+.cart-items  { flex:1; padding:12px; display:flex; flex-direction:column; gap:6px; min-height:140px; }
+.cart-row    { display:flex; align-items:center; justify-content:space-between; background:var(--bg); border-radius:10px; padding:7px 10px; font-size:14px; font-weight:700; gap:8px; animation:slideIn 0.2s ease; }
+@keyframes slideIn { from{transform:translateX(-10px);opacity:0} to{transform:translateX(0);opacity:1} }
+.cart-row-left  { display:flex; align-items:center; gap:8px; }
+.cart-row-emoji { font-size:20px; }
+.cart-row-name  { font-size:13px; }
+.cart-row-price { font-size:14px; font-weight:900; color:var(--sign-red); }
+.remove-btn     { background:none; border:none; cursor:pointer; font-size:16px; color:#ccc; padding:0 2px; transition:color 0.1s; }
+.remove-btn:hover { color:var(--red); }
+.cart-empty { text-align:center; color:var(--muted); font-size:14px; padding:24px 0; opacity:0.7; }
+.cart-total-bar { border-top:2px solid var(--shelf); padding:10px 14px; }
+.total-row { display:flex; justify-content:space-between; align-items:center; }
+.total-label  { font-size:13px; font-weight:700; color:var(--muted); }
+.total-amount { font-size:26px; font-weight:900; }
+.total-hidden { font-size:26px; font-weight:900; color:#ccc; letter-spacing:3px; }
+
+/* ── STEP PANELS ── */
+.step-panel { background:var(--card); border-radius:var(--radius); border:2px solid var(--shelf); box-shadow:0 3px 16px var(--shadow); overflow:hidden; display:none; }
+.step-panel.show { display:block; }
+
+/* Step 1: answer total */
+.total-question { padding:20px; text-align:center; }
+.total-question .q-label { font-size:14px; font-weight:700; color:var(--muted); margin-bottom:10px; }
+.total-question .q-items { font-size:13px; color:var(--text); margin-bottom:16px; line-height:1.8; }
+.total-choices  { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.total-choice   {
+  min-width:80px; padding:14px 12px; font-size:22px; font-weight:900;
+  border-radius:14px; border:2px solid #ddd; background:white;
+  color:var(--text); cursor:pointer; transition:all 0.15s;
+  box-shadow:0 2px 8px var(--shadow);
+}
+.total-choice:hover { border-color:var(--blue); background:#e8f4ff; transform:translateY(-2px); }
+.total-choice.correct { background:var(--green); border-color:var(--green); color:white; animation:pop 0.3s; }
+.total-choice.wrong   { background:var(--red);   border-color:var(--red);   color:white; animation:waggle 0.3s; }
+@keyframes pop    { 0%{transform:scale(1)} 50%{transform:scale(1.12)} 100%{transform:scale(1)} }
+@keyframes waggle { 0%,100%{transform:translateX(0)} 30%{transform:translateX(-8px)} 60%{transform:translateX(8px)} }
+
+/* Step 2: pay with coins */
+.payment-section { padding:0; }
+.coin-bank   { padding:12px 14px; display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; border-bottom:1.5px solid #eee; }
+.coin-stack  { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; transition:transform 0.1s; }
+.coin-stack:hover  { transform:translateY(-3px); }
+.coin-stack:active { transform:scale(0.94); }
+.coin-name   { font-size:11px; font-weight:800; color:var(--muted); }
+.wallet-area { padding:10px 14px; min-height:64px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; border-bottom:1.5px solid #eee; }
+.wallet-coin { cursor:pointer; transition:transform 0.1s; }
+.wallet-coin:hover { transform:scale(1.1); }
+.wallet-empty { font-size:13px; color:#ccc; font-weight:600; }
+.pay-info    { padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+.pay-stat    { font-size:13px; font-weight:700; color:var(--muted); }
+.pay-stat .val { font-size:20px; font-weight:900; display:block; color:var(--text); }
+
+/* Step 3: how much change? */
+.change-question { padding:20px; text-align:center; }
+.change-question .q-label { font-size:14px; font-weight:700; color:var(--muted); margin-bottom:6px; }
+.change-question .q-math  { font-size:22px; font-weight:900; color:var(--text); margin-bottom:16px; }
+.change-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.change-choice  {
+  min-width:80px; padding:14px 12px; font-size:22px; font-weight:900;
+  border-radius:14px; border:2px solid #ddd; background:white;
+  color:var(--text); cursor:pointer; transition:all 0.15s;
+  box-shadow:0 2px 8px var(--shadow);
+}
+.change-choice:hover { border-color:var(--gold); background:#fff8e8; transform:translateY(-2px); }
+.change-choice.correct { background:var(--green); border-color:var(--green); color:white; animation:pop 0.3s; }
+.change-choice.wrong   { background:var(--red);   border-color:var(--red);   color:white; animation:waggle 0.3s; }
+
+/* ── RECEIPT ── */
+.receipt { background:white; border-radius:4px; padding:20px; max-width:320px; margin:0 auto; box-shadow:0 4px 20px var(--shadow); font-family:'Courier New',monospace; border:1px dashed #ccc; display:none; }
+.receipt.show { display:block; }
+.receipt-header { text-align:center; font-size:16px; font-weight:900; margin-bottom:12px; }
+.receipt-row    { display:flex; justify-content:space-between; font-size:13px; padding:3px 0; border-bottom:1px dotted #eee; }
+.receipt-total  { display:flex; justify-content:space-between; font-size:15px; font-weight:900; padding:8px 0 4px; }
+.receipt-change { text-align:center; font-size:18px; font-weight:900; color:var(--green); margin-top:8px; }
+
+/* ── FEEDBACK ── */
+.feedback-banner { border-radius:var(--radius); padding:14px 18px; font-size:17px; font-weight:800; text-align:center; display:none; }
+.feedback-banner.show { display:block; }
+.feedback-banner.correct { background:#d4edda; color:#155724; border:2px solid #c3e6cb; }
+.feedback-banner.wrong   { background:#f8d7da; color:#721c24; border:2px solid #f5c6cb; }
+.feedback-banner .sub    { font-size:13px; font-weight:500; margin-top:4px; }
+
+/* ── BUTTONS ── */
+.btn-row { display:flex; gap:10px; padding:0 2px; }
+.primary-btn   { flex:1; padding:14px; font-size:17px; font-weight:800; border:none; border-radius:var(--radius); background:var(--sign-red); color:white; cursor:pointer; box-shadow:0 4px 14px rgba(214,48,49,0.3); transition:transform 0.1s,opacity 0.15s; }
+.primary-btn:hover    { opacity:0.88; transform:translateY(-2px); }
+.primary-btn:disabled { opacity:0.35; cursor:default; transform:none; box-shadow:none; }
+.secondary-btn { padding:14px 20px; font-size:15px; font-weight:800; border:2px solid var(--shelf); border-radius:var(--radius); background:var(--card); color:var(--muted); cursor:pointer; transition:all 0.15s; }
+.secondary-btn:hover { background:var(--shelf); color:white; }
+
+/* ── END SCREEN ── */
+.end-screen { display:none; flex-direction:column; align-items:center; text-align:center; gap:16px; padding:30px 16px; max-width:500px; margin:0 auto; }
+.end-screen.show { display:flex; }
+.end-trophy { font-size:80px; animation:bounce 0.9s infinite alternate; }
+@keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-12px)} }
+.end-title  { font-size:28px; font-weight:900; }
+.end-msg    { font-size:16px; color:var(--muted); }
+.end-stats  { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+.stat-box   { background:var(--card); border:2px solid var(--shelf); border-radius:14px; padding:14px 20px; min-width:90px; }
+.stat-num   { font-size:30px; font-weight:900; color:var(--sign-red); }
+.stat-lbl   { font-size:12px; color:var(--muted); }
+.play-again-btn { padding:14px 40px; font-size:18px; font-weight:800; border:none; border-radius:var(--radius); background:var(--sign-red); color:white; cursor:pointer; box-shadow:0 4px 14px rgba(214,48,49,0.3); transition:transform 0.1s; }
+.play-again-btn:hover { transform:translateY(-2px); }
+
+.floater { position:fixed; font-size:28px; pointer-events:none; z-index:200; animation:floatUp 1s ease forwards; }
+@keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-110px) scale(1.3);opacity:0} }
+</style>
+</head>
+<body>
+
+<div class="store-sign">
+  <div class="store-name">🏪 CORNER STORE</div>
+  <div class="store-sub">Math Shopping Game</div>
+</div>
+
+<!-- Role picker -->
+<div class="role-screen" id="roleScreen">
+  <div class="role-title">Who do you want to be today?</div>
+  <div class="role-cards">
+    <div class="role-card shopper" onclick="startGame('shopper')">
+      <span class="role-emoji">🛒</span>
+      <div class="role-label">Shopper</div>
+      <div class="role-desc">Pick 2–4 items, add up the total, pay with coins, then figure out your change!</div>
+    </div>
+    <div class="role-card cashier" onclick="startGame('cashier')">
+      <span class="role-emoji">💁🏻‍♀️</span>
+      <div class="role-label">Cashier</div>
+      <div class="role-desc">A customer brings items — work out the total and give back the right change!</div>
+    </div>
+  </div>
+</div>
+
+<!-- Game screen -->
+<div class="game-screen" id="gameScreen">
+  <div class="game-topbar">
+    <button class="back-btn" onclick="goHome()">← Change role</button>
+    <div class="round-pill" id="roundPill">Round 1 / 5</div>
+    <div class="score-pill">⭐ <span id="scoreNum">0</span> pts</div>
+  </div>
+
+  <!-- Step indicator (shopper only) -->
+  <div class="step-indicator" id="stepIndicator" style="display:none;">
+    <div class="step-dot">
+      <div class="step-circle" id="sc1">1</div>
+      <div class="step-label"  id="sl1">Shop</div>
+    </div>
+    <div class="step-line" id="sline1"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="sc2">2</div>
+      <div class="step-label"  id="sl2">Total?</div>
+    </div>
+    <div class="step-line" id="sline2"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="sc3">3</div>
+      <div class="step-label"  id="sl3">Pay</div>
+    </div>
+    <div class="step-line" id="sline3"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="sc4">4</div>
+      <div class="step-label"  id="sl4">Paid?</div>
+    </div>
+    <div class="step-line" id="sline4"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="sc5">5</div>
+      <div class="step-label"  id="sl5">Change?</div>
+    </div>
+  </div>
+
+  <!-- Shelves + Cart always visible -->
+  <div class="store-layout">
+    <div class="shelves-panel">
+      <div class="panel-header" id="shelvesHeader">🛒  Pick your items</div>
+      <div class="shelves-grid" id="shelvesGrid"></div>
+    </div>
+    <div class="cart-panel">
+      <div class="panel-header" id="cartHeader">🧺  Your basket</div>
+      <div class="cart-items"  id="cartItems">
+        <div class="cart-empty">Tap items on the shelf to add them!</div>
+      </div>
+      <div class="cart-total-bar">
+        <div class="total-row">
+          <span class="total-label" id="totalLabel">Total</span>
+          <span id="totalDisplay" class="total-amount">0¢</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1 action: go to checkout -->
+  <div class="btn-row" id="shopBtnRow">
+    <button class="primary-btn" id="checkoutBtn" onclick="goToStep2()" disabled>
+      🧾 Go to checkout (pick 2–4 items)
+    </button>
+  </div>
+
+  <!-- Step 2: What's the total? (multiple choice) -->
+  <div class="step-panel" id="step2Panel">
+    <div class="panel-header">🤔  Step 2 — What's the total?</div>
+    <div class="total-question">
+      <div class="q-label">Add up all your items and pick the right total:</div>
+      <div class="q-items" id="step2Items"></div>
+      <div class="total-choices" id="totalChoices"></div>
+    </div>
+  </div>
+
+  <!-- Step 3: Pay with coins -->
+  <div class="step-panel" id="step3Panel">
+    <div class="panel-header" id="step3Header">💰  Step 3 — Pay with coins</div>
+    <div class="coin-bank"   id="coinBank"></div>
+    <div class="wallet-area" id="walletArea">
+      <span class="wallet-empty">Tap a coin above to add it</span>
+    </div>
+    <div class="pay-info">
+      <div class="pay-stat">You owe<span class="val" id="oweAmt">—</span></div>
+    </div>
+    <div style="padding:0 14px 12px;">
+      <div class="btn-row">
+        <button class="secondary-btn" onclick="clearWallet()">🗑 Clear</button>
+        <button class="primary-btn" id="payBtn" onclick="checkPayment()">✓ I paid this much</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3b: How much did you pay? -->
+  <div class="step-panel" id="step3bPanel">
+    <div class="panel-header">🤔  Step 4 — How much did you pay?</div>
+    <div class="total-question">
+      <div class="q-label">Count up the coins you picked — how much is that?</div>
+      <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:10px 0 14px;" id="step3bCoins"></div>
+      <div class="total-choices" id="paidChoices"></div>
+    </div>
+  </div>
+
+  <!-- Step 5: How much change? -->
+  <div class="step-panel" id="step4Panel">
+    <div class="panel-header">🪙  Step 5 — How much change do you get back?</div>
+    <div class="change-question">
+      <div class="q-label">You gave the cashier:</div>
+      <div class="q-math" id="changeMath"></div>
+      <div class="change-choices" id="changeChoices"></div>
+    </div>
+  </div>
+
+  <!-- Cashier step 5: how much change did you give? -->
+  <div class="step-panel" id="cStep5Panel">
+    <div class="panel-header">🤔  Step 5 — How much change did you give?</div>
+    <div class="total-question">
+      <div class="q-label">Count up the coins you picked — how much change is that?</div>
+      <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:10px 0 14px;" id="cStep5Coins"></div>
+      <div class="total-choices" id="cChangeChoices"></div>
+    </div>
+  </div>
+
+  <!-- Receipt -->
+  <div class="receipt" id="receiptBox"></div>
+
+  <!-- Feedback -->
+  <div class="feedback-banner" id="feedbackBanner">
+    <div id="feedbackMain"></div>
+    <div class="sub" id="feedbackSub"></div>
+  </div>
+
+  <!-- Cashier step indicator -->
+  <div class="step-indicator" id="cashierStepIndicator" style="display:none;">
+    <div class="step-dot">
+      <div class="step-circle" id="cc1">1</div>
+      <div class="step-label"  id="cl1">Items</div>
+    </div>
+    <div class="step-line" id="cline1"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="cc2">2</div>
+      <div class="step-label"  id="cl2">Total?</div>
+    </div>
+    <div class="step-line" id="cline2"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="cc3">3</div>
+      <div class="step-label"  id="cl3">Paid?</div>
+    </div>
+    <div class="step-line" id="cline3"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="cc4">4</div>
+      <div class="step-label"  id="cl4">Change?</div>
+    </div>
+    <div class="step-line" id="cline4"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="cc5">5</div>
+      <div class="step-label"  id="cl5">Pick coins</div>
+    </div>
+  </div>
+
+  <!-- Cashier step 2: what's the total? -->
+  <div class="step-panel" id="cStep2Panel">
+    <div class="panel-header">🤔  Step 2 — What's the total?</div>
+    <div class="total-question">
+      <div class="q-label">Add up the customer's items and pick the right total:</div>
+      <div class="q-items" id="cStep2Items"></div>
+      <div class="total-choices" id="cTotalChoices"></div>
+    </div>
+  </div>
+
+  <!-- Cashier step 3: what did the customer pay with? -->
+  <div class="step-panel" id="cStep3Panel">
+    <div class="panel-header">💳  Step 3 — What did the customer pay with?</div>
+    <div class="total-question">
+      <div class="q-label" id="cStep3Label">The customer hands you a coin or bill. Which one?</div>
+      <div style="display:flex;justify-content:center;margin:14px 0 10px;" id="cPaidCoinDisplay"></div>
+      <div class="total-choices" id="cPaidChoices"></div>
+    </div>
+  </div>
+
+  <!-- Cashier step 4: how much change to give? (multiple choice) -->
+  <div class="step-panel" id="cStep4Panel">
+    <div class="panel-header">🤔  Step 4 — How much change do you owe?</div>
+    <div class="total-question">
+      <div class="q-label" id="cStep4Label">The customer paid. How much change should you give back?</div>
+      <div class="total-choices" id="cChangeAmtChoices"></div>
+    </div>
+  </div>
+
+  <!-- Cashier step 5: give change with coins -->
+  <div class="step-panel" id="cashierPayPanel">
+    <div class="panel-header" id="cashierPayHeader">💰  Step 5 — Now pick the coins to give back</div>
+    <div class="coin-bank"   id="cashierCoinBank"></div>
+    <div class="wallet-area" id="cashierWalletArea">
+      <span class="wallet-empty">Tap a coin above to add it</span>
+    </div>
+    <div class="pay-info" id="cashierPayInfo">
+      <div class="pay-stat">Customer paid<span class="val">—</span></div>
+      <div class="pay-stat">They owe<span class="val">—</span></div>
+    </div>
+    <div style="padding:0 14px 12px;">
+      <div class="btn-row">
+        <button class="secondary-btn" onclick="clearCashierWallet()">🗑 Clear</button>
+        <button class="primary-btn" onclick="checkCashierChange()">✓ Give this change</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row" id="nextBtnRow" style="display:none;">
+    <button class="primary-btn" onclick="nextRound()">Next round →</button>
+  </div>
+</div>
+
+<!-- End screen -->
+<div class="end-screen" id="endScreen">
+  <div class="end-trophy" id="endTrophy">🏆</div>
+  <div class="end-title"  id="endTitle">Great shopping!</div>
+  <div class="end-msg"    id="endMsg"></div>
+  <div class="end-stats">
+    <div class="stat-box"><div class="stat-num" id="statScore">0</div><div class="stat-lbl">Points</div></div>
+    <div class="stat-box"><div class="stat-num" id="statCorrect">0/5</div><div class="stat-lbl">Correct</div></div>
+  </div>
+  <button class="play-again-btn" onclick="goHome()">Play again 🏪</button>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────
+const ALL_ITEMS = [
+  {name:'Apple',emoji:'🍎',price:15},{name:'Banana',emoji:'🍌',price:10},
+  {name:'Orange',emoji:'🍊',price:12},{name:'Grapes',emoji:'🍇',price:20},
+  {name:'Strawberry',emoji:'🍓',price:18},{name:'Milk',emoji:'🥛',price:25},
+  {name:'Bread',emoji:'🍞',price:30},{name:'Egg',emoji:'🥚',price:5},
+  {name:'Cheese',emoji:'🧀',price:35},{name:'Butter',emoji:'🧈',price:40},
+  {name:'Cookie',emoji:'🍪',price:22},{name:'Candy',emoji:'🍬',price:8},
+  {name:'Lollipop',emoji:'🍭',price:10},{name:'Juice',emoji:'🧃',price:28},
+  {name:'Water',emoji:'💧',price:15},{name:'Pencil',emoji:'✏️',price:20},
+  {name:'Sticker',emoji:'⭐',price:10},{name:'Balloon',emoji:'🎈',price:25},
+  {name:'Crayon',emoji:'🖍️',price:30},{name:'Eraser',emoji:'🔷',price:15},
+];
+
+const COINS = [
+  {name:'penny',  value:1,  label:'1¢',  draw:s=>drawCoin(s,'#c97b3a','#8a5020','#e8a060','1¢','penny')},
+  {name:'nickel', value:5,  label:'5¢',  draw:s=>drawCoin(s,'#a8b4be','#708090','#c8d4de','5¢','nickel')},
+  {name:'dime',   value:10, label:'10¢', draw:s=>drawCoin(s,'#b8c8d4','#8898a8','#d0dce8','10¢','dime')},
+  {name:'quarter',value:25, label:'25¢', draw:s=>drawCoin(s,'#c8c4bc','#989488','#dcd8d0','25¢','quarter')},
+  {name:'dollar', value:100,label:'$1',  draw:s=>drawCoin(s,'#d4af37','#a07800','#f0d060','$1','dollar')},
+];
+
+// ── State ──────────────────────────────────────────────────────
+const ROUNDS=5;
+let role='shopper', round=0, score=0, correct=0;
+let shelfItems=[], cart=[], wallet=[], cashierWallet=[];
+let shopperStep=1;   // 1=shop 2=total? 3=pay 4=change?
+let correctTotal=0, paidAmount=0, cashierPaid=0;
+let roundCorrect=0;  // steps correct this round
+
+// ── SVG coin ──────────────────────────────────────────────────
+function drawCoin(size,fill,stroke,shine,text,abbr){
+  const r=size/2-2,cx=size/2,cy=size/2;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width',size);svg.setAttribute('height',size);
+  svg.setAttribute('viewBox',`0 0 ${size} ${size}`);
+  const sh=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+  sh.setAttribute('cx',cx+1);sh.setAttribute('cy',cy+2);sh.setAttribute('rx',r);sh.setAttribute('ry',r*0.3);
+  sh.setAttribute('fill','rgba(0,0,0,0.15)');svg.appendChild(sh);
+  const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);
+  c.setAttribute('fill',fill);c.setAttribute('stroke',stroke);c.setAttribute('stroke-width','2');svg.appendChild(c);
+  const rg=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  rg.setAttribute('cx',cx);rg.setAttribute('cy',cy);rg.setAttribute('r',r-4);
+  rg.setAttribute('fill','none');rg.setAttribute('stroke',stroke);rg.setAttribute('stroke-width','1');svg.appendChild(rg);
+  const sr=r-5;
+  const sp=document.createElementNS('http://www.w3.org/2000/svg','path');
+  sp.setAttribute('d',`M ${cx-sr*0.5} ${cy-sr*0.8} A ${sr} ${sr} 0 0 1 ${cx+sr*0.5} ${cy-sr*0.8}`);
+  sp.setAttribute('stroke',shine);sp.setAttribute('stroke-width','2.5');sp.setAttribute('fill','none');sp.setAttribute('stroke-linecap','round');svg.appendChild(sp);
+  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',cx);t.setAttribute('y',cy-1);t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','middle');
+  t.setAttribute('font-family','Segoe UI,system-ui,sans-serif');t.setAttribute('font-weight','900');t.setAttribute('fill',stroke);
+  t.setAttribute('font-size',size<=44?'11':size<=54?'12':'13');t.textContent=text;svg.appendChild(t);
+  const t2=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t2.setAttribute('x',cx);t2.setAttribute('y',cy+12);t2.setAttribute('text-anchor','middle');t2.setAttribute('dominant-baseline','middle');
+  t2.setAttribute('font-family','Segoe UI,system-ui,sans-serif');t2.setAttribute('font-weight','600');t2.setAttribute('fill',stroke);
+  t2.setAttribute('font-size','9');t2.setAttribute('opacity','0.65');t2.textContent=abbr;svg.appendChild(t2);
+  return svg;
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function randInt(lo,hi){return Math.floor(Math.random()*(hi-lo+1))+lo;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function fmt(c){return c<100?`${c}¢`:`$${(c/100).toFixed(2)}`;}
+function cartTotal(){return cart.reduce((s,r)=>s+r.price,0);}
+function walletTotal(){return wallet.reduce((s,c)=>s+c.value,0);}
+function cashierWalletTotal(){return cashierWallet.reduce((s,c)=>s+c.value,0);}
+
+function makeChoices(correct){
+  const s=new Set([correct]);
+  const pool=[];
+  for(const d of [-20,-15,-10,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,10,15,20,25])
+    {const v=correct+d;if(v>0&&v!==correct)pool.push(v);}
+  shuffle(pool);
+  for(const v of pool){if(s.size>=4)break;s.add(v);}
+  let fb=1;while(s.size<4){if(fb!==correct)s.add(fb);fb++;}
+  return shuffle([...s]);
+}
+
+// ── Navigation ────────────────────────────────────────────────
+function goHome(){
+  document.getElementById('roleScreen').style.display='';
+  document.getElementById('gameScreen').classList.remove('show');
+  document.getElementById('endScreen').classList.remove('show');
+  round=0;score=0;correct=0;
+}
+
+function startGame(r){
+  role=r; round=0; score=0; correct=0;
+  document.getElementById('roleScreen').style.display='none';
+  document.getElementById('gameScreen').classList.add('show');
+  document.getElementById('endScreen').classList.remove('show');
+  nextRound();
+}
+
+function nextRound(){
+  round++;
+  if(round>ROUNDS){showEndScreen();return;}
+  cart=[];wallet=[];cashierWallet=[];roundCorrect=0;
+  hideFeedback();
+  document.getElementById('nextBtnRow').style.display='none';
+  document.getElementById('roundPill').textContent=`Round ${round} / ${ROUNDS}`;
+
+  // Hide all step panels
+  ['step2Panel','step3Panel','step3bPanel','step4Panel','cStep2Panel','cStep3Panel','cStep4Panel','cashierPayPanel','cStep5Panel','receiptBox'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.className=el.className.replace(' show','');
+    if(id==='receiptBox') el.className='receipt';
+  });
+  document.getElementById('cashierStepIndicator').style.display='none';
+
+  if(role==='shopper') setupShopperRound();
+  else setupCashierRound();
+}
+
+// ── SHOPPER ───────────────────────────────────────────────────
+function setupShopperRound(){
+  shopperStep=1;
+  shelfItems=shuffle([...ALL_ITEMS]).slice(0,9);
+  document.getElementById('stepIndicator').style.display='flex';
+  document.getElementById('shelvesHeader').textContent='🛒  Pick your items (2–4)';
+  document.getElementById('cartHeader').textContent='🧺  Your basket';
+  document.getElementById('shopBtnRow').style.display='flex';
+  document.getElementById('checkoutBtn').disabled=true;
+  document.getElementById('checkoutBtn').textContent='🧾 Go to checkout (pick 2–4 items)';
+  setStep(1);
+  renderShelves(false);
+  renderCart();
+  document.getElementById('totalDisplay').textContent='0¢';
+  document.getElementById('totalDisplay').className='total-amount';
+}
+
+function setStep(n){
+  [1,2,3,4,5].forEach(i=>{
+    const c=document.getElementById('sc'+i);
+    const l=document.getElementById('sl'+i);
+    if(!c) return;
+    c.className='step-circle'+(i<n?' done':i===n?' active':'');
+    l.className='step-label'+(i<n?' done':i===n?' active':'');
+    if(i<5){
+      const ln=document.getElementById('sline'+i);
+      if(ln) ln.className='step-line'+(i<n?' done':'');
+    }
+  });
+}
+
+function renderShelves(locked){
+  const grid=document.getElementById('shelvesGrid');
+  grid.innerHTML='';
+  shelfItems.forEach(item=>{
+    const inCart=cart.some(c=>c.name===item.name);
+    const div=document.createElement('div');
+    div.className='shelf-item'+(inCart?' in-cart':'')+(locked?' disabled':'');
+    div.innerHTML=`<div class="item-emoji">${item.emoji}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-price">${fmt(item.price)}</div>
+      ${inCart?'<div class="cart-badge">✓</div>':''}`;
+    if(!locked) div.onclick=()=>toggleItem(item);
+    grid.appendChild(div);
+  });
+}
+
+function toggleItem(item){
+  if(shopperStep!==1) return;
+  const idx=cart.findIndex(c=>c.name===item.name);
+  if(idx>=0) cart.splice(idx,1);
+  else { if(cart.length>=4) return; cart.push(item); }
+  renderShelves(false);
+  renderCart();
+  document.getElementById('checkoutBtn').disabled=cart.length<2;
+  document.getElementById('checkoutBtn').textContent=
+    cart.length<2?'🧾 Go to checkout (pick 2–4 items)':'🧾 Go to checkout →';
+}
+
+function renderCart(){
+  const box=document.getElementById('cartItems');
+  box.innerHTML='';
+  if(cart.length===0){
+    box.innerHTML='<div class="cart-empty">Tap items on the shelf to add them!</div>';
+    return;
+  }
+  cart.forEach((item,i)=>{
+    const div=document.createElement('div');
+    div.className='cart-row';
+    div.innerHTML=`<div class="cart-row-left">
+        <span class="cart-row-emoji">${item.emoji}</span>
+        <span class="cart-row-name">${item.name}</span>
+      </div>
+      <span class="cart-row-price">${fmt(item.price)}</span>
+      ${role==='shopper'&&shopperStep===1?`<button class="remove-btn" onclick="removeItem(${i})">✕</button>`:''}`;
+    box.appendChild(div);
+  });
+}
+
+function removeItem(i){
+  cart.splice(i,1);
+  renderShelves(false);
+  renderCart();
+  document.getElementById('checkoutBtn').disabled=cart.length<2;
+  document.getElementById('checkoutBtn').textContent=
+    cart.length<2?'🧾 Go to checkout (pick 2–4 items)':'🧾 Go to checkout →';
+}
+
+// Step 2: what's the total?
+function goToStep2(){
+  shopperStep=2;
+  correctTotal=cartTotal();
+  renderShelves(true);  // lock shelves
+  renderCart();         // no remove buttons
+  document.getElementById('shopBtnRow').style.display='none';
+  // Hide the total
+  document.getElementById('totalDisplay').className='total-hidden';
+  document.getElementById('totalDisplay').textContent='???';
+  setStep(2);
+
+  // Build step 2 panel
+  const itemsStr=cart.map(it=>`${it.emoji} ${it.name} (${fmt(it.price)})`).join('  +  ');
+  document.getElementById('step2Items').textContent=itemsStr+' = ?';
+  const choices=makeChoices(correctTotal);
+  const box=document.getElementById('totalChoices');
+  box.innerHTML='';
+  choices.forEach(val=>{
+    const btn=document.createElement('button');
+    btn.className='total-choice';
+    btn.dataset.val=val;
+    btn.textContent=fmt(val);
+    btn.onclick=()=>handleTotalChoice(val,btn);
+    box.appendChild(btn);
+  });
+  document.getElementById('step2Panel').className='step-panel show';
+}
+
+function handleTotalChoice(val,btn){
+  document.querySelectorAll('.total-choice').forEach(b=>b.disabled=true);
+  const ok=val===correctTotal;
+  btn.className='total-choice '+(ok?'correct':'wrong');
+  if(!ok) document.querySelectorAll('.total-choice').forEach(b=>{
+    if(parseInt(b.dataset.val)===correctTotal) b.className='total-choice correct';
+  });
+  if(ok) roundCorrect++;
+
+  // Reveal the real total
+  document.getElementById('totalDisplay').className='total-amount';
+  document.getElementById('totalDisplay').textContent=fmt(correctTotal);
+
+  showFeedback(ok,
+    ok?'✅ Correct total!':'🤔 Not quite — here\'s the right total.',
+    ok?`${cart.map(i=>`${fmt(i.price)}`).join(' + ')} = ${fmt(correctTotal)}`
+      :`${cart.map(i=>`${fmt(i.price)}`).join(' + ')} = ${fmt(correctTotal)}`
+  );
+  setTimeout(()=>{hideFeedback();goToStep3();},1400);
+}
+
+// Step 3: pay with coins
+function goToStep3(){
+  shopperStep=3;
+  setStep(3);
+  wallet=[];
+  document.getElementById('step2Panel').className='step-panel';
+
+  // Build coin bank (penny–quarter only for paying)
+  const bank=document.getElementById('coinBank');
+  bank.innerHTML='';
+  COINS.filter(c=>c.value<=25).forEach(coin=>{
+    const stack=document.createElement('div');
+    stack.className='coin-stack';
+    stack.appendChild(coin.draw(48));
+    const lbl=document.createElement('div');lbl.className='coin-name';lbl.textContent=coin.label;
+    stack.appendChild(lbl);
+    stack.onclick=()=>{wallet.push(coin);renderWallet();updatePayInfo();};
+    bank.appendChild(stack);
+  });
+
+  document.getElementById('oweAmt').textContent=fmt(correctTotal);
+  document.getElementById('step3Header').textContent=`💰  Step 3 — Pay with coins (you owe ${fmt(correctTotal)})`;
+  renderWallet();
+  updatePayInfo();
+  document.getElementById('step3Panel').className='step-panel show';
+}
+
+function renderWallet(){
+  const area=document.getElementById('walletArea');
+  area.innerHTML='';
+  if(wallet.length===0){
+    area.innerHTML='<span class="wallet-empty">Tap a coin above to add it</span>';return;
+  }
+  wallet.forEach((coin,i)=>{
+    const w=document.createElement('div');w.className='wallet-coin';w.title='Click to remove';
+    w.appendChild(coin.draw(40));
+    w.onclick=()=>{wallet.splice(i,1);renderWallet();updatePayInfo();};
+    area.appendChild(w);
+  });
+}
+
+function updatePayInfo(){ /* total hidden intentionally */ }
+
+function clearWallet(){wallet=[];renderWallet();updatePayInfo();}
+
+function checkPayment(){
+  paidAmount=walletTotal();
+  if(paidAmount<correctTotal){
+    showFeedback(false,`🤔 You're ${fmt(correctTotal-paidAmount)} short!`,'Add more coins.');
+    return;
+  }
+  hideFeedback();
+  goToStep3b();
+}
+
+// Step 3b: how much did you pay?
+function goToStep3b(){
+  shopperStep=4;
+  setStep(4);
+  document.getElementById('step3Panel').className='step-panel';
+
+  // Show the coins they picked
+  const coinsBox=document.getElementById('step3bCoins');
+  coinsBox.innerHTML='';
+  wallet.forEach(coin=>coinsBox.appendChild(coin.draw(40)));
+
+  const choices=makeChoices(paidAmount);
+  const box=document.getElementById('paidChoices');
+  box.innerHTML='';
+  choices.forEach(val=>{
+    const btn=document.createElement('button');
+    btn.className='total-choice';
+    btn.dataset.val=val;
+    btn.textContent=fmt(val);
+    btn.onclick=()=>handlePaidChoice(val,btn);
+    box.appendChild(btn);
+  });
+  document.getElementById('step3bPanel').className='step-panel show';
+}
+
+function handlePaidChoice(val,btn){
+  document.querySelectorAll('#paidChoices .total-choice').forEach(b=>b.disabled=true);
+  const ok=val===paidAmount;
+  btn.className='total-choice '+(ok?'correct':'wrong');
+  if(!ok) document.querySelectorAll('#paidChoices .total-choice').forEach(b=>{
+    if(parseInt(b.dataset.val)===paidAmount) b.className='total-choice correct';
+  });
+  if(ok) roundCorrect++;
+  if(paidAmount===correctTotal) roundCorrect++; // exact payment bonus
+  showFeedback(ok,
+    ok?`✅ Yes, you paid ${fmt(paidAmount)}!`:`Those coins add up to ${fmt(paidAmount)}.`,
+    paidAmount===correctTotal?'Exact change — no change needed!':
+      `Now figure out your change: ${fmt(paidAmount)} − ${fmt(correctTotal)}`
+  );
+  setTimeout(()=>{hideFeedback();goToStep5();},1400);
+}
+
+// Step 5: how much change?
+function goToStep5(){
+  shopperStep=5;
+  setStep(5);
+  document.getElementById('step3bPanel').className='step-panel';
+
+  const change=paidAmount-correctTotal;
+
+  if(change===0){
+    roundCorrect++;
+    showFeedback(true,'🎉 You paid the exact amount — no change needed!',
+      `${fmt(paidAmount)} − ${fmt(correctTotal)} = 0¢`);
+    showReceipt(correctTotal,paidAmount,0);
+    finishRound();
+    return;
+  }
+
+  document.getElementById('changeMath').textContent=
+    `${fmt(paidAmount)} paid − ${fmt(correctTotal)} total = ?`;
+
+  const choices=makeChoices(change);
+  const box=document.getElementById('changeChoices');
+  box.innerHTML='';
+  choices.forEach(val=>{
+    const btn=document.createElement('button');
+    btn.className='change-choice';
+    btn.dataset.val=val;
+    btn.textContent=fmt(val);
+    btn.onclick=()=>handleChangeChoice(val,btn,change);
+    box.appendChild(btn);
+  });
+  document.getElementById('step4Panel').className='step-panel show';
+}
+
+function handleChangeChoice(val,btn,correctChange){
+  document.querySelectorAll('#changeChoices .change-choice').forEach(b=>b.disabled=true);
+  const ok=val===correctChange;
+  btn.className='change-choice '+(ok?'correct':'wrong');
+  if(!ok) document.querySelectorAll('#changeChoices .change-choice').forEach(b=>{
+    if(parseInt(b.dataset.val)===correctChange) b.className='change-choice correct';
+  });
+  if(ok) roundCorrect++;
+  showFeedback(ok,
+    ok?'🪙 Right! That\'s your change!':'💡 Here\'s the correct change:',
+    `${fmt(paidAmount)} − ${fmt(correctTotal)} = ${fmt(correctChange)}`
+  );
+  showReceipt(correctTotal,paidAmount,correctChange);
+  finishRound();
+}
+
+function finishRound(){
+  setStep(6); // all done
+  const allCorrect=roundCorrect>=4;
+  if(allCorrect){score+=20;correct++;}
+  else if(roundCorrect>=1) score+=roundCorrect*4;
+  document.getElementById('scoreNum').textContent=score;
+  document.getElementById('nextBtnRow').style.display='flex';
+  if(allCorrect) spawnFloaters(['🛒','⭐','💰','🎉']);
+}
+
+// ── CASHIER ───────────────────────────────────────────────────
+function setCashierStep(n){
+  [1,2,3,4,5].forEach(i=>{
+    const c=document.getElementById('cc'+i);
+    const l=document.getElementById('cl'+i);
+    if(!c) return;
+    c.className='step-circle'+(i<n?' done':i===n?' active':'');
+    l.className='step-label'+(i<n?' done':i===n?' active':'');
+    if(i<5){
+      const ln=document.getElementById('cline'+i);
+      if(ln) ln.className='step-line'+(i<n?' done':'');
+    }
+  });
+}
+
+let cashierPaidCoins = []; // the actual coins the customer hands over
+
+function setupCashierRound(){
+  document.getElementById('stepIndicator').style.display='none';
+  document.getElementById('cashierStepIndicator').style.display='flex';
+  document.getElementById('shopBtnRow').style.display='none';
+
+  // Generate customer cart — keep total under 100¢ for clean coin math
+  let items, total;
+  do {
+    items = shuffle([...ALL_ITEMS]).slice(0, randInt(2, 4));
+    total = items.reduce((s,i) => s + i.price, 0);
+  } while (total >= 100);
+  cart = items;
+  correctTotal = total;
+
+  // Customer always pays with a single coin strictly greater than total
+  // so change is always required
+  const singleOpts = [25, 100].filter(p => p > correctTotal);
+  let coinVal;
+  if (singleOpts.length === 1) {
+    coinVal = singleOpts[0];
+  } else {
+    // Both 25¢ and $1 work — prefer 25¢ (more realistic) ~60% of the time
+    coinVal = Math.random() < 0.6 ? singleOpts[0] : singleOpts[1];
+  }
+  cashierPaid = coinVal;
+  cashierPaidCoins = [COINS.find(c => c.value === coinVal)];
+
+  // Render shelves read-only with prices hidden (revealed after step 2)
+  document.getElementById('shelvesHeader').textContent='🧑‍💼  Customer\'s items';
+  document.getElementById('cartHeader').textContent='🧾  Basket';
+  document.getElementById('totalDisplay').textContent='???';
+  document.getElementById('totalDisplay').className='total-hidden';
+  document.getElementById('totalLabel').textContent='Total';
+
+  const grid=document.getElementById('shelvesGrid');
+  grid.innerHTML='';
+  cart.forEach(item=>{
+    const div=document.createElement('div');
+    div.className='shelf-item in-cart disabled';
+    div.innerHTML=`<div class="item-emoji">${item.emoji}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-price">${fmt(item.price)}</div>
+      <div class="cart-badge">✓</div>`;
+    grid.appendChild(div);
+  });
+  renderCart();
+  setCashierStep(1);
+
+  setTimeout(()=>cashierGoToStep2(), 600);
+}
+
+// Build a combo of coins summing exactly to target (penny-quarter only)
+function buildExactCoins(target) {
+  const result = [];
+  let rem = target;
+  for (const v of [25, 10, 5, 1]) {
+    while (rem >= v && result.length < 8) {
+      result.push(COINS.find(c => c.value === v));
+      rem -= v;
+    }
+  }
+  // If we couldn't reach target (shouldn't happen with pennies), return empty
+  if (rem !== 0) return [];
+  return shuffle(result);
+}
+
+function cashierGoToStep2(){
+  setCashierStep(2);
+  const itemsStr=cart.map(it=>`${it.emoji} ${it.name} (${fmt(it.price)})`).join('  +  ');
+  document.getElementById('cStep2Items').textContent=itemsStr+' = ?';
+
+  const choices=makeChoices(correctTotal);
+  const box=document.getElementById('cTotalChoices');
+  box.innerHTML='';
+  choices.forEach(val=>{
+    const btn=document.createElement('button');
+    btn.className='total-choice';
+    btn.dataset.val=val;
+    btn.textContent=fmt(val);
+    btn.onclick=()=>handleCashierTotalChoice(val,btn);
+    box.appendChild(btn);
+  });
+  document.getElementById('cStep2Panel').className='step-panel show';
+}
+
+function handleCashierTotalChoice(val,btn){
+  document.querySelectorAll('#cTotalChoices .total-choice').forEach(b=>b.disabled=true);
+  const ok=val===correctTotal;
+  btn.className='total-choice '+(ok?'correct':'wrong');
+  if(!ok) document.querySelectorAll('#cTotalChoices .total-choice').forEach(b=>{
+    if(parseInt(b.dataset.val)===correctTotal) b.className='total-choice correct';
+  });
+  if(ok) roundCorrect++;
+
+  // Reveal total
+  document.getElementById('totalDisplay').textContent=fmt(correctTotal);
+  document.getElementById('totalDisplay').className='total-amount';
+
+  showFeedback(ok,
+    ok?'✅ Correct total!':'🤔 Not quite.',
+    `${cart.map(i=>fmt(i.price)).join(' + ')} = ${fmt(correctTotal)}`
+  );
+  setTimeout(()=>{hideFeedback();cashierGoToStep3();},1400);
+}
+
+function cashierGoToStep3(){
+  setCashierStep(3);
+  document.getElementById('cStep2Panel').className='step-panel';
+
+  const isExact = cashierPaid === correctTotal;
+  const multiCoin = cashierPaidCoins.length > 1;
+
+  // Show the customer's coin(s) visually
+  const display=document.getElementById('cPaidCoinDisplay');
+  display.innerHTML='';
+  cashierPaidCoins.forEach(coinDef => {
+    const sz = coinDef.value <= 10 ? 56 : 68;
+    display.appendChild(coinDef.draw(sz));
+  });
+
+  document.getElementById('cStep3Label').textContent = multiCoin
+    ? `The customer hands you these coins. How much is that altogether?`
+    : `The customer hands you this. How much is it worth?`;
+
+  // Choices based on cashierPaid total
+  const allCoinVals=[1,5,10,15,20,25,30,35,40,45,75,100];
+  const opts=new Set([cashierPaid]);
+  const pool=shuffle(allCoinVals.filter(v=>v!==cashierPaid&&v>0));
+  for(const v of pool){if(opts.size>=4)break;opts.add(v);}
+  const choices=shuffle([...opts]);
+
+  const box=document.getElementById('cPaidChoices');
+  box.innerHTML='';
+  choices.forEach(val=>{
+    const btn=document.createElement('button');
+    btn.className='total-choice';
+    btn.dataset.val=val;
+    btn.textContent=fmt(val);
+    btn.onclick=()=>handleCashierPaidChoice(val,btn);
+    box.appendChild(btn);
+  });
+  document.getElementById('cStep3Panel').className='step-panel show';
+}
+
+function handleCashierPaidChoice(val,btn){
+  document.querySelectorAll('#cPaidChoices .total-choice').forEach(b=>b.disabled=true);
+  const ok=val===cashierPaid;
+  btn.className='total-choice '+(ok?'correct':'wrong');
+  if(!ok) document.querySelectorAll('#cPaidChoices .total-choice').forEach(b=>{
+    if(parseInt(b.dataset.val)===cashierPaid) b.className='total-choice correct';
+  });
+  if(ok) roundCorrect++;
+
+  const isExact = cashierPaid === correctTotal;
+  if(isExact){
+    showFeedback(ok,
+      ok?`✅ Yes! The customer paid ${fmt(cashierPaid)} — exact change!`
+        :`Those coins add up to ${fmt(cashierPaid)}.`,
+      `No change needed — ${fmt(cashierPaid)} paid for ${fmt(correctTotal)} total`
+    );
+    // Skip step 4 & 5 — no change to give
+    setTimeout(()=>{
+      hideFeedback();
+      showReceipt(correctTotal,cashierPaid,0);
+      const allCorrect=roundCorrect>=2;
+      if(allCorrect){score+=20;correct++;}
+      else if(roundCorrect>=1) score+=roundCorrect*4;
+      document.getElementById('scoreNum').textContent=score;
+      if(allCorrect) spawnFloaters(['🧑‍💼','⭐','💵','🎉']);
+      document.getElementById('nextBtnRow').style.display='flex';
+    },1600);
+  } else {
+    showFeedback(ok,
+      ok?`✅ Yes! The customer paid ${fmt(cashierPaid)}.`:`That's worth ${fmt(cashierPaid)}.`,
+      `Now work out the change: ${fmt(cashierPaid)} − ${fmt(correctTotal)} = ${fmt(cashierPaid-correctTotal)}`
+    );
+    setTimeout(()=>{hideFeedback();cashierGoToStep4();},1600);
+  }
+}
+
+function cashierGoToStep4(){
+  setCashierStep(4);
+  document.getElementById('cStep3Panel').className='step-panel';
+
+  const needed = cashierPaid - correctTotal;
+  document.getElementById('cStep4Label').textContent =
+    `Customer paid ${fmt(cashierPaid)}, total is ${fmt(correctTotal)}. How much change back?`;
+
+  const choices = makeChoices(needed);
+  const box = document.getElementById('cChangeAmtChoices');
+  box.innerHTML = '';
+  choices.forEach(val => {
+    const btn = document.createElement('button');
+    btn.className = 'total-choice';
+    btn.dataset.val = val;
+    btn.textContent = fmt(val);
+    btn.onclick = () => handleCashierChangeAmtChoice(val, btn, needed);
+    box.appendChild(btn);
+  });
+  document.getElementById('cStep4Panel').className = 'step-panel show';
+}
+
+function handleCashierChangeAmtChoice(val, btn, needed){
+  document.querySelectorAll('#cChangeAmtChoices .total-choice').forEach(b => b.disabled = true);
+  const ok = val === needed;
+  btn.className = 'total-choice ' + (ok ? 'correct' : 'wrong');
+  if(!ok) document.querySelectorAll('#cChangeAmtChoices .total-choice').forEach(b => {
+    if(parseInt(b.dataset.val) === needed) b.className = 'total-choice correct';
+  });
+  if(ok) roundCorrect++;
+
+  showFeedback(ok,
+    ok ? `✅ Correct! Give back ${fmt(needed)}.` : `The change is ${fmt(needed)}.`,
+    `${fmt(cashierPaid)} − ${fmt(correctTotal)} = ${fmt(needed)}`
+  );
+  setTimeout(() => { hideFeedback(); cashierGoToStep5coins(needed); }, 1400);
+}
+
+function cashierGoToStep5coins(needed){
+  setCashierStep(5);
+  document.getElementById('cStep4Panel').className = 'step-panel';
+  cashierWallet = [];
+
+  const bank = document.getElementById('cashierCoinBank');
+  bank.innerHTML = '';
+  COINS.filter(c => c.value <= 25).forEach(coin => {
+    const stack = document.createElement('div');
+    stack.className = 'coin-stack';
+    stack.appendChild(coin.draw(48));
+    const lbl = document.createElement('div'); lbl.className = 'coin-name'; lbl.textContent = coin.label;
+    stack.appendChild(lbl);
+    stack.onclick = () => { cashierWallet.push(coin); renderCashierWallet(); };
+    bank.appendChild(stack);
+  });
+
+  document.getElementById('cashierPayHeader').textContent =
+    `💰  Step 5 — Pick coins that make ${fmt(needed)}`;
+  // Show all three numbers clearly in the info bar
+  document.querySelector('#cashierPayPanel .pay-info').innerHTML = `
+    <div class="pay-stat">Customer paid <span class="val">${fmt(cashierPaid)}</span></div>
+    <div class="pay-stat">Items total <span class="val">${fmt(correctTotal)}</span></div>
+    <div class="pay-stat" style="color:var(--sign-green);font-size:15px;font-weight:900;">
+      Change to give <span class="val" style="color:var(--sign-green);font-size:24px;">${fmt(needed)}</span>
+    </div>`;
+  renderCashierWallet();
+  document.getElementById('cashierPayPanel').className = 'step-panel show';
+}
+
+function renderCashierWallet(){
+  const area=document.getElementById('cashierWalletArea');
+  area.innerHTML='';
+  if(cashierWallet.length===0){
+    area.innerHTML='<span class="wallet-empty">Tap a coin above to add it</span>';return;
+  }
+  cashierWallet.forEach((coin,i)=>{
+    const w=document.createElement('div');w.className='wallet-coin';
+    w.appendChild(coin.draw(40));
+    w.onclick=()=>{cashierWallet.splice(i,1);renderCashierWallet();updateCashierInfo();};
+    area.appendChild(w);
+  });
+}
+
+function updateCashierInfo(){ /* total hidden intentionally */ }
+
+function clearCashierWallet(){cashierWallet=[];renderCashierWallet();updateCashierInfo();}
+
+function checkCashierChange(){
+  const given  = cashierWalletTotal();
+  const needed = cashierPaid - correctTotal;
+  if(given === 0){ showFeedback(false,'🤔 Add some coins first!',''); return; }
+
+  const ok = given === needed;
+  if(ok) roundCorrect++;
+
+  showFeedback(ok,
+    ok ? '🧑‍💼 Perfect change! Great cashiering!' : `🤔 That's ${fmt(given)}, but you need ${fmt(needed)}.`,
+    `${fmt(cashierPaid)} − ${fmt(correctTotal)} = ${fmt(needed)} change`
+  );
+  showReceipt(correctTotal, cashierPaid, needed);
+
+  const allCorrect = roundCorrect >= 4;
+  if(allCorrect){ score += 20; correct++; }
+  else if(roundCorrect >= 1) score += roundCorrect * 4;
+  document.getElementById('scoreNum').textContent = score;
+  if(ok) spawnFloaters(['🧑‍💼','⭐','💵','🎉']);
+  document.getElementById('nextBtnRow').style.display = 'flex';
+}
+
+// ── Receipt ───────────────────────────────────────────────────
+function showReceipt(total,paid,change){
+  const box=document.getElementById('receiptBox');
+  let html=`<div class="receipt-header">🏪 CORNER STORE<br><small style="font-weight:400;font-size:11px;">Thank you!</small></div>`;
+  cart.forEach(item=>{
+    html+=`<div class="receipt-row"><span>${item.emoji} ${item.name}</span><span>${fmt(item.price)}</span></div>`;
+  });
+  html+=`<div class="receipt-total"><span>TOTAL</span><span>${fmt(total)}</span></div>`;
+  html+=`<div class="receipt-row"><span>Paid</span><span>${fmt(paid)}</span></div>`;
+  html+=`<div class="receipt-change">Change: ${fmt(change)}</div>`;
+  box.innerHTML=html;
+  box.className='receipt show';
+}
+
+// ── Feedback ──────────────────────────────────────────────────
+function showFeedback(ok,main,sub){
+  const b=document.getElementById('feedbackBanner');
+  document.getElementById('feedbackMain').textContent=main;
+  document.getElementById('feedbackSub').textContent=sub||'';
+  b.className='feedback-banner '+(ok?'correct':'wrong')+' show';
+}
+function hideFeedback(){document.getElementById('feedbackBanner').className='feedback-banner';}
+
+// ── End screen ────────────────────────────────────────────────
+function showEndScreen(){
+  document.getElementById('gameScreen').classList.remove('show');
+  const end=document.getElementById('endScreen');end.className='end-screen show';
+  const pct=Math.round(correct/ROUNDS*100);
+  let trophy,title,msg;
+  if(pct===100){trophy='🌟';title='Perfect score!';msg=role==='shopper'?'You nailed every step — total, payment, AND change!':'Every customer got the right change. Perfect cashier!';}
+  else if(pct>=60){trophy='🏆';title='Great job!';msg='You\'re getting really good at store math. Keep it up!';}
+  else{trophy='💪';title='Good effort!';msg='Store math takes practice — play again and you\'ll improve!';}
+  document.getElementById('endTrophy').textContent=trophy;
+  document.getElementById('endTitle').textContent=title;
+  document.getElementById('endMsg').textContent=msg;
+  document.getElementById('statScore').textContent=score;
+  document.getElementById('statCorrect').textContent=`${correct}/${ROUNDS}`;
+}
+
+// ── Floaters ──────────────────────────────────────────────────
+function spawnFloaters(emojis){
+  const cx=window.innerWidth/2,cy=window.innerHeight/2;
+  emojis.forEach((e,i)=>{
+    const el=document.createElement('div');el.className='floater';el.textContent=e;
+    el.style.left=(cx+(Math.random()-0.5)*140)+'px';
+    el.style.top =(cy+(Math.random()-0.5)*80)+'px';
+    el.style.animationDelay=(i*0.1)+'s';
+    document.body.appendChild(el);setTimeout(()=>el.remove(),1300);
+  });
+}
+</script>
+</body>
+</html>

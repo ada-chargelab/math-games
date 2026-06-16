@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coin Collector — Count Your Change!</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1b3a2d;
+  --bg2: #244d3c;
+  --card: #2a5c45;
+  --card2: #336952;
+  --felt: #1e4434;
+  --penny:   #c97b3a;
+  --penny-d: #8a5020;
+  --nickel:  #b0b8c1;
+  --nickel-d:#7a8690;
+  --dime:    #c0cad4;
+  --dime-d:  #8898a8;
+  --quarter: #d4d0c8;
+  --quarter-d:#9a9688;
+  --gold: #f5c842;
+  --green-bright: #4ade80;
+  --green-dark: #166534;
+  --red: #f87171;
+  --white: #f0fff4;
+  --muted: #7aaa90;
+  --border: rgba(255,255,255,0.10);
+  --shadow: rgba(0,0,0,0.35);
+  --radius: 18px;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--white);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 10px 48px;
+  user-select: none;
+}
+
+.game-wrap {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+}
+
+/* Logo */
+.logo {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: -0.5px;
+  text-align: center;
+}
+.logo span { color: var(--green-bright); }
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+.mode-group { display: flex; gap: 5px; }
+.mode-btn {
+  padding: 7px 13px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+.mode-btn.active { background: var(--gold); border-color: var(--gold); color: #1a1a1a; }
+.score-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 14px; font-weight: 800;
+  white-space: nowrap;
+}
+.score-pill span { color: var(--gold); }
+
+/* ── CHALLENGE CARD ─────────────────────────── */
+.challenge-card {
+  width: 100%;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.challenge-left { display: flex; flex-direction: column; gap: 4px; }
+.challenge-label {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.challenge-amount {
+  font-size: clamp(34px, 10vw, 50px);
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+}
+.challenge-words {
+  font-size: 14px; color: var(--muted); font-weight: 600;
+}
+.challenge-right {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.tally-label { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+.tally-amount {
+  font-size: 28px; font-weight: 900;
+  color: var(--white);
+  min-width: 80px; text-align: center;
+  background: var(--felt);
+  border-radius: 12px;
+  padding: 6px 10px;
+  border: 2px solid var(--border);
+  transition: color 0.2s;
+}
+.tally-amount.exact { color: var(--green-bright); border-color: var(--green-bright); }
+.tally-amount.over  { color: var(--red);          border-color: var(--red); }
+
+/* ── COIN BANK (draggable source) ──────────────── */
+.bank-card {
+  width: 100%;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  padding: 14px 16px;
+}
+.bank-title {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 12px;
+}
+.coin-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.coin-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.coin-stack:hover { transform: translateY(-3px); }
+.coin-stack:active { transform: scale(0.94); }
+
+/* SVG coin styles handled inline on SVG */
+.coin-label {
+  font-size: 12px; font-weight: 800;
+  text-align: center;
+}
+.coin-label.p { color: var(--penny); }
+.coin-label.n { color: var(--nickel); }
+.coin-label.d { color: var(--dime); }
+.coin-label.q { color: var(--quarter); }
+.coin-count {
+  font-size: 11px; color: var(--muted); font-weight: 600;
+}
+
+/* ── PURSE / TRAY ─────────────────────────────── */
+.purse-card {
+  width: 100%;
+  background: var(--felt);
+  border-radius: var(--radius);
+  border: 2px dashed var(--border);
+  padding: 14px 16px;
+  min-height: 110px;
+  position: relative;
+}
+.purse-title {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+.purse-coins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: 60px;
+}
+.purse-empty-hint {
+  font-size: 14px; color: rgba(255,255,255,0.25);
+  font-weight: 600; position: absolute;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  pointer-events: none; text-align: center;
+  width: 100%;
+}
+.purse-coin {
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.purse-coin:hover { transform: scale(1.12); }
+.purse-coin:active { transform: scale(0.92); }
+.purse-coin .remove-x {
+  font-size: 9px; color: var(--red); font-weight: 900; opacity: 0;
+  transition: opacity 0.15s;
+}
+.purse-coin:hover .remove-x { opacity: 1; }
+
+/* ── BREAKDOWN ─────────────────────────────────── */
+.breakdown {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+}
+.bd-item {
+  background: var(--card2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 12px; font-weight: 700;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+
+/* ── BUTTONS ───────────────────────────────────── */
+.btn-row { display: flex; gap: 10px; width: 100%; }
+.check-btn {
+  flex: 1; padding: 14px;
+  font-size: 17px; font-weight: 800;
+  border: none; border-radius: var(--radius);
+  background: var(--gold); color: #1a1a1a;
+  cursor: pointer; transition: transform 0.1s, opacity 0.15s;
+}
+.check-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+.check-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+.clear-btn {
+  padding: 14px 18px;
+  font-size: 17px; font-weight: 800;
+  border: 2px solid var(--border); border-radius: var(--radius);
+  background: var(--card); color: var(--muted);
+  cursor: pointer; transition: all 0.15s;
+}
+.clear-btn:hover { background: var(--card2); color: var(--white); }
+.next-btn {
+  flex: 1; padding: 14px;
+  font-size: 17px; font-weight: 800;
+  border: none; border-radius: var(--radius);
+  background: var(--green-bright); color: #1a1a1a;
+  cursor: pointer; display: none; transition: transform 0.1s;
+}
+.next-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+.next-btn.show { display: block; }
+
+/* ── FEEDBACK ──────────────────────────────────── */
+.feedback-banner {
+  width: 100%; border-radius: var(--radius);
+  padding: 14px 18px; font-size: 17px; font-weight: 800;
+  text-align: center; display: none;
+}
+.feedback-banner.show { display: block; }
+.feedback-banner.correct { background: rgba(74,222,128,0.15); color: var(--green-bright); border: 1.5px solid var(--green-bright); }
+.feedback-banner.wrong   { background: rgba(248,113,113,0.15); color: var(--red);          border: 1.5px solid var(--red); }
+.feedback-banner .sub { font-size: 13px; font-weight: 500; margin-top: 4px; opacity: 0.85; }
+
+/* ── PROGRESS ──────────────────────────────────── */
+.progress-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.progress-track { flex:1; height:10px; background:var(--card); border-radius:10px; overflow:hidden; }
+.progress-fill  { height:100%; background:var(--gold); border-radius:10px; transition:width 0.4s ease; }
+.progress-text  { font-size:13px; font-weight:700; color:var(--muted); white-space:nowrap; }
+
+/* ── END SCREEN ────────────────────────────────── */
+.end-screen { display:none; flex-direction:column; align-items:center; text-align:center; gap:16px; padding:10px 0 20px; width:100%; }
+.end-screen.show { display:flex; }
+.end-trophy { font-size:80px; animation: eb 0.9s infinite alternate; }
+@keyframes eb { from{transform:translateY(0)} to{transform:translateY(-12px)} }
+.end-title { font-size:30px; font-weight:900; color:var(--gold); }
+.end-msg   { font-size:16px; color:var(--muted); max-width:340px; }
+.end-stats { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+.stat-box  { background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:14px 22px; min-width:90px; }
+.stat-num  { font-size:32px; font-weight:900; color:var(--gold); }
+.stat-lbl  { font-size:12px; color:var(--muted); }
+.play-again-btn {
+  padding:14px 40px; font-size:18px; font-weight:800; border:none;
+  border-radius:var(--radius); background:var(--gold); color:#1a1a1a;
+  cursor:pointer; transition:transform 0.1s;
+}
+.play-again-btn:hover { transform:translateY(-2px); }
+
+/* Floater */
+.floater { position:fixed; font-size:28px; pointer-events:none; z-index:200; animation:floatUp 1s ease forwards; }
+@keyframes floatUp { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-110px) scale(1.3);opacity:0} }
+</style>
+</head>
+<body>
+<div class="game-wrap">
+  <div class="logo">💰 Coin <span>Collector</span></div>
+
+  <div class="topbar">
+    <div class="mode-group">
+      <button class="mode-btn active" onclick="setMode('count')">🔢 Count</button>
+      <button class="mode-btn"        onclick="setMode('make')">🎯 Make It</button>
+      <button class="mode-btn"        onclick="setMode('change')">💸 Change</button>
+    </div>
+    <div class="score-pill">💰 <span id="scoreNum">0</span> pts</div>
+  </div>
+
+  <div id="gameArea" style="width:100%;display:flex;flex-direction:column;gap:13px;align-items:center;">
+
+    <!-- Challenge -->
+    <div class="challenge-card">
+      <div class="challenge-left">
+        <div class="challenge-label" id="challengeLabel">How much money?</div>
+        <div class="challenge-amount" id="challengeAmount">¢</div>
+        <div class="challenge-words"  id="challengeWords"></div>
+      </div>
+      <div class="challenge-right">
+        <div class="tally-label">You have</div>
+        <div class="tally-amount" id="tallyAmount">¢ 0</div>
+      </div>
+    </div>
+
+    <!-- Coin bank -->
+    <div class="bank-card">
+      <div class="bank-title" id="bankTitle">Click a coin to add it to your purse</div>
+      <div class="coin-row" id="coinRow"></div>
+    </div>
+
+    <!-- Purse -->
+    <div class="purse-card">
+      <div class="purse-title">Your purse — click a coin to remove it</div>
+      <div class="purse-coins" id="purseCoins">
+        <div class="purse-empty-hint" id="purseHint">Tap coins above to add them here!</div>
+      </div>
+      <div class="breakdown" id="breakdown"></div>
+    </div>
+
+    <!-- Feedback -->
+    <div class="feedback-banner" id="feedbackBanner">
+      <div id="feedbackMain"></div>
+      <div class="sub" id="feedbackSub"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="clear-btn" onclick="clearPurse()">🗑 Clear</button>
+      <button class="check-btn" id="checkBtn" onclick="checkAnswer()">✓ Check!</button>
+      <button class="next-btn"  id="nextBtn"  onclick="nextQuestion()">Next →</button>
+    </div>
+
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <span class="progress-text" id="progressText">0 / 10</span>
+    </div>
+  </div>
+
+  <div class="end-screen" id="endScreen">
+    <div class="end-trophy" id="endTrophy">🏆</div>
+    <div class="end-title"  id="endTitle">Great job!</div>
+    <div class="end-msg"    id="endMsg"></div>
+    <div class="end-stats">
+      <div class="stat-box"><div class="stat-num" id="statScore">0</div><div class="stat-lbl">Points</div></div>
+      <div class="stat-box"><div class="stat-num" id="statCorrect">0/10</div><div class="stat-lbl">Correct</div></div>
+    </div>
+    <button class="play-again-btn" onclick="restartGame()">Play again 💰</button>
+  </div>
+</div>
+
+<script>
+// ── Coin definitions ──────────────────────────────────────────
+const COINS = [
+  { name:'penny',   value:1,   label:'1¢',  cls:'p',
+    draw:(s)=>drawCoin(s,'#c97b3a','#8a5020','#e8a060','1¢','penny') },
+  { name:'nickel',  value:5,   label:'5¢',  cls:'n',
+    draw:(s)=>drawCoin(s,'#a8b4be','#708090','#c8d4de','5¢','nickel') },
+  { name:'dime',    value:10,  label:'10¢', cls:'d',
+    draw:(s)=>drawCoin(s,'#b8c8d4','#8898a8','#d0dce8','10¢','dime') },
+  { name:'quarter', value:25,  label:'25¢', cls:'q',
+    draw:(s)=>drawCoin(s,'#c8c4bc','#989488','#dcd8d0','25¢','quarter') },
+  { name:'half dollar', value:50,  label:'50¢', cls:'q',
+    draw:(s)=>drawCoin(s,'#b8b4ac','#888480','#ccc8c0','50¢','half') },
+  { name:'dollar',      value:100, label:'$1',  cls:'q',
+    draw:(s)=>drawCoin(s,'#d4af37','#a07800','#f0d060','$1','dollar') },
+];
+
+// ── State ─────────────────────────────────────────────────────
+const ROUNDS = 10;
+let gameMode = 'count';
+let questions = [], currentIndex = 0, score = 0, correct = 0;
+let currentQ = null, answered = false;
+let purse = [];          // array of coin objects in purse
+let displayCoins = [];   // coins shown in bank for 'count' mode
+
+// ── SVG coin drawing ──────────────────────────────────────────
+function drawCoin(size, fill, stroke, shine, text, abbr) {
+  const r = size / 2 - 2;
+  const cx = size / 2, cy = size / 2;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+
+  // Shadow
+  const shadow = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+  shadow.setAttribute('cx', cx+1); shadow.setAttribute('cy', cy+2);
+  shadow.setAttribute('rx', r); shadow.setAttribute('ry', r*0.3);
+  shadow.setAttribute('fill','rgba(0,0,0,0.3)');
+  svg.appendChild(shadow);
+
+  // Main circle
+  const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  circle.setAttribute('cx',cx); circle.setAttribute('cy',cy); circle.setAttribute('r',r);
+  circle.setAttribute('fill',fill); circle.setAttribute('stroke',stroke); circle.setAttribute('stroke-width','2');
+  svg.appendChild(circle);
+
+  // Inner ring
+  const ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  ring.setAttribute('cx',cx); ring.setAttribute('cy',cy); ring.setAttribute('r',r-4);
+  ring.setAttribute('fill','none'); ring.setAttribute('stroke',stroke); ring.setAttribute('stroke-width','1');
+  svg.appendChild(ring);
+
+  // Shine arc
+  const shineEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+  const sr = r - 5;
+  shineEl.setAttribute('d',`M ${cx-sr*0.5} ${cy-sr*0.8} A ${sr} ${sr} 0 0 1 ${cx+sr*0.5} ${cy-sr*0.8}`);
+  shineEl.setAttribute('stroke', shine); shineEl.setAttribute('stroke-width','2.5');
+  shineEl.setAttribute('fill','none'); shineEl.setAttribute('stroke-linecap','round');
+  svg.appendChild(shineEl);
+
+  // Text - value on top line, abbr below
+  const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',cx); t.setAttribute('y', cy - 2);
+  t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+  t.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+  t.setAttribute('font-weight','900'); t.setAttribute('fill', stroke);
+  t.setAttribute('font-size', size <= 44 ? '11' : size <= 54 ? '13' : '14');
+  t.textContent = text;
+  svg.appendChild(t);
+
+  // Abbreviation below value
+  const t2 = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t2.setAttribute('x',cx); t2.setAttribute('y', cy + (size <= 44 ? 10 : 13));
+  t2.setAttribute('text-anchor','middle'); t2.setAttribute('dominant-baseline','middle');
+  t2.setAttribute('font-family','Segoe UI,system-ui,sans-serif');
+  t2.setAttribute('font-weight','700'); t2.setAttribute('fill', stroke);
+  t2.setAttribute('font-size', size <= 44 ? '9' : '10');
+  t2.setAttribute('opacity','0.7');
+  t2.textContent = abbr;
+  svg.appendChild(t2);
+
+  return svg;
+}
+
+// ── Mode ──────────────────────────────────────────────────────
+function setMode(m) {
+  gameMode = m;
+  document.querySelectorAll('.mode-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['count','make','change'][i]===m);
+  });
+  restartGame();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function randInt(lo,hi){return Math.floor(Math.random()*(hi-lo+1))+lo;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function centsToWords(c) {
+  if (c < 100) return `${c} cents`;
+  const d = Math.floor(c/100), r = c%100;
+  return r===0 ? `${d} dollar${d>1?'s':''}` : `${d} dollar${d>1?'s':''} and ${r} cent${r>1?'s':''}`;
+}
+
+function makeCoinCombo(targetCents, perCoinMax = 10) {
+  const coins = [];
+  let rem = targetCents;
+  const pool = shuffle([...COINS]);
+  const usedCount = {};
+  for (const c of pool) {
+    while (rem >= c.value && coins.length < 12 && (usedCount[c.name]||0) < perCoinMax) {
+      coins.push(c);
+      usedCount[c.name] = (usedCount[c.name]||0) + 1;
+      rem -= c.value;
+    }
+  }
+  return shuffle(coins);
+}
+
+// ── Question generation ───────────────────────────────────────
+function makeCountQuestion() {
+  const targets = [5,6,10,11,15,16,20,21,25,26,30,31,35,36,41,50,51,55,60,75,76,80];
+  const target = targets[randInt(0,targets.length-1)];
+  // Build coin combo but cap each coin type at 5 to keep counting manageable
+  const coins = makeCoinCombo(target, 5);
+  // Answer = actual sum of coins generated (may differ from target if cap prevented exact match)
+  const actualSum = coins.reduce((s,c) => s + c.value, 0);
+  return { mode:'count', target, coins, answer: actualSum };
+}
+
+function makeMakeQuestion() {
+  // Give a target, player picks coins
+  const targets = [5,10,11,15,20,21,25,26,30,31,35,36,40,41,50,51,55,60,75];
+  const target = targets[randInt(0,targets.length-1)];
+  return { mode:'make', target, coins:null, answer: target };
+}
+
+function makeChangeQuestion() {
+  const items = [
+    { name:'apple',      emoji:'🍎', cost: 15 },
+    { name:'pencil',     emoji:'✏️', cost: 20 },
+    { name:'sticker',    emoji:'⭐', cost: 10 },
+    { name:'eraser',     emoji:'🧹', cost: 18 },
+    { name:'lollipop',   emoji:'🍭', cost: 25 },
+    { name:'bookmark',   emoji:'📎', cost: 30 },
+    { name:'juice box',  emoji:'🧃', cost: 35 },
+    { name:'small toy',  emoji:'🪀', cost: 40 },
+    { name:'cookie',     emoji:'🍪', cost: 22 },
+    { name:'orange',     emoji:'🍊', cost: 12 },
+  ];
+  const item = items[randInt(0, items.length - 1)];
+  // Customer always pays with a single large coin so change is always needed
+  // Pick the smallest single coin that is strictly greater than the cost
+  const singleCoins = [25, 50, 100].filter(p => p > item.cost);
+  const paid = singleCoins[0]; // smallest coin that requires change
+  const change = paid - item.cost;
+  return { mode:'change', item, cost: item.cost, paid, change, answer: change };
+}
+
+function generateQuestions() {
+  questions = Array.from({length:ROUNDS}, () => {
+    if (gameMode==='count') return makeCountQuestion();
+    if (gameMode==='make')  return makeMakeQuestion();
+    return makeChangeQuestion();
+  });
+}
+
+// ── Build coin bank ───────────────────────────────────────────
+function buildBank(showCoins) {
+  const row = document.getElementById('coinRow');
+  row.innerHTML = '';
+
+  if (showCoins) {
+    // Count mode: group coins by type, show large clear stacks with labels
+    displayCoins = showCoins;
+    document.getElementById('bankTitle').textContent = 'Count these coins:';
+
+    // Count how many of each coin type
+    const counts = {};
+    showCoins.forEach(c => { counts[c.name] = (counts[c.name] || 0) + 1; });
+
+    // Display each coin type as a labelled group
+    row.style.cssText = 'display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;justify-content:center;';
+
+    COINS.forEach(coinDef => {
+      const n = counts[coinDef.name];
+      if (!n) return;
+
+      const group = document.createElement('div');
+      group.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;';
+
+      // Coin name badge at top
+      const nameBadge = document.createElement('div');
+      nameBadge.style.cssText = `font-size:13px;font-weight:900;text-transform:uppercase;
+        letter-spacing:0.5px;padding:3px 10px;border-radius:20px;
+        background:var(--card2);color:var(--${coinDef.cls==='p'?'penny':coinDef.cls==='n'?'nickel':coinDef.cls==='d'?'dime':'quarter'});`;
+      nameBadge.textContent = coinDef.name;
+      group.appendChild(nameBadge);
+
+      // Show coins in a small grid (max 2 columns)
+      const coinsGrid = document.createElement('div');
+      coinsGrid.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:140px;';
+      for (let i = 0; i < n; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;';
+        // Use larger coin size in count mode
+        const size = coinDef.value === 10 ? 58 : coinDef.value === 1 ? 60 : 68;
+        wrapper.appendChild(coinDef.draw(size));
+        coinsGrid.appendChild(wrapper);
+      }
+      group.appendChild(coinsGrid);
+
+      // Show count × value but NOT the total (kid has to work that out!)
+      const summary = document.createElement('div');
+      summary.style.cssText = 'font-size:15px;font-weight:900;color:var(--white);text-align:center;';
+      summary.innerHTML = `<span style="font-size:22px;">${n}</span> × ${coinDef.label}`;
+      group.appendChild(summary);
+
+      row.appendChild(group);
+    });
+  } else {
+    // Make/Change mode: clickable coin types (penny through quarter only)
+    COINS.filter(c => c.value <= 25).forEach(coin => {
+      const stack = document.createElement('div');
+      stack.className = 'coin-stack';
+      const bankSize = coin.value === 10 ? 46 : coin.value === 1 ? 48 : 56;
+      stack.appendChild(coin.draw(bankSize));
+      const lbl = document.createElement('div');
+      lbl.className = `coin-label ${coin.cls}`;
+      lbl.textContent = coin.label + ' ' + coin.name;
+      stack.appendChild(lbl);
+      stack.onclick = () => addCoinToPurse(coin);
+      row.appendChild(stack);
+    });
+    document.getElementById('bankTitle').textContent = 'Tap a coin to add it to your purse:';
+  }
+}
+
+// ── Purse management ──────────────────────────────────────────
+function addCoinToPurse(coin) {
+  if (answered) return;
+  purse.push(coin);
+  renderPurse();
+  updateTally();
+}
+
+function removeCoinFromPurse(idx) {
+  if (answered) return;
+  purse.splice(idx, 1);
+  renderPurse();
+  updateTally();
+}
+
+function clearPurse() {
+  purse = [];
+  renderPurse();
+  updateTally();
+  const fb = document.getElementById('feedbackBanner');
+  if (fb) fb.className = 'feedback-banner';
+}
+
+function renderPurse() {
+  const box = document.getElementById('purseCoins');
+  if (!box) return;  // count mode replaces purse-card, nothing to render
+  const hint = document.getElementById('purseHint');
+  box.innerHTML = '';
+
+  if (purse.length === 0) {
+    if (hint) hint.style.display = '';
+    updateBreakdown();
+    return;
+  }
+  if (hint) hint.style.display = 'none';
+
+  purse.forEach((coin, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'purse-coin';
+    const purseSize = coin.value === 10 ? 40 : coin.value === 1 ? 42 : 50;
+    wrap.appendChild(coin.draw(purseSize));
+    const x = document.createElement('div');
+    x.className = 'remove-x';
+    x.textContent = '✕ remove';
+    wrap.appendChild(x);
+    wrap.onclick = () => removeCoinFromPurse(i);
+    box.appendChild(wrap);
+  });
+  updateBreakdown();
+}
+
+function updateBreakdown() {
+  const bd = document.getElementById('breakdown');
+  bd.innerHTML = '';
+  if (purse.length === 0) return;
+  const counts = {};
+  purse.forEach(c => { counts[c.name] = (counts[c.name]||0)+1; });
+  COINS.forEach(c => {
+    if (counts[c.name]) {
+      const item = document.createElement('div');
+      item.className = 'bd-item';
+      item.innerHTML = `<span style="color:var(--${c.cls==='p'?'penny':c.cls==='n'?'nickel':c.cls==='d'?'dime':'quarter'})">${counts[c.name]} × ${c.label}</span>`;
+      bd.appendChild(item);
+    }
+  });
+}
+
+function updateTally() {
+  const el = document.getElementById('tallyAmount');
+  if (!el || !currentQ) return;
+  const total = purse.reduce((s,c)=>s+c.value,0);
+  el.textContent = total < 100 ? `¢ ${total}` : `$${(total/100).toFixed(2)}`;
+  el.className = 'tally-amount' + (total===currentQ.answer ? ' exact' : total>currentQ.answer ? ' over' : '');
+}
+
+// ── Change mode bank: show paid coin + clickable coins for change ─
+function buildChangeBank(q) {
+  const row = document.getElementById('coinRow');
+  row.innerHTML = '';
+  row.style.cssText = 'display:flex;flex-direction:column;gap:12px;width:100%;';
+
+  // Row 1: what was paid (read-only visual)
+  const paidRow = document.createElement('div');
+  paidRow.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
+
+  const paidLbl = document.createElement('div');
+  paidLbl.style.cssText = 'font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap;';
+  paidLbl.textContent = `Customer paid:`;
+  paidRow.appendChild(paidLbl);
+
+  // Show the single coin the customer handed over
+  const paidCoinDef = COINS.find(c => c.value === q.paid);
+  const sz = 72;
+  const w = document.createElement('div');
+  w.style.cssText = 'pointer-events:none;';
+  w.appendChild(paidCoinDef.draw(sz));
+  paidRow.appendChild(w);
+
+  // Price tag
+  const tag = document.createElement('div');
+  tag.style.cssText = `font-size:13px;font-weight:800;background:var(--card2);
+    border-radius:8px;padding:4px 10px;color:var(--gold);margin-left:auto;white-space:nowrap;`;
+  tag.innerHTML = `${q.item.emoji} costs ${q.cost}¢`;
+  paidRow.appendChild(tag);
+  row.appendChild(paidRow);
+
+  // Divider
+  const div = document.createElement('div');
+  div.style.cssText = 'border-top:1px solid rgba(255,255,255,0.1);';
+  row.appendChild(div);
+
+  // Row 2: clickable coins to make the change
+  const changeLbl = document.createElement('div');
+  changeLbl.style.cssText = 'font-size:13px;font-weight:700;color:var(--muted);';
+  changeLbl.textContent = 'Tap coins to give back as change:';
+  row.appendChild(changeLbl);
+
+  const clickRow = document.createElement('div');
+  clickRow.style.cssText = 'display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;';
+  const CHANGE_COINS = COINS.filter(c => c.value <= 25);
+  CHANGE_COINS.forEach(coin => {
+    const stack = document.createElement('div');
+    stack.className = 'coin-stack';
+    const bankSize = coin.value === 10 ? 46 : coin.value === 1 ? 48 : 56;
+    stack.appendChild(coin.draw(bankSize));
+    const lbl = document.createElement('div');
+    lbl.className = `coin-label ${coin.cls}`;
+    lbl.textContent = coin.label + ' ' + coin.name;
+    stack.appendChild(lbl);
+    stack.onclick = () => addCoinToPurse(coin);
+    clickRow.appendChild(stack);
+  });
+  row.appendChild(clickRow);
+
+  document.getElementById('bankTitle').textContent = '';
+}
+
+
+function fillPurseFromDisplay(coins) {
+  // In count mode player types their answer via choice buttons
+  purse = [...coins];
+  renderPurse();
+  updateTally();
+}
+
+// ── Restore purse card if count mode replaced its innerHTML ───
+function restorePurseCard() {
+  const purseCard = document.querySelector('.purse-card');
+  if (!document.getElementById('purseCoins')) {
+    purseCard.innerHTML = `
+      <div class="purse-title">Your purse — click a coin to remove it</div>
+      <div class="purse-coins" id="purseCoins">
+        <div class="purse-empty-hint" id="purseHint">Tap coins above to add them here!</div>
+      </div>
+      <div class="breakdown" id="breakdown"></div>`;
+  }
+}
+
+// ── Render question ────────────────────────────────────────────
+function renderQuestion() {
+  const q = questions[currentIndex];
+  currentQ = q;
+  answered = false;
+  purse = [];
+
+  document.getElementById('feedbackBanner').className = 'feedback-banner';
+  document.getElementById('checkBtn').disabled = false;
+  document.getElementById('checkBtn').style.display = '';
+  document.getElementById('nextBtn').classList.remove('show');
+
+  const pct = Math.round((currentIndex/ROUNDS)*100);
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressText').textContent = `${currentIndex} / ${ROUNDS}`;
+
+  if (q.mode === 'count') {
+    document.getElementById('challengeAmount').style.fontSize = '';
+    document.getElementById('challengeLabel').textContent = 'How much money is this?';
+    document.getElementById('challengeAmount').textContent = '?';
+    document.getElementById('challengeWords').textContent = 'Count all the coins';
+    document.getElementById('tallyAmount').parentElement.style.display = 'none';
+    buildBank(q.coins);
+    showCountChoices(q);
+  } else if (q.mode === 'make') {
+    restorePurseCard();
+    document.getElementById('challengeAmount').style.fontSize = '';
+    document.getElementById('tallyAmount').parentElement.style.display = 'none';
+    document.getElementById('challengeLabel').textContent = 'Make exactly:';
+    document.getElementById('challengeAmount').textContent =
+      q.target < 100 ? `${q.target}¢` : `$${(q.target/100).toFixed(2)}`;
+    document.getElementById('challengeWords').textContent = centsToWords(q.target);
+    buildBank(null);
+    renderPurse();
+    updateTally();
+  } else {
+    // change — restore purse card in case count mode replaced it
+    restorePurseCard();
+    document.getElementById('tallyAmount').parentElement.style.display = 'none';
+
+    // Show the shop scenario in the challenge card
+    document.getElementById('challengeLabel').textContent =
+      `A customer buys a ${q.item.name} ${q.item.emoji}`;
+    document.getElementById('challengeAmount').textContent = `${q.cost}¢`;
+    document.getElementById('challengeAmount').style.fontSize = '';
+    document.getElementById('challengeWords').innerHTML =
+      `They pay with <strong>${q.paid >= 100 ? '$'+(q.paid/100) : q.paid+'¢'}</strong>. How much change do you give back?`;
+
+    // Show the paid coins visually in the bank (read-only)
+    buildChangeBank(q);
+    renderPurse();
+    updateTally();
+  }
+}
+
+// Count mode: multiple choice buttons
+function showCountChoices(q) {
+  const purseCard = document.querySelector('.purse-card');
+  // Replace purse with choice buttons
+  purseCard.innerHTML = `
+    <div class="bank-title">What is the total? Pick your answer:</div>
+    <div id="countChoices" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;"></div>`;
+
+  const correct = q.answer;
+  const opts = new Set([correct]);
+
+  // Generate distractors: plausible nearby values that are multiples of common coin values
+  const candidates = [];
+  // Offsets based on coin values so distractors feel realistic
+  for (const d of [-25,-20,-15,-10,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,10,15,20,25]) {
+    const v = correct + d;
+    if (v > 0 && v !== correct) candidates.push(v);
+  }
+  shuffle(candidates);
+  for (const c of candidates) {
+    if (opts.size >= 4) break;
+    opts.add(c);
+  }
+  // Safety fallback — should never be needed but guarantees 4 choices
+  let fallback = 1;
+  while (opts.size < 4) { if (fallback !== correct) opts.add(fallback); fallback++; }
+
+  const choices = shuffle([...opts]);
+
+  const box = document.getElementById('countChoices');
+  choices.forEach(val => {
+    const btn = document.createElement('button');
+    btn.dataset.val = val;
+    btn.style.cssText = `flex:1;min-width:80px;padding:14px 6px;font-size:22px;font-weight:900;
+      border-radius:14px;border:2px solid rgba(255,255,255,0.12);
+      background:var(--card2);color:var(--white);cursor:pointer;transition:all 0.15s;`;
+    btn.textContent = val < 100 ? `${val}¢` : `$${(val/100).toFixed(2)}`;
+    btn.onmouseover = ()=>{ if(!answered) btn.style.background='var(--card)'; };
+    btn.onmouseout  = ()=>{ if(!answered) btn.style.background='var(--card2)'; };
+    btn.onclick = () => handleCountChoice(val, btn, q);
+    box.appendChild(btn);
+  });
+
+  // Disable check button — choices handle it
+  document.getElementById('checkBtn').style.display = 'none';
+}
+
+function handleCountChoice(val, btn, q) {
+  if (answered) return;
+  answered = true;
+  document.querySelectorAll('#countChoices button').forEach(b => b.disabled = true);
+  const isCorrect = val === q.answer;
+  btn.style.background = isCorrect ? '#4ade80' : '#f87171';
+  btn.style.color = '#1a1a1a';
+  if (!isCorrect) {
+    document.querySelectorAll('#countChoices button').forEach(b => {
+      if (parseInt(b.dataset.val) === q.answer) {
+        b.style.background = '#4ade80';
+        b.style.color = '#1a1a1a';
+      }
+    });
+  }
+  showFeedback(isCorrect, q, val);
+}
+
+// ── Check (make/change modes) ─────────────────────────────────
+function checkAnswer() {
+  if (answered) return;
+  const q = currentQ;
+  const total = purse.reduce((s,c)=>s+c.value,0);
+  const isCorrect = total === q.answer;
+  answered = isCorrect; // only lock if correct
+  if (isCorrect) {
+    document.getElementById('checkBtn').style.display = 'none';
+  }
+  showFeedback(isCorrect, q, total);
+  if (!isCorrect) answered = false;
+}
+
+function showFeedback(isCorrect, q, playerVal) {
+  const banner = document.getElementById('feedbackBanner');
+  const main   = document.getElementById('feedbackMain');
+  const sub    = document.getElementById('feedbackSub');
+
+  if (isCorrect) {
+    answered = true;
+    score += 10;
+    correct++;
+    document.getElementById('scoreNum').textContent = score;
+    const msgs = ['💰 Exact change!','⭐ Perfect!','🎉 Nailed it!','✅ Right on the money!'];
+    main.textContent = msgs[0|Math.random()*msgs.length];
+    sub.textContent = q.mode === 'change'
+      ? `${q.paid}¢ paid − ${q.cost}¢ price = ${q.answer}¢ change back`
+      : `${centsToWords(q.answer)} = ${q.answer < 100 ? q.answer+'¢' : '$'+(q.answer/100).toFixed(2)}`;
+    banner.className = 'feedback-banner correct show';
+    spawnFloaters(['💰','⭐','🪙','✅']);
+    document.getElementById('nextBtn').classList.add('show');
+    const cb = document.getElementById('checkBtn');
+    if (cb) cb.style.display = 'none';
+  } else {
+    const diff = playerVal - q.answer;
+    main.textContent = diff > 0 ? `😬 ${Math.abs(diff)}¢ too much!` :
+                       diff < 0 ? `🤔 ${Math.abs(diff)}¢ short!` : '';
+    sub.textContent  = `Need exactly ${q.answer < 100 ? q.answer+'¢' : '$'+(q.answer/100).toFixed(2)}. Try again!`;
+    banner.className = 'feedback-banner wrong show';
+  }
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= ROUNDS) showEndScreen();
+  else renderQuestion();
+}
+
+function showEndScreen() {
+  document.getElementById('gameArea').style.display = 'none';
+  const end = document.getElementById('endScreen');
+  end.className = 'end-screen show';
+  const pct = Math.round((correct/ROUNDS)*100);
+  let trophy,title,msg;
+  if (pct===100){trophy='🌟';title='Rich in math skills!';msg='Perfect score! You\'re a coin-counting champion!';}
+  else if(pct>=70){trophy='🏆';title='Great counting!';msg='You\'ve got a great feel for money. Keep it up!';}
+  else{trophy='💪';title='Keep counting!';msg='Money math takes practice — play again and you\'ll get it!';}
+  document.getElementById('endTrophy').textContent=trophy;
+  document.getElementById('endTitle').textContent=title;
+  document.getElementById('endMsg').textContent=msg;
+  document.getElementById('statScore').textContent=score;
+  document.getElementById('statCorrect').textContent=correct+'/'+ROUNDS;
+}
+
+function restartGame() {
+  score=0;correct=0;currentIndex=0;purse=[];
+  document.getElementById('scoreNum').textContent=0;
+  document.getElementById('endScreen').className='end-screen';
+  document.getElementById('gameArea').style.display='';
+  generateQuestions();
+  renderQuestion();
+}
+
+function spawnFloaters(emojis) {
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  emojis.forEach((e,i)=>{
+    const el=document.createElement('div');
+    el.className='floater';
+    el.textContent=e;
+    el.style.left=(cx+(Math.random()-0.5)*120)+'px';
+    el.style.top=(cy+(Math.random()-0.5)*60)+'px';
+    el.style.animationDelay=(i*0.1)+'s';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1300);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────
+generateQuestions();
+renderQuestion();
+</script>
+</body>
+</html>
