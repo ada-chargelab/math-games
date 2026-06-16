@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔭 Pattern Explorer</title>
+<style>
+  /* ── Tokens ───────────────────────────────────────────── */
+  :root {
+    --sky:    #1a1f5e;   /* deep night sky */
+    --sky2:   #2d3494;
+    --star:   #ffd94a;   /* gold star accent */
+    --planet: #ff7b54;   /* warm coral */
+    --green:  #3ecf8e;
+    --red:    #ff5c7c;
+    --card:   #ffffff;
+    --bg:     #f0f4ff;
+    --text:   #1a1f5e;
+    --muted:  #7c85c4;
+    --radius: 22px;
+    --shadow: 0 6px 28px rgba(26,31,94,0.13);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  /* ── Header ───────────────────────────────────────────── */
+  .header {
+    background: linear-gradient(135deg, var(--sky) 0%, var(--sky2) 100%);
+    color: #fff;
+    padding: 0 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-inner {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 22px 0 18px;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-title { font-size: 20px; font-weight: 900; letter-spacing: .3px; }
+  .header-sub   { font-size: 12px; opacity: .75; margin-top: 2px; }
+  .header-stars { font-size: 13px; background: rgba(255,255,255,.15); border-radius: 20px; padding: 6px 14px; font-weight: 800; white-space: nowrap; }
+
+  /* floating stars decoration */
+  .deco { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+  .deco span { position: absolute; color: rgba(255,255,255,.25); font-size: 18px; animation: twinkle 3s infinite alternate; }
+  .deco span:nth-child(1) { top:14%; left:5%;  animation-delay: 0s;   }
+  .deco span:nth-child(2) { top:60%; left:15%; animation-delay: .5s;  font-size:10px; }
+  .deco span:nth-child(3) { top:25%; left:82%; animation-delay: 1s;   font-size:14px; }
+  .deco span:nth-child(4) { top:70%; left:72%; animation-delay: 1.5s; font-size:10px; }
+  .deco span:nth-child(5) { top:10%; left:50%; animation-delay: 2s;   font-size:12px; }
+  @keyframes twinkle { from{opacity:.2} to{opacity:.8} }
+
+  /* ── Screens ──────────────────────────────────────────── */
+  .screen { display: none; max-width: 560px; margin: 0 auto; padding: 24px 16px 0; }
+  .screen.active { display: block; }
+
+  /* ── Start screen ─────────────────────────────────────── */
+  .start-hero { text-align: center; padding: 10px 0 24px; }
+  .start-rocket { font-size: 72px; display: block; animation: hover-bob 2.2s ease-in-out infinite; }
+  @keyframes hover-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .start-title { font-size: 26px; font-weight: 900; margin: 12px 0 8px; color: var(--sky); }
+  .start-desc  { font-size: 15px; color: var(--muted); line-height: 1.6; max-width: 320px; margin: 0 auto 28px; }
+
+  .level-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .level-btn {
+    background: var(--card);
+    border: 3px solid transparent;
+    border-radius: 18px;
+    padding: 18px 10px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform .16s, border-color .16s;
+    font-family: inherit;
+  }
+  .level-btn:hover { transform: translateY(-4px); }
+  .level-btn.sel { border-color: var(--star); }
+  .level-btn .l-icon { font-size: 30px; display: block; margin-bottom: 6px; }
+  .level-btn .l-name { font-size: 13px; font-weight: 800; color: var(--sky); }
+  .level-btn .l-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .start-btn {
+    width: 100%; padding: 16px; border: none; border-radius: var(--radius);
+    background: var(--sky); color: #fff; font-size: 17px; font-weight: 900;
+    cursor: pointer; box-shadow: 0 4px 18px rgba(26,31,94,.28);
+    transition: transform .13s, background .13s;
+    font-family: inherit;
+  }
+  .start-btn:hover { transform: translateY(-2px); background: var(--sky2); }
+
+  /* ── Game screen ──────────────────────────────────────── */
+  .game-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .back-btn {
+    background: none; border: 2px solid #d0d8f0; border-radius: 12px;
+    padding: 7px 14px; font-size: 13px; font-weight: 700;
+    color: var(--muted); cursor: pointer; font-family: inherit;
+  }
+  .progress-wrap { flex: 1; margin: 0 14px; }
+  .progress-bar-bg { background: #d0d8f0; border-radius: 10px; height: 10px; }
+  .progress-bar-fill { background: var(--star); border-radius: 10px; height: 10px; transition: width .4s ease; }
+  .progress-label { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px; text-align: right; }
+  .score-badge { background: var(--sky); color: #fff; border-radius: 20px; padding: 7px 14px; font-size: 13px; font-weight: 900; white-space: nowrap; }
+
+  /* Question card */
+  .q-card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 24px 20px; margin-bottom: 16px;
+  }
+  .q-type-badge {
+    display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .8px; background: var(--bg); border-radius: 8px;
+    padding: 4px 10px; color: var(--muted); margin-bottom: 12px;
+  }
+  .q-prompt { font-size: 15px; font-weight: 700; color: var(--sky); margin-bottom: 18px; line-height: 1.5; }
+
+  /* Sequence display */
+  .sequence {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .seq-bubble {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 900; flex-shrink: 0;
+    border: 3px solid transparent;
+    transition: transform .15s;
+  }
+  .seq-bubble.num {
+    background: linear-gradient(135deg, var(--sky) 0%, var(--sky2) 100%);
+    color: #fff;
+    box-shadow: 0 3px 12px rgba(26,31,94,.22);
+  }
+  .seq-bubble.blank {
+    background: #fff; border: 3px dashed #b0bbee;
+    color: var(--muted); font-size: 24px;
+  }
+  .seq-bubble.emoji-bubble {
+    background: var(--bg); border-color: #d0d8f0; font-size: 26px;
+  }
+  .seq-arrow { color: var(--muted); font-size: 20px; flex-shrink: 0; }
+
+  /* Rule display (for "what's the rule?" question type) */
+  .rule-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .rule-chip {
+    background: var(--bg); border: 2px solid #d0d8f0; border-radius: 12px;
+    padding: 8px 14px; font-size: 14px; font-weight: 700; color: var(--sky);
+  }
+
+  /* Answer choices */
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choices.wide { grid-template-columns: 1fr; }
+  .choice-btn {
+    padding: 15px 10px; border: 2.5px solid #d0d8f0; border-radius: 16px;
+    background: var(--card); font-size: 18px; font-weight: 900;
+    color: var(--sky); cursor: pointer; transition: all .15s;
+    font-family: inherit; text-align: center;
+  }
+  .choice-btn:hover:not(:disabled) { border-color: var(--sky2); background: var(--bg); transform: scale(1.03); }
+  .choice-btn.correct { background: #e8faf3; border-color: var(--green); color: #1a7a55; }
+  .choice-btn.wrong   { background: #fff0f3; border-color: var(--red);   color: #9c0028; }
+  .choice-btn:disabled { cursor: default; }
+
+  /* Feedback bar */
+  .feedback {
+    border-radius: 16px; padding: 14px 18px; margin-top: 12px;
+    font-size: 15px; font-weight: 700; display: none; line-height: 1.5;
+  }
+  .feedback.good { background: #e8faf3; color: #1a7a55; border: 2px solid var(--green); }
+  .feedback.bad  { background: #fff0f3; color: #9c0028; border: 2px solid var(--red);   }
+  .feedback .explain { font-size: 13px; font-weight: 500; margin-top: 4px; color: inherit; opacity: .85; }
+
+  .next-btn {
+    width: 100%; padding: 14px; border: none; border-radius: var(--radius);
+    background: var(--sky); color: #fff; font-size: 16px; font-weight: 900;
+    cursor: pointer; margin-top: 14px; display: none; font-family: inherit;
+    transition: transform .12s;
+  }
+  .next-btn:hover { transform: translateY(-2px); }
+
+  /* ── End screen ───────────────────────────────────────── */
+  .end-center { text-align: center; padding: 10px 0; }
+  .end-trophy { font-size: 80px; display: block; animation: hover-bob 2s ease-in-out infinite; }
+  .end-title  { font-size: 28px; font-weight: 900; color: var(--sky); margin: 12px 0 6px; }
+  .end-msg    { font-size: 15px; color: var(--muted); margin-bottom: 24px; }
+  .end-stats  { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+  .stat-box   { background: var(--card); border-radius: 18px; padding: 16px 22px; box-shadow: var(--shadow); text-align: center; min-width: 100px; }
+  .stat-num   { font-size: 34px; font-weight: 900; color: var(--sky); }
+  .stat-lbl   { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 2px; }
+  .stars-row  { display: flex; justify-content: center; gap: 8px; font-size: 40px; margin-bottom: 20px; }
+
+  .end-btns { display: flex; gap: 12px; flex-direction: column; }
+  .play-again-btn {
+    padding: 15px; border: none; border-radius: var(--radius);
+    background: var(--sky); color: #fff; font-size: 17px; font-weight: 900;
+    cursor: pointer; box-shadow: 0 4px 18px rgba(26,31,94,.25);
+    font-family: inherit; transition: transform .12s;
+  }
+  .play-again-btn:hover { transform: translateY(-2px); }
+  .home-btn {
+    padding: 13px; border: 2.5px solid #d0d8f0; border-radius: var(--radius);
+    background: var(--card); font-size: 15px; font-weight: 800;
+    color: var(--muted); cursor: pointer; font-family: inherit;
+  }
+
+  /* ── Floaters ─────────────────────────────────────────── */
+  .floater {
+    position: fixed; pointer-events: none; z-index: 999;
+    animation: float-up 1.1s ease forwards; font-size: 30px;
+  }
+  @keyframes float-up {
+    0%   { transform: translateY(0) scale(1);   opacity: 1; }
+    100% { transform: translateY(-120px) scale(1.4); opacity: 0; }
+  }
+
+  /* ── Streak badge ─────────────────────────────────────── */
+  .streak-badge {
+    position: fixed; top: 80px; right: 16px; z-index: 50;
+    background: var(--star); color: var(--sky); border-radius: 16px;
+    padding: 8px 14px; font-size: 13px; font-weight: 900;
+    box-shadow: var(--shadow); display: none;
+    animation: pop-in .3s ease;
+  }
+  @keyframes pop-in { from{transform:scale(.6)} to{transform:scale(1)} }
+
+  @media (max-width: 420px) {
+    .seq-bubble { width: 48px; height: 48px; font-size: 17px; }
+    .choice-btn { font-size: 16px; padding: 13px 8px; }
+    .level-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="deco">
+    <span>★</span><span>✦</span><span>★</span><span>✦</span><span>★</span>
+  </div>
+  <div class="header-inner">
+    <div>
+      <div class="header-title">🔭 Pattern Explorer</div>
+      <div class="header-sub">Number patterns &amp; sequences</div>
+    </div>
+    <div class="header-stars" id="headerStars">⭐ 0 pts</div>
+  </div>
+</div>
+
+<div class="streak-badge" id="streakBadge"></div>
+
+<!-- ── START ─────────────────────────────────────────────── -->
+<div class="screen active" id="startScreen">
+  <div class="start-hero">
+    <span class="start-rocket">🚀</span>
+    <div class="start-title">Blast off with patterns!</div>
+    <div class="start-desc">Find the missing numbers, figure out the rule, and explore number sequences like a math astronaut.</div>
+  </div>
+
+  <div class="level-grid">
+    <button class="level-btn sel" onclick="selectLevel('easy', this)">
+      <span class="l-icon">🌙</span>
+      <div class="l-name">Moon</div>
+      <div class="l-desc">Count by 1s, 2s &amp; 5s</div>
+    </button>
+    <button class="level-btn" onclick="selectLevel('medium', this)">
+      <span class="l-icon">🪐</span>
+      <div class="l-name">Planet</div>
+      <div class="l-desc">Count by 3s, 4s &amp; 10s</div>
+    </button>
+    <button class="level-btn" onclick="selectLevel('hard', this)">
+      <span class="l-icon">⭐</span>
+      <div class="l-name">Star</div>
+      <div class="l-desc">Mixed &amp; tricky rules</div>
+    </button>
+  </div>
+
+  <button class="start-btn" onclick="startGame()">Launch! 🚀</button>
+</div>
+
+<!-- ── GAME ──────────────────────────────────────────────── -->
+<div class="screen" id="gameScreen">
+  <div class="game-topbar">
+    <button class="back-btn" onclick="goHome()">← Home</button>
+    <div class="progress-wrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="progress-label" id="progressLabel">0 / 10</div>
+    </div>
+    <div class="score-badge">⭐ <span id="scoreNum">0</span></div>
+  </div>
+
+  <div class="q-card" id="qCard">
+    <!-- injected by JS -->
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+  <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next →</button>
+</div>
+
+<!-- ── END ───────────────────────────────────────────────── -->
+<div class="screen" id="endScreen">
+  <div class="end-center">
+    <span class="end-trophy" id="endTrophy">🏆</span>
+    <div class="end-title" id="endTitle"></div>
+    <div class="end-msg" id="endMsg"></div>
+    <div class="stars-row" id="starsRow"></div>
+    <div class="end-stats">
+      <div class="stat-box">
+        <div class="stat-num" id="statScore">0</div>
+        <div class="stat-lbl">points</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statCorrect">0/10</div>
+        <div class="stat-lbl">correct</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statStreak">0</div>
+        <div class="stat-lbl">best streak</div>
+      </div>
+    </div>
+    <div class="end-btns">
+      <button class="play-again-btn" onclick="startGame()">Play Again 🚀</button>
+      <button class="home-btn" onclick="goHome()">← Change level</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────
+const TOTAL_Q = 10;
+
+const LEVELS = {
+  easy: {
+    steps: [1, 2, 5],
+    starts: [1, 2, 3, 4, 5, 10],
+    types: ['find_missing', 'find_missing', 'what_comes_next', 'what_comes_next'],
+  },
+  medium: {
+    steps: [3, 4, 10],
+    starts: [1, 2, 3, 4, 5, 6, 10, 12],
+    types: ['find_missing', 'what_comes_next', 'find_rule', 'find_missing'],
+  },
+  hard: {
+    steps: [2, 3, 4, 5, 10],
+    starts: [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15],
+    types: ['find_missing', 'what_comes_next', 'find_rule', 'count_down', 'find_missing'],
+  },
+};
+
+// Emoji themes for decoration variety
+const THEMES = [
+  { emoji: '🌟', label: 'stars' },
+  { emoji: '🍎', label: 'apples' },
+  { emoji: '🐸', label: 'frogs' },
+  { emoji: '🚗', label: 'cars' },
+  { emoji: '🎈', label: 'balloons' },
+  { emoji: '🦋', label: 'butterflies' },
+];
+
+// ── State ───────────────────────────────────────────────────
+let level, qIndex, score, streak, bestStreak, correctCount, choiceLocked;
+let questions = [];
+
+// ── Navigation ──────────────────────────────────────────────
+let selectedLevel = 'easy';
+
+function selectLevel(lv, btn) {
+  selectedLevel = lv;
+  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function goHome() {
+  show('startScreen');
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Game start ──────────────────────────────────────────────
+function startGame() {
+  level = selectedLevel;
+  qIndex = 0; score = 0; streak = 0; bestStreak = 0; correctCount = 0;
+  choiceLocked = false;
+  questions = buildQuestions(TOTAL_Q);
+  updateHeader();
+  show('gameScreen');
+  renderQuestion();
+}
+
+// ── Question bank ────────────────────────────────────────────
+function buildQuestions(n) {
+  const cfg = LEVELS[level];
+  const qs = [];
+  const usedSigs = new Set();
+
+  while (qs.length < n) {
+    const step  = pick(cfg.steps);
+    const start = pick(cfg.starts);
+    const type  = pick(cfg.types);
+    const sig   = `${type}-${start}-${step}`;
+    if (usedSigs.has(sig)) continue;
+    usedSigs.add(sig);
+
+    if (type === 'find_missing')    qs.push(makeFindMissing(start, step));
+    if (type === 'what_comes_next') qs.push(makeWhatNext(start, step));
+    if (type === 'find_rule')       qs.push(makeFindRule(start, step));
+    if (type === 'count_down')      qs.push(makeCountDown(start, step));
+  }
+  return shuffle(qs);
+}
+
+function makeFindMissing(start, step) {
+  // Generate 5 numbers, hide 1 (not first or last)
+  const seq = [start, start+step, start+2*step, start+3*step, start+4*step];
+  const blankIdx = 1 + Math.floor(Math.random() * 3); // idx 1,2,3
+  const answer = seq[blankIdx];
+  const choices = makeChoices4(answer, step);
+  return {
+    type: 'find_missing',
+    label: 'Find the missing number',
+    prompt: `What number is hiding in the sequence?`,
+    seq, blankIdx, answer, choices, step,
+    explain: `The pattern counts by ${step}s. ${seq[blankIdx-1]} + ${step} = ${answer}.`,
+  };
+}
+
+function makeWhatNext(start, step) {
+  const seq = [start, start+step, start+2*step, start+3*step];
+  const answer = start + 4*step;
+  const choices = makeChoices4(answer, step);
+  return {
+    type: 'what_comes_next',
+    label: 'What comes next?',
+    prompt: `The rocket is counting! What number comes next?`,
+    seq, blankIdx: 4, answer, choices, step,
+    explain: `Count by ${step}s. ${seq[3]} + ${step} = ${answer}.`,
+  };
+}
+
+function makeFindRule(start, step) {
+  const seq = [start, start+step, start+2*step, start+3*step, start+4*step];
+  // Rule choices: correct step + 3 wrong steps
+  const wrongSteps = [1,2,3,4,5,10].filter(s => s !== step);
+  shuffle(wrongSteps);
+  const ruleChoices = shuffle([step, wrongSteps[0], wrongSteps[1], wrongSteps[2]]);
+  return {
+    type: 'find_rule',
+    label: 'What is the rule?',
+    prompt: `How does this sequence count? What's the rule?`,
+    seq, answer: step, ruleChoices, step,
+    explain: `Each number is ${step} more than the one before it. The rule is +${step}.`,
+  };
+}
+
+function makeCountDown(start, step) {
+  // Count DOWN from a higher start
+  const high = start * step + step * 4;
+  const seq = [high, high-step, high-2*step, high-3*step];
+  const answer = high - 4*step;
+  const choices = makeChoices4(answer, step);
+  return {
+    type: 'count_down',
+    label: 'Count down!',
+    prompt: `The rocket is counting down! What number comes next?`,
+    seq, blankIdx: 4, answer, choices, step,
+    isDown: true,
+    explain: `Count back by ${step}s. ${seq[3]} − ${step} = ${answer}.`,
+  };
+}
+
+// ── Render ────────────────────────────────────────────────────
+function renderQuestion() {
+  const q = questions[qIndex];
+  const fill = (qIndex / TOTAL_Q) * 100;
+  document.getElementById('progressFill').style.width = fill + '%';
+  document.getElementById('progressLabel').textContent = `${qIndex} / ${TOTAL_Q}`;
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('nextBtn').style.display = 'none';
+  choiceLocked = false;
+
+  let html = `
+    <div class="q-type-badge">${q.label}</div>
+    <div class="q-prompt">${q.prompt}</div>
+    <div class="sequence" id="seqDisplay">${renderSeq(q)}</div>
+  `;
+
+  if (q.type === 'find_rule') {
+    html += `<div class="choices" id="choicesDiv">
+      ${q.ruleChoices.map(v =>
+        `<button class="choice-btn" onclick="checkRule(${v}, this)">+${v}</button>`
+      ).join('')}
+    </div>`;
+  } else {
+    html += `<div class="choices" id="choicesDiv">
+      ${q.choices.map(v =>
+        `<button class="choice-btn" onclick="checkAnswer(${v}, this)">${v}</button>`
+      ).join('')}
+    </div>`;
+  }
+
+  document.getElementById('qCard').innerHTML = html;
+}
+
+function renderSeq(q) {
+  if (q.type === 'find_rule') {
+    return q.seq.map(n =>
+      `<div class="seq-bubble num">${n}</div>
+       <div class="seq-arrow">→</div>`
+    ).join('').replace(/<div class="seq-arrow">→<\/div>$/, '');
+  }
+
+  const arrow = q.isDown ? '←' : '→';
+  let parts = [];
+  const len = q.seq.length + (q.blankIdx === q.seq.length ? 1 : 0);
+
+  for (let i = 0; i < (q.seq.length + (q.blankIdx >= q.seq.length ? 1 : 0)); i++) {
+    if (i > 0) parts.push(`<div class="seq-arrow">${arrow}</div>`);
+    if (i === q.blankIdx) {
+      parts.push(`<div class="seq-bubble blank">?</div>`);
+    } else {
+      const val = q.seq[i] !== undefined ? q.seq[i] : '';
+      parts.push(`<div class="seq-bubble num">${val}</div>`);
+    }
+  }
+  return parts.join('');
+}
+
+// ── Answer checking ───────────────────────────────────────────
+function checkAnswer(val, btn) {
+  if (choiceLocked) return;
+  choiceLocked = true;
+  const q = questions[qIndex];
+  const ok = val === q.answer;
+  markButtons('checkAnswer', q.answer, val, ok);
+  handleResult(ok, q.explain);
+}
+
+function checkRule(val, btn) {
+  if (choiceLocked) return;
+  choiceLocked = true;
+  const q = questions[qIndex];
+  const ok = val === q.answer;
+  // Mark correct/wrong among rule buttons
+  document.querySelectorAll('#choicesDiv .choice-btn').forEach(b => {
+    const bval = parseInt(b.getAttribute('onclick').match(/checkRule\((\d+)/)[1]);
+    if (bval === q.answer) b.classList.add('correct');
+    else if (bval === val && !ok) b.classList.add('wrong');
+    b.disabled = true;
+  });
+  handleResult(ok, q.explain);
+}
+
+function markButtons(fnName, answer, chosen, ok) {
+  document.querySelectorAll('#choicesDiv .choice-btn').forEach(b => {
+    const m = b.getAttribute('onclick').match(/\((\d+)/);
+    if (!m) return;
+    const bval = parseInt(m[1]);
+    if (bval === answer) b.classList.add('correct');
+    else if (bval === chosen && !ok) b.classList.add('wrong');
+    b.disabled = true;
+  });
+}
+
+function handleResult(ok, explain) {
+  const fb = document.getElementById('feedback');
+
+  if (ok) {
+    score += 10;
+    streak++;
+    correctCount++;
+    if (streak > bestStreak) bestStreak = streak;
+    fb.className = 'feedback good';
+    fb.innerHTML = `✅ Brilliant! <div class="explain">${explain}</div>`;
+    showStreakBadge();
+    spawnFloaters(['⭐','🎉','✨']);
+  } else {
+    streak = 0;
+    fb.className = 'feedback bad';
+    fb.innerHTML = `❌ Not quite! <div class="explain">${explain}</div>`;
+    spawnFloaters(['💭']);
+  }
+
+  fb.style.display = 'block';
+  updateHeader();
+  document.getElementById('nextBtn').style.display = 'block';
+  document.getElementById('nextBtn').textContent =
+    qIndex + 1 >= TOTAL_Q ? 'See my score! 🏆' : 'Next →';
+}
+
+function nextQuestion() {
+  qIndex++;
+  if (qIndex >= TOTAL_Q) { showEnd(); return; }
+  renderQuestion();
+}
+
+// ── End screen ─────────────────────────────────────────────────
+function showEnd() {
+  show('endScreen');
+  const pct = correctCount / TOTAL_Q;
+  let trophy, title, msg;
+  if (pct === 1)       { trophy = '🏆'; title = 'Perfect Explorer!';    msg = 'You found every pattern. You\'re a true math astronaut! 🚀'; }
+  else if (pct >= .7)  { trophy = '🥇'; title = 'Amazing job!';         msg = 'You\'re great at spotting patterns. Keep exploring!'; }
+  else if (pct >= .5)  { trophy = '🥈'; title = 'Nice work!';           msg = 'You\'re getting good at patterns. One more mission?'; }
+  else                 { trophy = '💪'; title = 'Keep exploring!';       msg = 'Patterns take practice — blast off again and you\'ll improve!'; }
+
+  const stars = pct === 1 ? 3 : pct >= .7 ? 2 : 1;
+  document.getElementById('endTrophy').textContent = trophy;
+  document.getElementById('endTitle').textContent = title;
+  document.getElementById('endMsg').textContent = msg;
+  document.getElementById('starsRow').innerHTML = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+  document.getElementById('statScore').textContent = score;
+  document.getElementById('statCorrect').textContent = `${correctCount}/${TOTAL_Q}`;
+  document.getElementById('statStreak').textContent = bestStreak;
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function updateHeader() {
+  document.getElementById('headerStars').textContent = `⭐ ${score} pts`;
+  document.getElementById('scoreNum').textContent = score;
+}
+
+function makeChoices4(answer, step) {
+  const set = new Set([answer]);
+  const deltas = [step, step*2, 1, 2, 3, step+1, step-1].filter(d => d > 0);
+  let attempts = 0;
+  while (set.size < 4 && attempts < 100) {
+    attempts++;
+    const d = deltas[Math.floor(Math.random() * deltas.length)];
+    const sign = Math.random() < .5 ? 1 : -1;
+    const v = answer + sign * d;
+    if (v > 0 && v !== answer) set.add(v);
+  }
+  return shuffle([...set]).slice(0, 4);
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function shuffle(arr) { return [...arr].sort(() => Math.random() - .5); }
+
+function showStreakBadge() {
+  if (streak < 2) return;
+  const badge = document.getElementById('streakBadge');
+  badge.textContent = streak === 2 ? '🔥 2 in a row!' : streak === 3 ? '🔥🔥 3 in a row!' : `🔥 ${streak} streak!`;
+  badge.style.display = 'block';
+  clearTimeout(badge._t);
+  badge._t = setTimeout(() => badge.style.display = 'none', 2000);
+}
+
+function spawnFloaters(emojis) {
+  emojis.forEach((e, i) => {
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = e;
+    el.style.left = (30 + Math.random() * 60) + 'vw';
+    el.style.top  = (30 + Math.random() * 30) + 'vh';
+    el.style.animationDelay = (i * .12) + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  });
+}
+</script>
+</body>
+</html>
