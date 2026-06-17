@@ -15,57 +15,41 @@
     background: var(--bg); min-height: 100vh;
     padding-bottom: 48px;
   }
-
   header {
     background: var(--red); color: #fff;
     text-align: center; padding: 28px 20px 24px;
   }
   header h1 { font-size: 28px; font-weight: 900; letter-spacing: .5px; }
   header p  { font-size: 14px; opacity: .85; margin-top: 4px; }
-
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-    max-width: 900px;
-    margin: 36px auto;
-    padding: 0 20px;
+    gap: 20px; max-width: 900px; margin: 36px auto; padding: 0 20px;
   }
-
   a.card {
-    background: var(--card);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 28px 24px;
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    border: 3px solid transparent;
-    transition: transform .18s, border-color .18s;
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 28px 24px;
+    text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    border: 3px solid transparent; transition: transform .18s, border-color .18s;
   }
   a.card:hover { transform: translateY(-5px); border-color: var(--accent); }
-
   .card-icon  { font-size: 56px; margin-bottom: 14px; }
   .card-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
   .card-desc  { font-size: 13px; color: #636e72; line-height: 1.5; }
-
   .card.store   { --accent: #00b894; }
   .card.coins   { --accent: #d4af37; }
   .card.times   { --accent: #0984e3; }
   .card.regroup { --accent: #e17055; }
   .card.pattern { --accent: #6c5ce7; }
+  .card.shapes  { --accent: #4361ee; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>🎮 Math Games for Kids</h1>
   <p>Pick a game and start playing!</p>
 </header>
-
 <div class="grid">
 
   <a class="card store" href="store-game.html">
@@ -98,7 +82,12 @@
     <div class="card-desc">Find missing numbers, spot the rule, and explore number sequences like a math astronaut!</div>
   </a>
 
-</div>
+  <a class="card shapes" href="shapes-game.html">
+    <div class="card-icon">🔷</div>
+    <div class="card-title">Shape Studio</div>
+    <div class="card-desc">Name 2D and 3D shapes, count sides and faces, and match shapes to real-life objects!</div>
+  </a>
 
+</div>
 </body>
 </html>

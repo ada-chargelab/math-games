@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔷 Shape Studio</title>
+<style>
+/* ── Tokens ───────────────────────────────────────── */
+:root {
+  --teal:   #00b4d8;
+  --indigo: #4361ee;
+  --deep:   #023e8a;
+  --card:   #ffffff;
+  --bg:     #eef2ff;
+  --text:   #1a1a2e;
+  --muted:  #6b7db3;
+  --green:  #06d6a0;
+  --red:    #ef476f;
+  --yellow: #ffd166;
+  --radius: 24px;
+  --shadow: 0 6px 32px rgba(67,97,238,0.13);
+
+  /* shape palette */
+  --s1: #4361ee; --s2: #ef476f; --s3: #06d6a0;
+  --s4: #ffd166; --s5: #f77f00; --s6: #9b5de5;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(160deg, #4361ee 0%, #00b4d8 100%);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.header {
+  padding: 20px 20px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 580px; margin: 0 auto;
+}
+.header-left h1 { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: .3px; }
+.header-left p  { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 2px; }
+.score-pill { background: rgba(255,255,255,.2); color: #fff; border-radius: 20px; padding: 7px 16px; font-size: 14px; font-weight: 900; backdrop-filter: blur(4px); }
+
+/* ── Screens ─────────────────────────────────────── */
+.screen { display: none; max-width: 580px; margin: 0 auto; padding: 0 16px; }
+.screen.active { display: block; }
+
+/* ── Start screen ─────────────────────────────────── */
+.start-card {
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 28px 24px; margin-bottom: 16px;
+}
+.start-shapes {
+  display: flex; justify-content: center; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 20px;
+}
+.start-title { font-size: 24px; font-weight: 900; color: var(--text); margin-bottom: 8px; text-align: center; }
+.start-desc  { font-size: 14px; color: var(--muted); text-align: center; line-height: 1.6; margin-bottom: 24px; }
+
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.mode-btn {
+  border: 3px solid #e0e6ff; border-radius: 18px; padding: 16px 12px;
+  background: var(--bg); cursor: pointer; text-align: center;
+  transition: all .16s; font-family: inherit;
+}
+.mode-btn:hover { transform: translateY(-3px); border-color: var(--indigo); }
+.mode-btn.sel   { border-color: var(--indigo); background: #eef2ff; }
+.mode-btn .m-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+.mode-btn .m-name { font-size: 13px; font-weight: 800; color: var(--text); }
+.mode-btn .m-desc { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+.launch-btn {
+  width: 100%; padding: 16px; border: none; border-radius: 16px;
+  background: linear-gradient(90deg, var(--indigo), var(--teal));
+  color: #fff; font-size: 17px; font-weight: 900; cursor: pointer;
+  font-family: inherit; transition: transform .13s;
+  box-shadow: 0 4px 18px rgba(67,97,238,.35);
+}
+.launch-btn:hover { transform: translateY(-2px); }
+
+/* ── Game screen ─────────────────────────────────── */
+.game-topbar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.back-btn {
+  background: rgba(255,255,255,.2); border: none; border-radius: 12px;
+  padding: 8px 14px; font-size: 13px; font-weight: 700;
+  color: #fff; cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.prog-wrap { flex: 1; }
+.prog-bg   { background: rgba(255,255,255,.25); border-radius: 10px; height: 10px; }
+.prog-fill { background: var(--yellow); border-radius: 10px; height: 10px; transition: width .4s; }
+.prog-lbl  { font-size: 11px; color: rgba(255,255,255,.75); font-weight: 700; margin-top: 3px; text-align: right; }
+
+/* Q card */
+.q-card {
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 22px 20px; margin-bottom: 14px;
+}
+.q-badge {
+  display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .7px; background: var(--bg); border-radius: 8px;
+  padding: 4px 10px; color: var(--muted); margin-bottom: 12px;
+}
+.q-prompt { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 18px; line-height: 1.5; }
+
+/* Shape stage — the signature element */
+.shape-stage {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 160px; margin-bottom: 18px;
+}
+.shape-stage svg { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.12)); }
+
+/* Choices */
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choices.col1 { grid-template-columns: 1fr; }
+.ch-btn {
+  padding: 14px 10px; border: 2.5px solid #e0e6ff; border-radius: 16px;
+  background: var(--card); font-size: 15px; font-weight: 800; color: var(--text);
+  cursor: pointer; font-family: inherit; transition: all .14s;
+  display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center;
+}
+.ch-btn svg { flex-shrink: 0; }
+.ch-btn:hover:not(:disabled) { border-color: var(--indigo); background: var(--bg); transform: scale(1.02); }
+.ch-btn.correct { background: #e6faf4; border-color: var(--green); color: #047a5a; }
+.ch-btn.wrong   { background: #fff0f4; border-color: var(--red);   color: #9c0028; }
+.ch-btn:disabled { cursor: default; }
+
+/* Feedback */
+.feedback {
+  border-radius: 16px; padding: 14px 18px; font-size: 14px; font-weight: 700;
+  display: none; line-height: 1.5; margin-bottom: 10px;
+}
+.feedback.good { background: #e6faf4; color: #047a5a; border: 2px solid var(--green); }
+.feedback.bad  { background: #fff0f4; color: #9c0028; border: 2px solid var(--red); }
+.feedback .sub { font-size: 12px; font-weight: 500; margin-top: 4px; opacity: .85; }
+
+.next-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 16px;
+  background: linear-gradient(90deg, var(--indigo), var(--teal));
+  color: #fff; font-size: 16px; font-weight: 900; cursor: pointer;
+  font-family: inherit; display: none; transition: transform .12s;
+  box-shadow: 0 4px 18px rgba(67,97,238,.3);
+}
+.next-btn:hover { transform: translateY(-2px); }
+
+/* ── End screen ──────────────────────────────────── */
+.end-card {
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 32px 24px; text-align: center;
+}
+.end-trophy { font-size: 72px; display: block; animation: bob 2s ease-in-out infinite; }
+@keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.end-title  { font-size: 26px; font-weight: 900; color: var(--text); margin: 12px 0 6px; }
+.end-msg    { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+.stars-row  { font-size: 36px; margin-bottom: 20px; }
+.end-stats  { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+.stat-box   { background: var(--bg); border-radius: 16px; padding: 14px 20px; min-width: 90px; }
+.stat-num   { font-size: 30px; font-weight: 900; color: var(--indigo); }
+.stat-lbl   { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 2px; }
+.end-btns   { display: flex; flex-direction: column; gap: 10px; }
+.play-again { padding: 15px; border: none; border-radius: 16px; background: linear-gradient(90deg, var(--indigo), var(--teal)); color: #fff; font-size: 16px; font-weight: 900; cursor: pointer; font-family: inherit; }
+.home-link  { padding: 13px; border: 2.5px solid #e0e6ff; border-radius: 16px; background: var(--card); font-size: 14px; font-weight: 800; color: var(--muted); cursor: pointer; font-family: inherit; }
+
+/* floaters */
+.floater { position: fixed; pointer-events: none; z-index: 999; font-size: 28px; animation: fup 1.1s ease forwards; }
+@keyframes fup { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-110px) scale(1.4);opacity:0} }
+
+@media(max-width:420px){
+  .mode-grid { grid-template-columns: 1fr; }
+  .choices   { grid-template-columns: 1fr; }
+  .ch-btn    { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>🔷 Shape Studio</h1>
+    <p>2D &amp; 3D shapes</p>
+  </div>
+  <div class="score-pill">⭐ <span id="scoreDisp">0</span> pts</div>
+</div>
+
+<!-- ══ START ══════════════════════════════════════════ -->
+<div class="screen active" id="startScreen">
+  <div class="start-card">
+    <div class="start-shapes" id="startShapes"></div>
+    <div class="start-title">Welcome to Shape Studio!</div>
+    <div class="start-desc">Name shapes, count their sides, spot them in the world — and learn the difference between flat and solid shapes.</div>
+
+    <div class="mode-grid">
+      <button class="mode-btn sel" onclick="pickMode('2d', this)">
+        <span class="m-icon">🔺</span>
+        <div class="m-name">2D Shapes</div>
+        <div class="m-desc">Flat shapes — circles, squares, triangles &amp; more</div>
+      </button>
+      <button class="mode-btn" onclick="pickMode('3d', this)">
+        <span class="m-icon">🧊</span>
+        <div class="m-name">3D Shapes</div>
+        <div class="m-desc">Solid shapes — cubes, spheres, cylinders &amp; more</div>
+      </button>
+      <button class="mode-btn" onclick="pickMode('mixed', this)">
+        <span class="m-icon">🎨</span>
+        <div class="m-name">Mixed</div>
+        <div class="m-desc">Both 2D and 3D — a full challenge!</div>
+      </button>
+      <button class="mode-btn" onclick="pickMode('real', this)">
+        <span class="m-icon">🌍</span>
+        <div class="m-name">Real Life</div>
+        <div class="m-desc">Match everyday objects to their shape</div>
+      </button>
+    </div>
+
+    <button class="launch-btn" onclick="startGame()">Let's go! 🔷</button>
+  </div>
+</div>
+
+<!-- ══ GAME ═══════════════════════════════════════════ -->
+<div class="screen" id="gameScreen">
+  <div class="game-topbar">
+    <button class="back-btn" onclick="goHome()">← Home</button>
+    <div class="prog-wrap">
+      <div class="prog-bg"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-lbl" id="progLbl">0 / 10</div>
+    </div>
+  </div>
+
+  <div class="q-card" id="qCard"></div>
+  <div class="feedback" id="feedback"></div>
+  <button class="next-btn" id="nextBtn" onclick="nextQ()">Next →</button>
+</div>
+
+<!-- ══ END ════════════════════════════════════════════ -->
+<div class="screen" id="endScreen">
+  <div class="end-card">
+    <span class="end-trophy" id="endTrophy">🏆</span>
+    <div class="end-title" id="endTitle"></div>
+    <div class="end-msg"   id="endMsg"></div>
+    <div class="stars-row" id="starsRow"></div>
+    <div class="end-stats">
+      <div class="stat-box"><div class="stat-num" id="stScore">0</div><div class="stat-lbl">points</div></div>
+      <div class="stat-box"><div class="stat-num" id="stCorrect">0/10</div><div class="stat-lbl">correct</div></div>
+    </div>
+    <div class="end-btns">
+      <button class="play-again" onclick="startGame()">Play again 🔷</button>
+      <button class="home-link"  onclick="goHome()">← Change mode</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// SVG SHAPE DRAWERS
+// ═══════════════════════════════════════════════════════
+const C = { b:'#4361ee', r:'#ef476f', g:'#06d6a0', y:'#ffd166', o:'#f77f00', p:'#9b5de5', t:'#00b4d8' };
+
+function svgWrap(inner, w=160, h=160) {
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+}
+
+const SHAPES_2D = {
+  circle: {
+    name: 'Circle', sides: 0, corners: 0,
+    color: C.b,
+    draw: (col) => svgWrap(`<circle cx="80" cy="80" r="65" fill="${col}" />`),
+    fact: 'A circle has no straight sides and no corners.',
+  },
+  square: {
+    name: 'Square', sides: 4, corners: 4,
+    color: C.r,
+    draw: (col) => svgWrap(`<rect x="15" y="15" width="130" height="130" fill="${col}" rx="4"/>`),
+    fact: 'A square has 4 equal sides and 4 corners.',
+  },
+  rectangle: {
+    name: 'Rectangle', sides: 4, corners: 4,
+    color: C.g,
+    draw: (col) => svgWrap(`<rect x="10" y="35" width="140" height="90" fill="${col}" rx="4"/>`),
+    fact: 'A rectangle has 4 sides and 4 corners. Opposite sides are equal.',
+  },
+  triangle: {
+    name: 'Triangle', sides: 3, corners: 3,
+    color: C.y,
+    draw: (col) => svgWrap(`<polygon points="80,10 150,145 10,145" fill="${col}"/>`),
+    fact: 'A triangle has 3 sides and 3 corners.',
+  },
+  pentagon: {
+    name: 'Pentagon', sides: 5, corners: 5,
+    color: C.o,
+    draw: (col) => svgWrap(polygon(5, 70, 80, 80, col)),
+    fact: 'A pentagon has 5 sides and 5 corners.',
+  },
+  hexagon: {
+    name: 'Hexagon', sides: 6, corners: 6,
+    color: C.p,
+    draw: (col) => svgWrap(polygon(6, 70, 80, 80, col)),
+    fact: 'A hexagon has 6 sides and 6 corners.',
+  },
+  oval: {
+    name: 'Oval', sides: 0, corners: 0,
+    color: C.t,
+    draw: (col) => svgWrap(`<ellipse cx="80" cy="80" rx="70" ry="45" fill="${col}"/>`),
+    fact: 'An oval (ellipse) has no straight sides and no corners.',
+  },
+  diamond: {
+    name: 'Diamond', sides: 4, corners: 4,
+    color: C.r,
+    draw: (col) => svgWrap(`<polygon points="80,35 150,80 80,125 10,80" fill="${col}"/>`),
+    fact: 'A diamond (rhombus) has 4 equal sides and 4 corners.',
+  },
+};
+
+const SHAPES_3D = {
+  cube: {
+    name: 'Cube', faces: 6, edges: 12, vertices: 8,
+    color: C.b,
+    draw: (col) => svgWrap(cube3d(col)),
+    fact: 'A cube has 6 square faces, 12 edges, and 8 corners (vertices).',
+    flat2d: 'square',
+  },
+  sphere: {
+    name: 'Sphere', faces: 0, edges: 0, vertices: 0,
+    color: C.r,
+    draw: (col) => svgWrap(sphere3d(col)),
+    fact: 'A sphere is perfectly round — no flat faces, edges, or corners.',
+    flat2d: 'circle',
+  },
+  cylinder: {
+    name: 'Cylinder', faces: 2, edges: 2, vertices: 0,
+    color: C.g,
+    draw: (col) => svgWrap(cylinder3d(col)),
+    fact: 'A cylinder has 2 flat faces (circles) and 1 curved surface.',
+    flat2d: 'circle',
+  },
+  cone: {
+    name: 'Cone', faces: 1, edges: 1, vertices: 1,
+    color: C.y,
+    draw: (col) => svgWrap(cone3d(col)),
+    fact: 'A cone has 1 flat face (a circle), 1 curved surface, and 1 pointy corner.',
+    flat2d: 'circle',
+  },
+  pyramid: {
+    name: 'Pyramid', faces: 5, edges: 8, vertices: 5,
+    color: C.o,
+    draw: (col) => svgWrap(pyramid3d(col)),
+    fact: 'A square pyramid has 5 faces, 8 edges, and 5 corners.',
+    flat2d: 'square',
+  },
+  rectangular_prism: {
+    name: 'Rectangular Prism', faces: 6, edges: 12, vertices: 8,
+    color: C.p,
+    draw: (col) => svgWrap(box3d(col)),
+    fact: 'A rectangular prism has 6 rectangular faces, 12 edges, and 8 corners.',
+    flat2d: 'rectangle',
+  },
+};
+
+// Real-world matching data
+const REAL_OBJECTS = [
+  // triangles
+  { object: 'Pizza slice 🍕',     shape2d: 'triangle',  emoji: '🍕' },
+  { object: 'Mountain ⛰️',        shape2d: 'triangle',  emoji: '⛰️' },
+  { object: 'Tent ⛺',            shape2d: 'triangle',  emoji: '⛺' },
+  { object: 'Shark fin 🦈',       shape2d: 'triangle',  emoji: '🦈' },
+  // circles
+  { object: 'Sun ☀️',             shape2d: 'circle',    emoji: '☀️' },
+  { object: 'Coin 🪙',            shape2d: 'circle',    emoji: '🪙' },
+  { object: 'Clock 🕐',           shape2d: 'circle',    emoji: '🕐' },
+  { object: 'Button 🔘',          shape2d: 'circle',    emoji: '🔘' },
+  { object: 'Wheel 🎡',           shape2d: 'circle',    emoji: '🎡' },
+  // rectangles
+  { object: 'Book 📚',            shape2d: 'rectangle', emoji: '📚' },
+  { object: 'Door 🚪',            shape2d: 'rectangle', emoji: '🚪' },
+  { object: 'Ruler 📏',           shape2d: 'rectangle', emoji: '📏' },
+  { object: 'Phone 📱',           shape2d: 'rectangle', emoji: '📱' },
+  { object: 'Flag 🚩',            shape2d: 'rectangle', emoji: '🚩' },
+  { object: 'Envelope ✉️',        shape2d: 'rectangle', emoji: '✉️' },
+  // squares
+  { object: 'Window 🪟',          shape2d: 'square',    emoji: '🪟' },
+  { object: 'Sticky note 🟨',     shape2d: 'square',    emoji: '🟨' },
+  { object: 'Cracker 🫓',         shape2d: 'square',    emoji: '🫓' },
+  // 3D — spheres
+  { object: 'Football ⚽',        shape3d: 'sphere',    emoji: '⚽' },
+  { object: 'Orange 🍊',          shape3d: 'sphere',    emoji: '🍊' },
+  { object: 'Basketball 🏀',      shape3d: 'sphere',    emoji: '🏀' },
+  { object: 'Globe 🌍',           shape3d: 'sphere',    emoji: '🌍' },
+  // 3D — cylinders
+  { object: 'Tin can 🥫',         shape3d: 'cylinder',  emoji: '🥫' },
+  { object: 'Toilet roll 🧻',     shape3d: 'cylinder',  emoji: '🧻' },
+  { object: 'Drum 🥁',            shape3d: 'cylinder',  emoji: '🥁' },
+  // 3D — cones
+  { object: 'Ice cream cone 🍦',  shape3d: 'cone',      emoji: '🍦' },
+  { object: 'Party hat 🎉',       shape3d: 'cone',      emoji: '🎉' },
+  { object: 'Witch hat 🧙',       shape3d: 'cone',      emoji: '🧙' },
+  // 3D — cubes
+  { object: 'Dice 🎲',            shape3d: 'cube',      emoji: '🎲' },
+  { object: 'Ice cube 🧊',        shape3d: 'cube',      emoji: '🧊' },
+  // 3D — rectangular prisms
+  { object: 'Cardboard box 📦',   shape3d: 'rectangular_prism', emoji: '📦' },
+  { object: 'Brick 🧱',           shape3d: 'rectangular_prism', emoji: '🧱' },
+  { object: 'Fridge 🧊',          shape3d: 'rectangular_prism', emoji: '🧊' },
+];
+
+// ─── SVG helpers ───────────────────────────────────────
+function polygon(n, r, cx, cy, col) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = (Math.PI * 2 * i / n) - Math.PI / 2;
+    pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+  }
+  return `<polygon points="${pts.join(' ')}" fill="${col}"/>`;
+}
+
+function cube3d(col) {
+  const d = shadeHex(col, -40);
+  const l = shadeHex(col, 30);
+  return `
+    <polygon points="40,95 80,70 120,95 80,120" fill="${col}"/>
+    <polygon points="40,55 80,30 80,70 40,95" fill="${l}"/>
+    <polygon points="80,30 120,55 120,95 80,70" fill="${d}"/>`;
+}
+
+function sphere3d(col) {
+  const id = 'sg' + Math.random().toString(36).slice(2,6);
+  return `
+    <defs>
+      <radialGradient id="${id}" cx="38%" cy="35%" r="60%">
+        <stop offset="0%" stop-color="${shadeHex(col,60)}"/>
+        <stop offset="100%" stop-color="${shadeHex(col,-50)}"/>
+      </radialGradient>
+    </defs>
+    <circle cx="80" cy="80" r="65" fill="url(#${id})"/>`;
+}
+
+function cylinder3d(col) {
+  const d = shadeHex(col, -40);
+  return `
+    <rect x="25" y="45" width="110" height="80" fill="${col}" rx="2"/>
+    <ellipse cx="80" cy="45"  rx="55" ry="18" fill="${shadeHex(col,30)}"/>
+    <ellipse cx="80" cy="125" rx="55" ry="18" fill="${d}"/>`;
+}
+
+function cone3d(col) {
+  const d = shadeHex(col, -40);
+  return `
+    <polygon points="80,15 145,130 15,130" fill="${col}"/>
+    <ellipse cx="80" cy="130" rx="65" ry="20" fill="${d}"/>`;
+}
+
+function pyramid3d(col) {
+  const d  = shadeHex(col, -45);
+  const l  = shadeHex(col,  30);
+  const tip = '80,12';
+  // Square base visible at bottom in perspective
+  // Left face, right face, and square base
+  return `
+    <polygon points="${tip} 20,115 85,140"  fill="${l}"/>
+    <polygon points="${tip} 85,140 148,115" fill="${d}"/>
+    <polygon points="20,115 85,140 148,115 83,90" fill="${shadeHex(col,-20)}"/>`;
+}
+
+function box3d(col) {
+  const d = shadeHex(col, -45);
+  const l = shadeHex(col, 35);
+  // Wide, flat box — clearly rectangular not cubic
+  // Front face (wide, short), right face (narrow), top face (wide)
+  return `
+    <polygon points="10,75 10,130 130,130 130,75"   fill="${col}"/>
+    <polygon points="130,75 130,130 155,108 155,53"  fill="${d}"/>
+    <polygon points="10,75 130,75 155,53 35,53"      fill="${l}"/>`;
+}
+
+function shadeHex(hex, amt) {
+  let r = parseInt(hex.slice(1,3),16);
+  let g = parseInt(hex.slice(3,5),16);
+  let b = parseInt(hex.slice(5,7),16);
+  r = Math.max(0,Math.min(255, r+amt));
+  g = Math.max(0,Math.min(255, g+amt));
+  b = Math.max(0,Math.min(255, b+amt));
+  return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// QUESTION BUILDERS
+// ═══════════════════════════════════════════════════════
+const TOTAL = 10;
+let mode, qIndex, score, correctCount, locked, questions;
+
+function pickMode(m, btn) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+mode = '2d';
+
+function goHome() { show('startScreen'); }
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame() {
+  qIndex = 0; score = 0; correctCount = 0; locked = false;
+  questions = buildQuestions();
+  document.getElementById('scoreDisp').textContent = '0';
+  show('gameScreen');
+  renderQ();
+}
+
+function buildQuestions() {
+  const realPool = shuffle([...REAL_OBJECTS]);
+  let realIdx = 0;
+
+  function makePool2d() {
+    const types = ['name_it', 'count_sides', 'count_corners', 'find_by_sides'];
+    const combos = [];
+    Object.keys(SHAPES_2D).forEach(key => types.forEach(t => combos.push({key, t})));
+    return shuffle(combos);
+  }
+  function makePool3d() {
+    const combos = [];
+    Object.keys(SHAPES_3D).forEach(key => {
+      const types = SHAPES_3D[key].faces === 0
+        ? ['name_it', 'find_by_desc']
+        : ['name_it', 'count_faces', 'flat_face', 'find_by_desc'];
+      types.forEach(t => combos.push({key, t}));
+    });
+    return shuffle(combos);
+  }
+
+  const pool2d = makePool2d(); let idx2d = 0;
+  const pool3d = makePool3d(); let idx3d = 0;
+  const next2d = () => pool2d[idx2d++ % pool2d.length];
+  const next3d = () => pool3d[idx3d++ % pool3d.length];
+  const nextReal = () => realPool[realIdx++ % realPool.length];
+
+  // Build more candidates than needed, then deduplicate by prompt
+  const candidates = [];
+  const needed = TOTAL * 3; // generate extra to allow dedup headroom
+  for (let i = 0; i < needed; i++) {
+    if (mode === '2d') {
+      const {key, t} = next2d();
+      candidates.push(pick2dQ(key, Object.keys(SHAPES_2D), t));
+    } else if (mode === '3d') {
+      const {key, t} = next3d();
+      candidates.push(pick3dQ(key, Object.keys(SHAPES_3D), t));
+    } else if (mode === 'real') {
+      candidates.push(pickRealQ(realPool[realIdx++ % realPool.length]));
+    } else {
+      const r = i % 4;
+      if (r < 2) { const {key, t} = next2d(); candidates.push(pick2dQ(key, Object.keys(SHAPES_2D), t)); }
+      else if (r === 2) { const {key, t} = next3d(); candidates.push(pick3dQ(key, Object.keys(SHAPES_3D), t)); }
+      else candidates.push(pickRealQ(realPool[realIdx++ % realPool.length]));
+    }
+  }
+
+  // Deduplicate by prompt text, take first TOTAL unique ones
+  const seen = new Set();
+  const qs = [];
+  for (const q of candidates) {
+    if (!seen.has(q.prompt)) {
+      seen.add(q.prompt);
+      qs.push(q);
+      if (qs.length === TOTAL) break;
+    }
+  }
+  return qs;
+}
+
+function pick2dQ(key, keys, type) {
+  const shape = SHAPES_2D[key];
+  type = type || pickArr(['name_it', 'count_sides', 'count_corners', 'find_by_sides']);
+
+  if (type === 'name_it') {
+    const wrong = shuffle(keys.filter(k => k !== key)).slice(0, 3).map(k => SHAPES_2D[k].name);
+    return {
+      badge: 'Name this shape',
+      prompt: 'What is this shape called?',
+      stage: shape.draw(shape.color),
+      answer: shape.name,
+      choices: shuffle([shape.name, ...wrong]),
+      fact: shape.fact,
+      choiceType: 'text',
+    };
+  }
+  if (type === 'count_sides') {
+    const ans = shape.sides;
+    const wrong = shuffle([0,3,4,5,6,8].filter(n => n !== ans)).slice(0,3);
+    return {
+      badge: 'Count the sides',
+      prompt: `How many sides does a ${shape.name} have?`,
+      stage: shape.draw(shape.color),
+      answer: ans,
+      choices: shuffle([ans, ...wrong]),
+      fact: shape.fact,
+      choiceType: 'text',
+    };
+  }
+  if (type === 'count_corners') {
+    const ans = shape.corners;
+    const wrong = shuffle([0,3,4,5,6,8].filter(n => n !== ans)).slice(0,3);
+    return {
+      badge: 'Count the corners',
+      prompt: `How many corners does a ${shape.name} have?`,
+      stage: shape.draw(shape.color),
+      answer: ans,
+      choices: shuffle([ans, ...wrong]),
+      fact: shape.fact,
+      choiceType: 'text',
+    };
+  }
+  // find_by_sides
+  const ans = shape.name;
+  const wrong = shuffle(keys.filter(k => k !== key && SHAPES_2D[k].sides !== shape.sides)).slice(0,3).map(k => SHAPES_2D[k].name);
+  return {
+    badge: 'Find the shape',
+    prompt: `Which shape has ${shape.sides === 0 ? 'no straight' : shape.sides} side${shape.sides !== 1 ? 's' : ''}?`,
+    stage: null,
+    answer: ans,
+    choices: shuffle([ans, ...wrong]),
+    fact: shape.fact,
+    choiceType: 'text',
+  };
+}
+
+function pick3dQ(key, keys, type) {
+  const shape = SHAPES_3D[key];
+  // Sphere has no flat faces — exclude those question types
+  const validTypes = shape.faces === 0
+    ? ['name_it', 'find_by_desc']
+    : ['name_it', 'count_faces', 'flat_face', 'find_by_desc'];
+  type = type || pickArr(validTypes);
+
+  if (type === 'name_it') {
+    const wrong = shuffle(keys.filter(k => k !== key)).slice(0,3).map(k => SHAPES_3D[k].name);
+    return {
+      badge: 'Name this 3D shape',
+      prompt: 'What is this 3D shape called?',
+      stage: shape.draw(shape.color),
+      answer: shape.name,
+      choices: shuffle([shape.name, ...wrong]),
+      fact: shape.fact,
+      choiceType: 'text',
+    };
+  }
+  if (type === 'count_faces') {
+    const ans = shape.faces;
+    const wrong = shuffle([0,1,2,3,4,5,6].filter(n => n !== ans)).slice(0,3);
+    return {
+      badge: 'Count the faces',
+      prompt: `How many flat faces does a ${shape.name} have?`,
+      stage: shape.draw(shape.color),
+      answer: ans,
+      choices: shuffle([ans, ...wrong]),
+      fact: shape.fact,
+      choiceType: 'text',
+    };
+  }
+  if (type === 'flat_face' && shape.flat2d) {
+    const ans = SHAPES_2D[shape.flat2d].name;
+    const wrongKeys = shuffle(Object.keys(SHAPES_2D).filter(k => k !== shape.flat2d)).slice(0,3);
+    const wrong = wrongKeys.map(k => SHAPES_2D[k].name);
+    return {
+      badge: 'Flat face shape',
+      prompt: `A ${shape.name}'s flat face is shaped like a…`,
+      stage: shape.draw(shape.color),
+      answer: ans,
+      choices: shuffle([ans, ...wrong]),
+      fact: shape.fact,
+      choiceType: 'text',
+    };
+  }
+  // find_by_desc
+  const descriptions = {
+    cube: 'I have 6 square faces and 8 corners.',
+    sphere: 'I am perfectly round with no flat faces.',
+    cylinder: 'I have 2 circular faces and roll on my side.',
+    cone: 'I have a circular base and come to a point.',
+    pyramid: 'I have a square base and 4 triangular faces.',
+    rectangular_prism: 'I look like a box — 6 rectangular faces.',
+  };
+  const desc = descriptions[key] || shape.fact;
+  const wrong = shuffle(keys.filter(k => k !== key)).slice(0,3).map(k => SHAPES_3D[k].name);
+  return {
+    badge: 'Which 3D shape am I?',
+    prompt: desc,
+    stage: null,
+    answer: shape.name,
+    choices: shuffle([shape.name, ...wrong]),
+    fact: shape.fact,
+    choiceType: 'text',
+  };
+}
+
+function pickRealQ(obj) {
+  const is3d = !!obj.shape3d;
+  const shapeKey = obj.shape3d || obj.shape2d;
+  const shapeData = is3d ? SHAPES_3D[shapeKey] : SHAPES_2D[shapeKey];
+  const ans = shapeData.name;
+
+  // wrong choices from same dimension
+  const pool = is3d ? Object.keys(SHAPES_3D) : Object.keys(SHAPES_2D);
+  const wrongKeys = shuffle(pool.filter(k => k !== shapeKey)).slice(0,3);
+  const wrong = wrongKeys.map(k => (is3d ? SHAPES_3D[k] : SHAPES_2D[k]).name);
+
+  return {
+    badge: 'Real life shape',
+    prompt: `A ${obj.object} is shaped like a…`,
+    stage: `<div style="font-size:90px;text-align:center;line-height:1.2">${obj.emoji}</div>`,
+    stageIsHTML: true,
+    answer: ans,
+    choices: shuffle([ans, ...wrong]),
+    fact: `A ${obj.object.replace(/ .*/,'')} is ${is3d ? 'a' : 'a'} ${ans.toLowerCase()}-shaped ${is3d ? '3D solid' : '2D flat shape'}.`,
+    choiceType: 'text',
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function renderQ() {
+  const q = questions[qIndex];
+  document.getElementById('progFill').style.width = (qIndex / TOTAL * 100) + '%';
+  document.getElementById('progLbl').textContent = `${qIndex} / ${TOTAL}`;
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('nextBtn').style.display = 'none';
+  locked = false;
+
+  let stageHTML = '';
+  if (q.stage) {
+    if (q.stageIsHTML) {
+      stageHTML = `<div class="shape-stage">${q.stage}</div>`;
+    } else {
+      stageHTML = `<div class="shape-stage">${q.stage}</div>`;
+    }
+  }
+
+  const choicesHTML = q.choices.map(c =>
+    `<button class="ch-btn" data-val="${c}" onclick="checkAns(this)">${c}</button>`
+  ).join('');
+
+  document.getElementById('qCard').innerHTML = `
+    <div class="q-badge">${q.badge}</div>
+    <div class="q-prompt">${q.prompt}</div>
+    ${stageHTML}
+    <div class="choices" id="choicesDiv">${choicesHTML}</div>
+  `;
+}
+
+function checkAns(btn) {
+  if (locked) return;
+  locked = true;
+  const q = questions[qIndex];
+  const val = btn.dataset.val;
+  const ok = val === String(q.answer);
+
+  document.querySelectorAll('#choicesDiv .ch-btn').forEach(b => {
+    const bval = b.dataset.val;
+    if (bval === String(q.answer)) b.classList.add('correct');
+    else if (bval === val && !ok) b.classList.add('wrong');
+    b.disabled = true;
+  });
+
+  const fb = document.getElementById('feedback');
+  if (ok) {
+    score += 10; correctCount++;
+    fb.className = 'feedback good';
+    fb.innerHTML = `✅ Correct! <div class="sub">${q.fact}</div>`;
+    spawnFloat(['🔷','⭐','✨']);
+  } else {
+    fb.className = 'feedback bad';
+    fb.innerHTML = `❌ Not quite — the answer is <strong>${q.answer}</strong>. <div class="sub">${q.fact}</div>`;
+    spawnFloat(['💭']);
+  }
+  fb.style.display = 'block';
+  document.getElementById('scoreDisp').textContent = score;
+  const nb = document.getElementById('nextBtn');
+  nb.style.display = 'block';
+  nb.textContent = qIndex + 1 >= TOTAL ? 'See my score! 🏆' : 'Next →';
+}
+
+function nextQ() {
+  qIndex++;
+  if (qIndex >= TOTAL) { showEnd(); return; }
+  renderQ();
+}
+
+function showEnd() {
+  show('endScreen');
+  const pct = correctCount / TOTAL;
+  let trophy, title, msg;
+  if (pct === 1)      { trophy='🏆'; title='Shape Master!';    msg='Perfect score — you know your shapes inside out!'; }
+  else if (pct>=.7)   { trophy='🥇'; title='Shape Expert!';    msg='Brilliant work! You really know your shapes.'; }
+  else if (pct>=.5)   { trophy='🥈'; title='Shape Explorer!';  msg='Nice job! Keep practising and you\'ll ace it.'; }
+  else                { trophy='💪'; title='Keep going!';       msg='Shapes take practice — give it another go!'; }
+
+  const stars = pct===1 ? 3 : pct>=.7 ? 2 : 1;
+  document.getElementById('endTrophy').textContent = trophy;
+  document.getElementById('endTitle').textContent  = title;
+  document.getElementById('endMsg').textContent    = msg;
+  document.getElementById('starsRow').textContent  = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+  document.getElementById('stScore').textContent   = score;
+  document.getElementById('stCorrect').textContent = `${correctCount}/${TOTAL}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// START SCREEN decoration
+// ═══════════════════════════════════════════════════════
+function drawStartShapes() {
+  const el = document.getElementById('startShapes');
+  const demos = [
+    SHAPES_2D.triangle.draw(C.y),
+    SHAPES_2D.circle.draw(C.b),
+    SHAPES_3D.cube.draw(C.p),
+    SHAPES_2D.hexagon.draw(C.g),
+    SHAPES_3D.cone.draw(C.r),
+  ];
+  el.innerHTML = demos.map(svg =>
+    `<div style="width:64px;height:64px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <svg viewBox="0 0 160 160" width="64" height="64" xmlns="http://www.w3.org/2000/svg">${svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1]||''}</svg>
+    </div>`
+  ).join('');
+}
+drawStartShapes();
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+function pickArr(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function shuffle(arr) { return [...arr].sort(() => Math.random() - .5); }
+
+function spawnFloat(emojis) {
+  emojis.forEach((e, i) => {
+    const el = document.createElement('div');
+    el.className = 'floater'; el.textContent = e;
+    el.style.left = (20 + Math.random() * 60) + 'vw';
+    el.style.top  = (30 + Math.random() * 30) + 'vh';
+    el.style.animationDelay = (i * .12) + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  });
+}
+</script>
+</body>
+</html>
