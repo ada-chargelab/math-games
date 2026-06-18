@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Measure Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EAF7F8;
+    --bg2:#FFF4E8;
+    --ink:#143642;
+    --ink-soft:#5C7681;
+    --water:#27B4C2;
+    --water-top:#8AE3EC;
+    --mass:#FF8A3D;
+    --mass-deep:#E06A1F;
+    --grow:#2FB877;
+    --grow-deep:#1E9A5F;
+    --sunny:#FFCE3A;
+    --line:#143642;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Quicksand',system-ui,-apple-system,sans-serif;
+    font-weight:600;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    background:
+      radial-gradient(circle at 14% 16%, #D6F0F4 0 20%, transparent 20%),
+      radial-gradient(circle at 86% 14%, #FFE6CC 0 17%, transparent 17%),
+      radial-gradient(circle at 82% 86%, #DCEFFB 0 22%, transparent 22%),
+      var(--bg);
+  }
+  .stage{
+    width:100%;max-width:560px;background:#fff;
+    border:4px solid var(--ink);border-radius:30px;
+    box-shadow:0 14px 0 rgba(20,54,66,.16);
+    padding:26px 24px 28px;position:relative;overflow:hidden;
+  }
+  h1{font-family:'Baloo 2',sans-serif;font-weight:800;margin:0;line-height:1;}
+  .display{font-family:'Baloo 2',sans-serif;}
+
+  /* ---- start ---- */
+  .start{text-align:center;}
+  .mascot{display:block;margin:2px auto 6px;width:124px;height:124px;}
+  .mascot .bob{transform-origin:64px 70px;animation:bob 2.6s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-2.5deg);}50%{transform:translateY(-6px) rotate(2.5deg);}}
+  .start h1{font-size:clamp(40px,9.5vw,58px);color:var(--water);}
+  .start .tag{font-size:18px;font-weight:700;color:var(--ink-soft);margin:6px 0 20px;}
+  .chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;}
+  .chip{background:var(--bg2);border:3px solid var(--ink);border-radius:999px;padding:7px 14px;font-weight:700;font-size:14px;font-family:'Baloo 2',sans-serif;}
+
+  /* ---- buttons ---- */
+  .btn{
+    font-family:'Baloo 2',sans-serif;font-weight:700;
+    border:4px solid var(--ink);border-radius:20px;padding:15px 26px;font-size:24px;cursor:pointer;
+    background:var(--sunny);color:var(--ink);box-shadow:0 6px 0 var(--ink);
+    transition:transform .08s ease, box-shadow .08s ease;-webkit-tap-highlight-color:transparent;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--ink);}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--ink);}
+  .btn.go{background:var(--grow);color:#fff;}
+  .btn:focus-visible{outline:4px dashed var(--water);outline-offset:3px;}
+
+  /* ---- topbar ---- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;}
+  .dots{display:flex;gap:6px;flex-wrap:wrap;}
+  .dot{width:14px;height:14px;border-radius:50%;border:2.5px solid var(--ink);background:#fff;}
+  .dot.done{background:var(--grow);}
+  .dot.now{background:var(--sunny);transform:scale(1.25);}
+  .right-tools{display:flex;gap:8px;align-items:center;}
+  .score{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:18px;background:var(--bg2);border:3px solid var(--ink);border-radius:999px;padding:4px 14px;white-space:nowrap;}
+  .sound{border:3px solid var(--ink);background:#fff;border-radius:14px;width:42px;height:42px;font-size:20px;cursor:pointer;line-height:1;-webkit-tap-highlight-color:transparent;}
+  .sound:focus-visible{outline:3px dashed var(--water);outline-offset:2px;}
+
+  /* ---- question ---- */
+  .badge{display:inline-block;font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13px;
+    border:3px solid var(--ink);border-radius:999px;padding:3px 12px;margin:14px auto 0;}
+  .badge.capacity{background:#D9F4F7;color:var(--ink);}
+  .badge.mass{background:#FFE6D2;color:var(--ink);}
+  .badge-wrap{text-align:center;}
+  .prompt{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:clamp(21px,5.2vw,27px);text-align:center;margin:8px 0 12px;line-height:1.18;}
+  .art{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px;min-height:90px;}
+  .art-row{display:flex;gap:26px;align-items:flex-end;justify-content:center;}
+  .art svg{display:block;}
+  .pop{animation:pop .42s cubic-bezier(.2,1.4,.5,1);}
+  @keyframes pop{0%{transform:scale(.6);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .bigemoji{font-size:64px;line-height:1;width:108px;height:108px;display:flex;align-items:center;justify-content:center;
+    border-radius:50%;background:radial-gradient(circle at 50% 38%, #fff 0 58%, #EaF3F5 100%);border:4px solid var(--ink);box-shadow:0 6px 0 rgba(20,54,66,.14);}
+
+  /* fill animation for beaker water */
+  .fillg{animation:fillrise .65s cubic-bezier(.25,.9,.3,1) both;}
+  @keyframes fillrise{from{transform:translateY(var(--rise));}to{transform:translateY(0);}}
+
+  .options{display:grid;gap:12px;}
+  .options.cols2{grid-template-columns:1fr 1fr;}
+  .opt{border:4px solid var(--ink);border-radius:18px;background:#fff;padding:14px 12px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 5px 0 var(--ink);
+    transition:transform .08s ease, box-shadow .08s ease, background .15s;min-height:64px;-webkit-tap-highlight-color:transparent;}
+  .opt:hover{transform:translateY(-2px);box-shadow:0 7px 0 var(--ink);}
+  .opt:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink);}
+  .opt:focus-visible{outline:4px dashed var(--water);outline-offset:3px;}
+  .opt.right{background:#D6F7E6;border-color:var(--grow-deep);box-shadow:0 5px 0 var(--grow-deep);}
+  .opt.wrong{background:#FFE0D2;border-color:var(--mass-deep);box-shadow:0 5px 0 var(--mass-deep);animation:shake .4s;}
+  .opt.dim{opacity:.45;}
+  .opt[disabled]{cursor:default;}
+  .opt .word{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:23px;}
+  @keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-7px);}40%{transform:translateX(7px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+
+  .feedback{margin-top:16px;text-align:center;min-height:26px;font-family:'Baloo 2',sans-serif;font-weight:700;font-size:22px;}
+  .feedback.good{color:var(--grow-deep);}
+  .feedback.bad{color:var(--mass-deep);}
+  .explain{margin-top:4px;text-align:center;font-weight:700;font-size:15px;color:var(--ink-soft);min-height:18px;}
+  .next-wrap{text-align:center;margin-top:12px;min-height:62px;}
+
+  .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  .confetti i{position:absolute;width:12px;height:12px;border-radius:3px;will-change:transform,opacity;}
+
+  /* ---- end ---- */
+  .end{text-align:center;}
+  .end h1{font-size:clamp(32px,8vw,46px);color:var(--water);margin-bottom:2px;}
+  .stars{font-size:48px;letter-spacing:6px;margin:6px 0 4px;}
+  .star{display:inline-block;animation:drop .5s cubic-bezier(.2,1.4,.5,1) both;}
+  .star.empty{filter:grayscale(1);opacity:.3;}
+  .star:nth-child(2){animation-delay:.15s;}
+  .star:nth-child(3){animation-delay:.3s;}
+  @keyframes drop{0%{transform:translateY(-26px) scale(.4) rotate(-30deg);opacity:0;}100%{transform:none;opacity:1;}}
+  .bigscore{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:29px;margin:10px 0 2px;}
+  .endmsg{font-weight:700;color:var(--ink-soft);font-size:18px;margin-bottom:20px;}
+
+  @media (max-width:430px){
+    .stage{padding:20px 16px 22px;}
+    .opt .word{font-size:20px;}
+    .art-row{gap:16px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important;animation-iteration-count:1 !important;}
+  }
+</style>
+</head>
+<body>
+  <main class="stage" id="stage" aria-live="polite"></main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- audio ---------------- */
+  var soundOn=true, audioCtx=null;
+  function tone(freq,dur,type,when){
+    if(!soundOn) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      var t0=audioCtx.currentTime+(when||0);
+      var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type=type||'sine'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001,t0);
+      g.gain.exponentialRampToValueAtTime(0.18,t0+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0); o.stop(t0+dur+0.02);
+    }catch(e){}
+  }
+  function chimeGood(){ tone(523,0.13,'triangle',0); tone(659,0.13,'triangle',0.1); tone(784,0.2,'triangle',0.2); }
+  function chimeBad(){ tone(300,0.16,'sine',0); tone(220,0.22,'sine',0.12); }
+  function clickTone(){ tone(660,0.07,'square',0); }
+
+  /* ---------------- shape builders ---------------- */
+  var uid=0;
+
+  function beakerSVG(o){
+    var w=o.w, h=o.h, fill=o.fill, marks=o.marks||[], hasMarks=marks.length>0;
+    var labelSpace = hasMarks?42:0;
+    var pad=6, bl=pad, br=w-pad-labelSpace, topY=12, botY=h-8, span=botY-topY-2, rb=12;
+    var id='bk'+(uid++);
+    var outer='M'+bl+','+topY+' V'+(botY-rb)+' Q'+bl+','+botY+' '+(bl+rb)+','+botY+
+              ' H'+(br-rb)+' Q'+br+','+botY+' '+br+','+(botY-rb)+' V'+topY;
+    var waterTop=botY-fill*span, waterH=botY-waterTop, mid=((bl+br)/2);
+    var s='<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" role="img">';
+    s+='<defs><clipPath id="'+id+'"><path d="'+outer+' Z"/></clipPath></defs>';
+    s+='<g clip-path="url(#'+id+')"><g class="fillg" style="--rise:'+waterH.toFixed(1)+'px">';
+    s+='<rect x="'+bl+'" y="'+waterTop.toFixed(1)+'" width="'+(br-bl)+'" height="'+waterH.toFixed(1)+'" fill="var(--water)"/>';
+    s+='<ellipse cx="'+mid.toFixed(1)+'" cy="'+waterTop.toFixed(1)+'" rx="'+((br-bl)/2).toFixed(1)+'" ry="4" fill="var(--water-top)"/>';
+    s+='</g></g>';
+    marks.forEach(function(m){
+      var y=botY-m.frac*span;
+      s+='<line x1="'+(br-14)+'" y1="'+y.toFixed(1)+'" x2="'+br+'" y2="'+y.toFixed(1)+'" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>';
+      s+='<text x="'+(br+6)+'" y="'+(y+4).toFixed(1)+'" font-size="12" font-weight="700" fill="var(--ink)" font-family="Quicksand,sans-serif">'+m.label+'</text>';
+    });
+    s+='<path d="'+outer+'" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>';
+    s+='<ellipse cx="'+mid.toFixed(1)+'" cy="'+topY+'" rx="'+((br-bl)/2).toFixed(1)+'" ry="4.5" fill="none" stroke="var(--ink)" stroke-width="4"/>';
+    s+='</svg>';
+    return s;
+  }
+
+  function balanceSVG(leftE,rightE,heavier){
+    var W=300,H=200, cx=150, pivotY=62, L=92, drop=56, tw=30;
+    var A=11*Math.PI/180;
+    var sign = heavier==='left' ? 1 : -1;       // left down when sign=+1
+    var lx=cx-L*Math.cos(A), ly=pivotY+sign*L*Math.sin(A);
+    var rx=cx+L*Math.cos(A), ry=pivotY-sign*L*Math.sin(A);
+    var lpY=ly+drop, rpY=ry+drop;
+    function tray(px,py){
+      return '<path d="M'+(px-tw)+','+py+' H'+(px+tw)+' M'+(px-tw)+','+py+' Q'+px+','+(py+13)+' '+(px+tw)+','+py+'" '+
+             'fill="none" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>';
+    }
+    var s='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img">';
+    s+='<ellipse cx="'+cx+'" cy="184" rx="78" ry="9" fill="rgba(20,54,66,.10)"/>';
+    // stand
+    s+='<path d="M'+(cx-30)+',162 L'+cx+','+pivotY+' L'+(cx+30)+',162 Z" fill="var(--bg2)" stroke="var(--ink)" stroke-width="4" stroke-linejoin="round"/>';
+    s+='<rect x="'+(cx-40)+'" y="160" width="80" height="12" rx="6" fill="var(--mass)" stroke="var(--ink)" stroke-width="4"/>';
+    // strings
+    s+='<line x1="'+lx.toFixed(1)+'" y1="'+ly.toFixed(1)+'" x2="'+lx.toFixed(1)+'" y2="'+lpY.toFixed(1)+'" stroke="var(--ink)" stroke-width="2.5"/>';
+    s+='<line x1="'+rx.toFixed(1)+'" y1="'+ry.toFixed(1)+'" x2="'+rx.toFixed(1)+'" y2="'+rpY.toFixed(1)+'" stroke="var(--ink)" stroke-width="2.5"/>';
+    // trays
+    s+=tray(lx,lpY)+tray(rx,rpY);
+    // beam
+    s+='<line x1="'+lx.toFixed(1)+'" y1="'+ly.toFixed(1)+'" x2="'+rx.toFixed(1)+'" y2="'+ry.toFixed(1)+'" stroke="var(--ink)" stroke-width="9" stroke-linecap="round"/>';
+    s+='<circle cx="'+cx+'" cy="'+pivotY+'" r="9" fill="var(--sunny)" stroke="var(--ink)" stroke-width="4"/>';
+    // objects
+    s+='<text x="'+lx.toFixed(1)+'" y="'+(lpY-5).toFixed(1)+'" font-size="32" text-anchor="middle">'+leftE+'</text>';
+    s+='<text x="'+rx.toFixed(1)+'" y="'+(rpY-5).toFixed(1)+'" font-size="32" text-anchor="middle">'+rightE+'</text>';
+    s+='</svg>';
+    return s;
+  }
+
+  function bigEmoji(e){ return '<div class="bigemoji">'+e+'</div>'; }
+
+  /* ---------------- question makers ---------------- */
+  function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+
+  function choiceQ(topic,prompt,emoji,choices,correct,explain){
+    var opts=shuffle(choices.map(function(c){ return {html:'<span class="word">'+c+'</span>', correct:c===correct}; }));
+    return {topic:topic, prompt:prompt, artHTML:bigEmoji(emoji), options:opts, cols:1, answerText:correct, explain:explain};
+  }
+  function readBeakerQ(beakerOpts,choices,correct,explain){
+    var opts=shuffle(choices.map(function(c){ return {html:'<span class="word">'+c+'</span>', correct:c===correct}; }));
+    return {topic:'capacity', prompt:'How much water is in the beaker?', artHTML:'<div class="pop">'+beakerSVG(beakerOpts)+'</div>',
+            options:opts, cols:1, answerText:correct, explain:explain};
+  }
+  function compareCapQ(){
+    var big=beakerSVG({w:80,h:128,fill:1}), small=beakerSVG({w:58,h:88,fill:1});
+    var bigLeft=Math.random()<0.5;
+    var art='<div class="art-row pop">'+(bigLeft?big:small)+(bigLeft?small:big)+'</div>';
+    return {topic:'capacity', prompt:'Which container holds MORE?', artHTML:art, cols:2,
+            options:[{html:'<span class="word">\u2b05\ufe0f Left</span>',correct:bigLeft},
+                     {html:'<span class="word">Right \u27a1\ufe0f</span>',correct:!bigLeft}],
+            answerText:bigLeft?'the LEFT one':'the RIGHT one',
+            explain:'The taller, wider container holds more water.'};
+  }
+  function balanceQ(heavyE,lightE,explain){
+    var heavyLeft=Math.random()<0.5;
+    var le=heavyLeft?heavyE:lightE, re=heavyLeft?lightE:heavyE;
+    var art='<div class="pop">'+balanceSVG(le,re,heavyLeft?'left':'right')+'</div>';
+    return {topic:'mass', prompt:'Which one is HEAVIER?', artHTML:art, cols:2,
+            options:[{html:'<span class="word">\u2b05\ufe0f Left</span>',correct:heavyLeft},
+                     {html:'<span class="word">Right \u27a1\ufe0f</span>',correct:!heavyLeft}],
+            answerText:heavyLeft?'the LEFT one':'the RIGHT one',
+            explain:explain};
+  }
+
+  // maker thunks (called fresh each round so random sides/shuffles differ)
+  var capacityVisual=[
+    function(){ return readBeakerQ(
+      {w:150,h:150,fill:0.6,marks:[{frac:.2,label:'100'},{frac:.4,label:'200'},{frac:.6,label:'300'},{frac:.8,label:'400'},{frac:1,label:'500'}]},
+      ['300 mL','200 mL','400 mL'],'300 mL','The water lines up with the 300 mL mark.'); },
+    function(){ return readBeakerQ(
+      {w:150,h:150,fill:0.75,marks:[{frac:.25,label:'250'},{frac:.5,label:'500'},{frac:.75,label:'750'},{frac:1,label:'1000'}]},
+      ['750 mL','500 mL','250 mL'],'750 mL','The water reaches the 750 mL mark.'); },
+    function(){ return compareCapQ(); }
+  ];
+  var capacityOther=[
+    function(){ return choiceQ('capacity','Which unit shows how much a bucket holds?','\ud83e\udea3',
+      ['Litres (L)','Grams (g)','Kilograms (kg)'],'Litres (L)','Buckets hold liquid, so we measure in litres.'); },
+    function(){ return choiceQ('capacity','A small spoon of medicine is measured in\u2026','\ud83e\udd44',
+      ['Millilitres (mL)','Litres (L)','Kilograms (kg)'],'Millilitres (mL)','A spoonful is tiny, so we use millilitres.'); },
+    function(){ return choiceQ('capacity','About how much juice is in a small juice box?','\ud83e\uddc3',
+      ['200 mL','200 L','20 L'],'200 mL','A juice box holds about 200 mL.'); },
+    function(){ return choiceQ('capacity','About how much water fills a bathtub?','\ud83d\udec1',
+      ['150 L','150 mL','15 mL'],'150 L','A bathtub holds about 150 litres of water.'); }
+  ];
+  var massVisual=[
+    function(){ return balanceQ('\ud83c\udf49','\ud83c\udf4e','A watermelon is much heavier than an apple.'); },
+    function(){ return balanceQ('\ud83d\udcda','\ud83e\udeb6','A stack of books is far heavier than a feather.'); },
+    function(){ return balanceQ('\ud83d\udc36','\ud83d\udc2d','A dog is heavier than a little mouse.'); }
+  ];
+  var massOther=[
+    function(){ return choiceQ('mass','Which unit shows how heavy an elephant is?','\ud83d\udc18',
+      ['Kilograms (kg)','Millilitres (mL)','Grams (g)'],'Kilograms (kg)','Elephants are very heavy, so we use kilograms.'); },
+    function(){ return choiceQ('mass','A light feather is measured in\u2026','\ud83e\udeb6',
+      ['Grams (g)','Kilograms (kg)','Litres (L)'],'Grams (g)','A feather is very light, so we use grams.'); },
+    function(){ return choiceQ('mass','About how heavy is a pet cat?','\ud83d\udc31',
+      ['4 kg','4 g','40 kg'],'4 kg','A pet cat weighs about 4 kilograms.'); },
+    function(){ return choiceQ('mass','About how heavy is one strawberry?','\ud83c\udf53',
+      ['10 g','10 kg','1 kg'],'10 g','A strawberry weighs about 10 grams.'); }
+  ];
+
+  function pickGroup(visual,other){
+    var chosenVisual=shuffle(visual.slice())[0];        // exactly one balance / beaker question
+    var rest=shuffle(other.slice()).slice(0,3);          // three distinct unit/estimate questions
+    return shuffle([chosenVisual].concat(rest));         // 4 thunks, all different prompts
+  }
+  function buildQuestions(){
+    var cap=pickGroup(capacityVisual,capacityOther);
+    var mass=pickGroup(massVisual,massOther);
+    return shuffle(cap.concat(mass)).map(function(thunk){ return thunk(); }); // 8 questions
+  }
+
+  /* ---------------- engine ---------------- */
+  var stage=document.getElementById('stage');
+  var questions=[], idx=0, score=0, locked=false;
+  var GOOD=['Spot on!','Nailed it!','Measured perfectly!','You\u2019re a natural!','Great call!'];
+
+  function mascotSVG(){
+    return '<svg class="mascot" viewBox="0 0 128 128" aria-hidden="true"><g class="bob">'+
+      '<defs><clipPath id="mbody"><path d="M42,30 V92 Q42,108 58,108 H70 Q86,108 86,92 V30 Z"/></clipPath></defs>'+
+      '<g clip-path="url(#mbody)"><rect x="42" y="80" width="44" height="30" fill="var(--water)"/>'+
+        '<ellipse cx="64" cy="80" rx="22" ry="3.5" fill="var(--water-top)"/></g>'+
+      '<path d="M42,30 V92 Q42,108 58,108 H70 Q86,108 86,92 V30" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round"/>'+
+      '<ellipse cx="64" cy="30" rx="22" ry="6" fill="#fff" stroke="var(--ink)" stroke-width="5"/>'+
+      '<circle cx="56" cy="54" r="7.5" fill="#fff" stroke="var(--ink)" stroke-width="3"/>'+
+      '<circle cx="74" cy="54" r="7.5" fill="#fff" stroke="var(--ink)" stroke-width="3"/>'+
+      '<circle cx="57" cy="55" r="3" fill="var(--ink)"/><circle cx="75" cy="55" r="3" fill="var(--ink)"/>'+
+      '<path d="M55,68 Q64,77 75,68" fill="none" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>'+
+      '<circle cx="49" cy="64" r="4" fill="var(--mass)" opacity=".5"/><circle cx="81" cy="64" r="4" fill="var(--mass)" opacity=".5"/>'+
+      '</g></svg>';
+  }
+
+  function renderStart(){
+    locked=false;
+    stage.innerHTML='<div class="start">'+mascotSVG()+
+      '<h1>Measure Lab</h1>'+
+      '<p class="tag">Pour it, weigh it, figure it out!</p>'+
+      '<div class="chips"><span class="chip">\ud83d\udca7 Capacity</span><span class="chip">\u2696\ufe0f Mass</span><span class="chip">\u2b50 8 questions</span></div>'+
+      '<button class="btn go" id="startBtn">Start measuring!</button></div>';
+    document.getElementById('startBtn').addEventListener('click',function(){
+      clickTone(); questions=buildQuestions(); idx=0; score=0; renderQuestion();
+    });
+  }
+
+  function dotsHTML(){
+    var s='<div class="dots">';
+    for(var i=0;i<questions.length;i++){ s+='<span class="dot '+(i<idx?'done':(i===idx?'now':''))+'"></span>'; }
+    return s+'</div>';
+  }
+
+  function renderQuestion(){
+    locked=false;
+    var q=questions[idx];
+    var html='<div class="topbar">'+dotsHTML()+
+      '<div class="right-tools"><span class="score">\u2b50 '+score+'</span>'+
+      '<button class="sound" id="soundBtn" aria-label="Toggle sound">'+(soundOn?'\ud83d\udd0a':'\ud83d\udd07')+'</button></div></div>';
+    html+='<div class="badge-wrap"><span class="badge '+q.topic+'">'+(q.topic==='capacity'?'\ud83d\udca7 Capacity':'\u2696\ufe0f Mass')+'</span></div>';
+    html+='<p class="prompt">'+q.prompt+'</p>';
+    html+='<div class="art">'+q.artHTML+'</div>';
+    html+='<div class="options '+(q.cols===2?'cols2':'')+'" id="opts" role="group">';
+    q.options.forEach(function(o,i){ html+='<button class="opt" data-i="'+i+'">'+o.html+'</button>'; });
+    html+='</div><div class="feedback" id="fb"></div><div class="explain" id="ex"></div><div class="next-wrap" id="nextWrap"></div>';
+    stage.innerHTML=html;
+
+    document.getElementById('soundBtn').addEventListener('click',function(){
+      soundOn=!soundOn; this.textContent=soundOn?'\ud83d\udd0a':'\ud83d\udd07'; if(soundOn) clickTone();
+    });
+    var opts=stage.querySelectorAll('.opt');
+    opts.forEach(function(b){ b.addEventListener('click',function(){ choose(parseInt(b.dataset.i,10),opts); }); });
+  }
+
+  function correctIndex(q){ for(var i=0;i<q.options.length;i++){ if(q.options[i].correct) return i; } return -1; }
+
+  function choose(i,opts){
+    if(locked) return; locked=true;
+    var q=questions[idx], ci=correctIndex(q), good=q.options[i].correct;
+    opts.forEach(function(b,bi){ b.setAttribute('disabled',''); if(bi!==i && bi!==ci) b.classList.add('dim'); });
+    var fb=document.getElementById('fb'), ex=document.getElementById('ex');
+    if(good){
+      score++; opts[i].classList.add('right');
+      fb.className='feedback good'; fb.textContent=GOOD[Math.floor(Math.random()*GOOD.length)];
+      chimeGood(); burstConfetti();
+    } else {
+      opts[i].classList.add('wrong'); if(ci>=0) opts[ci].classList.add('right');
+      fb.className='feedback bad'; fb.textContent='Not quite \u2014 it\u2019s '+q.answerText+'.';
+      chimeBad();
+    }
+    if(q.explain) ex.textContent=q.explain;
+    var sc=stage.querySelector('.score'); if(sc) sc.textContent='\u2b50 '+score;
+    var last=idx===questions.length-1;
+    var nw=document.getElementById('nextWrap');
+    nw.innerHTML='<button class="btn '+(last?'go':'')+'" id="nextBtn">'+(last?'See my stars!':'Next \u2192')+'</button>';
+    var nb=document.getElementById('nextBtn');
+    nb.addEventListener('click',function(){ clickTone(); if(last){ renderEnd(); } else { idx++; renderQuestion(); } });
+    nb.focus();
+  }
+
+  function burstConfetti(){
+    var colors=['#27B4C2','#FF8A3D','#2FB877','#FFCE3A','#8AE3EC'];
+    var wrap=document.createElement('div'); wrap.className='confetti';
+    for(var i=0;i<26;i++){
+      var p=document.createElement('i');
+      p.style.left=(10+Math.random()*80)+'%';
+      p.style.top=(26+Math.random()*18)+'%';
+      p.style.background=colors[i%colors.length];
+      p.style.transform='rotate('+(Math.random()*360)+'deg)';
+      wrap.appendChild(p); animateConfetti(p);
+    }
+    stage.appendChild(wrap);
+    setTimeout(function(){ if(wrap.parentNode) wrap.parentNode.removeChild(wrap); },1300);
+  }
+  function animateConfetti(el){
+    var dx=(Math.random()*2-1)*140, dy=160+Math.random()*120, rot=(Math.random()*2-1)*540;
+    try{
+      el.animate([{transform:el.style.transform+' translate(0,0)',opacity:1},
+                  {transform:'translate('+dx+'px,'+dy+'px) rotate('+rot+'deg)',opacity:0}],
+                 {duration:1100+Math.random()*300,easing:'cubic-bezier(.2,.6,.4,1)',fill:'forwards'});
+    }catch(e){ el.style.opacity=0; }
+  }
+
+  function renderEnd(){
+    var total=questions.length;
+    var stars= score>=total?3:(score>=Math.ceil(total*0.6)?2:1);
+    var msg= stars===3?'Top Scientist! A perfect score!':
+             stars===2?'Great measuring! You really know your units.':
+                       'Good start! Every scientist gets better with practice.';
+    var sh=''; for(var i=0;i<3;i++){ sh+='<span class="star'+(i<stars?'':' empty')+'">\u2b50</span>'; }
+    stage.innerHTML='<div class="end">'+mascotSVG()+'<h1>All done!</h1>'+
+      '<div class="stars" aria-label="'+stars+' out of 3 stars">'+sh+'</div>'+
+      '<div class="bigscore">You got '+score+' out of '+total+' right!</div>'+
+      '<p class="endmsg">'+msg+'</p><button class="btn go" id="againBtn">Play again</button></div>';
+    if(stars>=2){ chimeGood(); setTimeout(burstConfetti,150); }
+    document.getElementById('againBtn').addEventListener('click',function(){ clickTone(); renderStart(); });
+  }
+
+  renderStart();
+})();
+</script>
+</body>
+</html>

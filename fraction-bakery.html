@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fraction Bakery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF6E9;
+    --cream-deep:#FFE9C7;
+    --berry:#F8615A;
+    --berry-deep:#D8453F;
+    --blueberry:#4D96FF;
+    --mint:#3FC08B;
+    --mint-deep:#2BA374;
+    --sunny:#FFD23F;
+    --cocoa:#4A3528;
+    --cocoa-soft:#7A6453;
+    --empty:#FFFDF8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Nunito',system-ui,-apple-system,sans-serif;
+    background:
+      radial-gradient(circle at 12% 18%, #FFEFD6 0 22%, transparent 22%),
+      radial-gradient(circle at 88% 12%, #FFE3E1 0 18%, transparent 18%),
+      radial-gradient(circle at 78% 88%, #E4F0FF 0 24%, transparent 24%),
+      var(--cream);
+    color:var(--cocoa);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .stage{
+    width:100%;
+    max-width:560px;
+    background:#fff;
+    border:4px solid var(--cocoa);
+    border-radius:32px;
+    box-shadow:0 14px 0 rgba(74,53,40,.18);
+    padding:26px 24px 28px;
+    position:relative;
+    overflow:hidden;
+  }
+  h1{
+    font-family:'Fredoka',sans-serif;
+    font-weight:700;
+    margin:0;
+    line-height:1;
+    letter-spacing:-.5px;
+  }
+  .display{font-family:'Fredoka',sans-serif;font-weight:700;}
+
+  /* ---------- Start screen ---------- */
+  .start{text-align:center;}
+  .mascot{display:block;margin:4px auto 6px;width:128px;height:128px;}
+  .mascot .bob{transform-origin:64px 64px;animation:bob 2.4s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-7px) rotate(2deg);}}
+  .start h1{font-size:clamp(38px,9vw,56px);color:var(--berry);}
+  .start .tag{
+    font-size:18px;font-weight:800;color:var(--cocoa-soft);
+    margin:6px 0 22px;
+  }
+  .chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;}
+  .chip{
+    background:var(--cream-deep);border:3px solid var(--cocoa);
+    border-radius:999px;padding:7px 14px;font-weight:800;font-size:14px;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    font-family:'Fredoka',sans-serif;font-weight:600;
+    border:4px solid var(--cocoa);border-radius:20px;
+    padding:16px 26px;font-size:24px;cursor:pointer;
+    background:var(--sunny);color:var(--cocoa);
+    box-shadow:0 6px 0 var(--cocoa);
+    transition:transform .08s ease, box-shadow .08s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--cocoa);}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--cocoa);}
+  .btn.go{background:var(--mint);color:#fff;}
+  .btn:focus-visible{outline:4px dashed var(--blueberry);outline-offset:3px;}
+
+  /* ---------- Topbar / progress ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;}
+  .dots{display:flex;gap:6px;flex-wrap:wrap;}
+  .dot{width:14px;height:14px;border-radius:50%;border:2.5px solid var(--cocoa);background:#fff;}
+  .dot.done{background:var(--mint);}
+  .dot.now{background:var(--sunny);transform:scale(1.25);}
+  .score{
+    font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px;
+    background:var(--cream-deep);border:3px solid var(--cocoa);
+    border-radius:999px;padding:4px 14px;white-space:nowrap;
+  }
+  .sound{
+    border:3px solid var(--cocoa);background:#fff;border-radius:14px;
+    width:42px;height:42px;font-size:20px;cursor:pointer;line-height:1;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .sound:focus-visible{outline:3px dashed var(--blueberry);outline-offset:2px;}
+
+  /* ---------- Question ---------- */
+  .prompt{
+    font-family:'Fredoka',sans-serif;font-weight:600;
+    font-size:clamp(22px,5.4vw,28px);text-align:center;
+    margin:16px 0 12px;line-height:1.15;
+  }
+  .art{display:flex;gap:18px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+  .art svg{display:block;}
+  .pop{animation:pop .4s cubic-bezier(.2,1.4,.5,1);}
+  @keyframes pop{0%{transform:scale(.6);opacity:0;}100%{transform:scale(1);opacity:1;}}
+
+  .options{display:grid;gap:12px;}
+  .options.cols2{grid-template-columns:1fr 1fr;}
+  .options.cols3{grid-template-columns:1fr 1fr 1fr;}
+  .options.cols3 .opt{padding:12px 6px;}
+  .opt svg{max-width:100%;height:auto;display:block;}
+  .opt{
+    border:4px solid var(--cocoa);border-radius:20px;background:#fff;
+    padding:14px 10px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 5px 0 var(--cocoa);transition:transform .08s ease, box-shadow .08s ease, background .15s;
+    min-height:74px;-webkit-tap-highlight-color:transparent;
+  }
+  .opt:hover{transform:translateY(-2px);box-shadow:0 7px 0 var(--cocoa);}
+  .opt:active{transform:translateY(3px);box-shadow:0 2px 0 var(--cocoa);}
+  .opt:focus-visible{outline:4px dashed var(--blueberry);outline-offset:3px;}
+  .opt.right{background:#DCFff0;border-color:var(--mint-deep);box-shadow:0 5px 0 var(--mint-deep);}
+  .opt.wrong{background:#FFE3E1;border-color:var(--berry-deep);box-shadow:0 5px 0 var(--berry-deep);animation:shake .4s;}
+  .opt.dim{opacity:.45;}
+  .opt[disabled]{cursor:default;}
+  @keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-7px);}40%{transform:translateX(7px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+
+  /* fraction glyph */
+  .frac{display:inline-flex;flex-direction:column;align-items:center;line-height:1;font-family:'Fredoka',sans-serif;font-weight:700;}
+  .frac .n{font-size:30px;}
+  .frac .bar{width:34px;height:4px;background:var(--cocoa);border-radius:3px;margin:4px 0;}
+  .frac .d{font-size:30px;}
+  .opt .word{font-family:'Fredoka',sans-serif;font-weight:600;font-size:24px;}
+
+  /* feedback */
+  .feedback{
+    margin-top:16px;text-align:center;min-height:30px;
+    font-family:'Fredoka',sans-serif;font-weight:600;font-size:22px;
+  }
+  .feedback.good{color:var(--mint-deep);}
+  .feedback.bad{color:var(--berry-deep);}
+  .next-wrap{text-align:center;margin-top:14px;min-height:64px;}
+
+  /* confetti */
+  .confetti{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;}
+  .confetti i{position:absolute;width:12px;height:12px;border-radius:3px;will-change:transform,opacity;}
+
+  /* ---------- End screen ---------- */
+  .end{text-align:center;}
+  .end h1{font-size:clamp(32px,8vw,46px);color:var(--berry);margin-bottom:4px;}
+  .stars{font-size:48px;letter-spacing:6px;margin:6px 0 4px;}
+  .star{display:inline-block;animation:drop .5s cubic-bezier(.2,1.4,.5,1) both;}
+  .star.empty{filter:grayscale(1);opacity:.3;}
+  .star:nth-child(2){animation-delay:.15s;}
+  .star:nth-child(3){animation-delay:.3s;}
+  @keyframes drop{0%{transform:translateY(-26px) scale(.4) rotate(-30deg);opacity:0;}100%{transform:none;opacity:1;}}
+  .bigscore{font-family:'Fredoka',sans-serif;font-weight:700;font-size:30px;margin:10px 0 4px;}
+  .endmsg{font-weight:800;color:var(--cocoa-soft);font-size:18px;margin-bottom:20px;}
+
+  @media (max-width:430px){
+    .stage{padding:20px 16px 22px;}
+    .opt .word{font-size:20px;}
+    .frac .n,.frac .d{font-size:26px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important;animation-iteration-count:1 !important;}
+  }
+</style>
+</head>
+<body>
+  <main class="stage" id="stage" aria-live="polite"></main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- audio (no files, WebAudio only) ---------------- */
+  var soundOn = true, audioCtx = null;
+  function tone(freq, dur, type, when){
+    if(!soundOn) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      var t0 = audioCtx.currentTime + (when||0);
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type||'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.18, t0+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0); o.stop(t0+dur+0.02);
+    }catch(e){}
+  }
+  function chimeGood(){ tone(523,0.13,'triangle',0); tone(659,0.13,'triangle',0.1); tone(784,0.2,'triangle',0.2); }
+  function chimeBad(){ tone(300,0.16,'sine',0); tone(220,0.22,'sine',0.12); }
+  function clickTone(){ tone(660,0.07,'square',0); }
+
+  /* ---------------- shape drawing ---------------- */
+  var uid = 0;
+  function polar(cx,cy,r,deg){ var a=(deg-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; }
+  function slicePath(cx,cy,r,s,e){
+    var p1=polar(cx,cy,r,s), p2=polar(cx,cy,r,e), large=(e-s)>180?1:0;
+    return 'M'+cx+','+cy+' L'+p1[0].toFixed(2)+','+p1[1].toFixed(2)+
+           ' A'+r+','+r+' 0 '+large+' 1 '+p2[0].toFixed(2)+','+p2[1].toFixed(2)+' Z';
+  }
+  // Pie: n equal slices, first k filled
+  function pieSVG(n,k,size){
+    size = size||118;
+    var cx=size/2, cy=size/2, r=size/2-6, out='';
+    out += '<svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" role="img">';
+    for(var i=0;i<n;i++){
+      var fill = i<k ? 'var(--berry)' : 'var(--empty)';
+      out += '<path d="'+slicePath(cx,cy,r,i*360/n,(i+1)*360/n)+'" fill="'+fill+'" stroke="var(--cocoa)" stroke-width="3" stroke-linejoin="round"/>';
+    }
+    out += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--cocoa)" stroke-width="4"/>';
+    out += '</svg>';
+    return out;
+  }
+  // Chocolate bar: n equal pieces in a row, first k filled
+  function barSVG(n,k,size){
+    var w = size||190, h = Math.max(56, Math.min(86, w/n*1.15)), id='clip'+(uid++);
+    var pad=5, iw=w-pad*2, ih=h-pad*2, pw=iw/n, out='';
+    out += '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" role="img">';
+    out += '<defs><clipPath id="'+id+'"><rect x="'+pad+'" y="'+pad+'" width="'+iw+'" height="'+ih+'" rx="14"/></clipPath></defs>';
+    out += '<g clip-path="url(#'+id+')">';
+    for(var i=0;i<n;i++){
+      var fill = i<k ? 'var(--berry)' : 'var(--empty)';
+      out += '<rect x="'+(pad+i*pw)+'" y="'+pad+'" width="'+pw+'" height="'+ih+'" fill="'+fill+'"/>';
+      if(i>0) out += '<line x1="'+(pad+i*pw)+'" y1="'+pad+'" x2="'+(pad+i*pw)+'" y2="'+(pad+ih)+'" stroke="var(--cocoa)" stroke-width="3"/>';
+    }
+    out += '</g>';
+    out += '<rect x="'+pad+'" y="'+pad+'" width="'+iw+'" height="'+ih+'" rx="14" fill="none" stroke="var(--cocoa)" stroke-width="4"/>';
+    out += '</svg>';
+    return out;
+  }
+  function shapeSVG(shape,n,k,size){ return shape==='bar' ? barSVG(n,k,size) : pieSVG(n,k,size); }
+  function fracGlyph(n,d){ return '<span class="frac"><span class="n">'+n+'</span><span class="bar"></span><span class="d">'+d+'</span></span>'; }
+
+  /* ---------------- question bank ---------------- */
+  function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+  function gcd(a,b){ return b?gcd(b,a%b):a; }
+
+  // identify: show one shape, pick the fraction it shows
+  function makeIdentify(shape,n,k){
+    var correct = k+'/'+n;
+    var opts = [correct];
+    var guard=0;
+    while(opts.length<3 && guard++<50){
+      var dk = Math.min(n, Math.max(1, k + (Math.random()<.5?-1:1)*(1+Math.floor(Math.random()*2))));
+      var cand = dk+'/'+n;
+      if(opts.indexOf(cand)<0 && dk>=1 && dk<n) opts.push(cand);
+    }
+    // top up with a different-denominator distractor if needed
+    var alt=[ '1/2','1/3','2/3','1/4','3/4','2/4' ];
+    for(var z=0; opts.length<3 && z<alt.length; z++){ if(opts.indexOf(alt[z])<0) opts.push(alt[z]); }
+    return {
+      type:'identify',
+      prompt: shape==='bar' ? 'How much of the chocolate bar is colored?' : 'How much of the pie is filled?',
+      art:[{shape:shape,n:n,k:k,size:shape==='bar'?210:128}],
+      options: shuffle(opts).map(function(f){ var p=f.split('/'); return {html:fracGlyph(p[0],p[1]), value:f}; }),
+      answer: correct
+    };
+  }
+
+  // match: show a fraction, pick the shape that matches
+  function makeMatch(n,k,shape){
+    var correct = {shape:shape,n:n,k:k};
+    var seen = {}; seen[k+'/'+n]=1;
+    var opts=[correct], guard=0;
+    while(opts.length<3 && guard++<60){
+      var nn = shape==='bar' ? n : (Math.random()<.5?n:[2,3,4][Math.floor(Math.random()*3)]);
+      var kk = Math.min(nn-0, Math.max(1, k + (Math.random()<.5?-1:1)*(1+Math.floor(Math.random()*2))));
+      if(kk<1||kk>=nn) continue;
+      if(Math.abs(kk/nn - k/n) < 1e-9) continue; // skip same-amount (equivalent) distractors
+      var key=kk+'/'+nn;
+      if(!seen[key]){ seen[key]=1; opts.push({shape:shape,n:nn,k:kk}); }
+    }
+    opts = shuffle(opts);
+    return {
+      type:'match',
+      prompt:'Tap the treat that shows this fraction:',
+      headFrac:{n:k,d:n},
+      options: opts.map(function(o){ return {html:shapeSVG(o.shape,o.n,o.k,o.shape==='bar'?170:96), correct:(o.n===n&&o.k===k)}; }),
+      cols: (shape==='bar' ? 1 : 3)
+    };
+  }
+
+  // compare: two shapes, which has MORE filled
+  function makeCompare(a,b){
+    var va=a.k/a.n, vb=b.k/b.n;
+    var ans = va>vb?'left':(vb>va?'right':'same');
+    return {
+      type:'compare',
+      prompt:'Which plate has MORE filled?',
+      art:[{shape:a.shape,n:a.n,k:a.k,size:a.shape==='bar'?150:108},{shape:b.shape,n:b.n,k:b.k,size:b.shape==='bar'?150:108}],
+      options:[
+        {html:'<span class="word">⬅️ Left</span>', value:'left'},
+        {html:'<span class="word">Right ➡️</span>', value:'right'}
+      ],
+      answer: ans==='same'?'left':ans, // we avoid building "same" comparisons below
+      cols:2
+    };
+  }
+
+  function buildQuestions(){
+    var pool = [
+      makeIdentify('pie',2,1),
+      makeIdentify('pie',4,3),
+      makeIdentify('pie',3,1),
+      makeIdentify('bar',4,2),
+      makeIdentify('bar',6,5),
+      makeIdentify('pie',4,1),
+      makeMatch(2,1,'pie'),
+      makeMatch(3,2,'pie'),
+      makeMatch(4,3,'bar'),
+      makeMatch(8,3,'bar'),
+      makeCompare({shape:'pie',n:4,k:3},{shape:'pie',n:4,k:1}),
+      makeCompare({shape:'bar',n:2,k:1},{shape:'bar',n:4,k:1}),
+      makeCompare({shape:'pie',n:3,k:2},{shape:'pie',n:6,k:1})
+    ];
+    return shuffle(pool).slice(0,8);
+  }
+
+  /* ---------------- game state ---------------- */
+  var stage = document.getElementById('stage');
+  var questions=[], idx=0, score=0, locked=false;
+
+  var GOOD = ['Yum! That\u2019s right!','Sweet! Correct!','Delicious! You got it!','Perfect slice!','Tasty work!'];
+
+  function mascotSVG(){
+    return '<svg class="mascot" viewBox="0 0 128 128" aria-hidden="true"><g class="bob">'+
+      '<circle cx="64" cy="64" r="48" fill="var(--sunny)" stroke="var(--cocoa)" stroke-width="5"/>'+
+      '<path d="M64 64 L64 16 A48 48 0 0 1 105.6 40 Z" fill="var(--berry)" stroke="var(--cocoa)" stroke-width="4" stroke-linejoin="round"/>'+
+      '<circle cx="50" cy="60" r="7" fill="#fff" stroke="var(--cocoa)" stroke-width="3"/>'+
+      '<circle cx="78" cy="60" r="7" fill="#fff" stroke="var(--cocoa)" stroke-width="3"/>'+
+      '<circle cx="51" cy="61" r="3" fill="var(--cocoa)"/><circle cx="79" cy="61" r="3" fill="var(--cocoa)"/>'+
+      '<path d="M50 80 Q64 92 78 80" fill="none" stroke="var(--cocoa)" stroke-width="4" stroke-linecap="round"/>'+
+      '<circle cx="42" cy="76" r="5" fill="var(--berry)" opacity=".55"/><circle cx="86" cy="76" r="5" fill="var(--berry)" opacity=".55"/>'+
+      '</g></svg>';
+  }
+
+  function renderStart(){
+    locked=false;
+    stage.innerHTML =
+      '<div class="start">'+
+        mascotSVG()+
+        '<h1>Fraction Bakery</h1>'+
+        '<p class="tag">Slice, share, and spot the fractions!</p>'+
+        '<div class="chips"><span class="chip">\ud83c\udf55 Pies</span><span class="chip">\ud83c\udf6b Bars</span><span class="chip">\u2b50 8 questions</span></div>'+
+        '<button class="btn go" id="startBtn">Start baking!</button>'+
+      '</div>';
+    document.getElementById('startBtn').addEventListener('click', function(){
+      clickTone();
+      questions = buildQuestions(); idx=0; score=0;
+      renderQuestion();
+    });
+  }
+
+  function dotsHTML(){
+    var s='<div class="dots">';
+    for(var i=0;i<questions.length;i++){
+      var cls = i<idx?'done':(i===idx?'now':'');
+      s+='<span class="dot '+cls+'"></span>';
+    }
+    return s+'</div>';
+  }
+
+  function renderQuestion(){
+    locked=false;
+    var q = questions[idx];
+    var html = '<div class="topbar">'+dotsHTML()+
+      '<div style="display:flex;gap:8px;align-items:center;">'+
+        '<span class="score">\u2b50 '+score+'</span>'+
+        '<button class="sound" id="soundBtn" aria-label="Toggle sound">'+(soundOn?'\ud83d\udd0a':'\ud83d\udd07')+'</button>'+
+      '</div></div>';
+
+    html += '<p class="prompt">'+q.prompt+'</p>';
+
+    if(q.type==='match'){
+      html += '<div class="art pop">'+fracGlyphBig(q.headFrac.n,q.headFrac.d)+'</div>';
+    } else if(q.art){
+      html += '<div class="art pop">';
+      q.art.forEach(function(a){ html += shapeSVG(a.shape,a.n,a.k,a.size); });
+      html += '</div>';
+    }
+
+    var cols = q.cols===3?'cols3':(q.cols===2?'cols2':'');
+    html += '<div class="options '+cols+'" id="opts" role="group">';
+    q.options.forEach(function(o,i){
+      html += '<button class="opt" data-i="'+i+'">'+o.html+'</button>';
+    });
+    html += '</div>';
+    html += '<div class="feedback" id="fb"></div>';
+    html += '<div class="next-wrap" id="nextWrap"></div>';
+
+    stage.innerHTML = html;
+
+    document.getElementById('soundBtn').addEventListener('click', function(){
+      soundOn=!soundOn; this.textContent = soundOn?'\ud83d\udd0a':'\ud83d\udd07'; if(soundOn) clickTone();
+    });
+
+    var opts = stage.querySelectorAll('.opt');
+    opts.forEach(function(btn){
+      btn.addEventListener('click', function(){ choose(parseInt(btn.dataset.i,10), opts); });
+    });
+  }
+
+  function fracGlyphBig(n,d){
+    return '<span class="frac" style="transform:scale(1.5);margin:6px 0;"><span class="n">'+n+'</span><span class="bar"></span><span class="d">'+d+'</span></span>';
+  }
+
+  function isCorrect(q,i){
+    if(q.type==='match') return q.options[i].correct;
+    return q.options[i].value === q.answer;
+  }
+  function correctIndex(q){
+    for(var i=0;i<q.options.length;i++){ if(isCorrect(q,i)) return i; }
+    return -1;
+  }
+  function answerLabel(q){
+    if(q.type==='compare') return q.answer==='left'?'the LEFT plate':'the RIGHT plate';
+    if(q.type==='identify') return q.answer;
+    var ci=correctIndex(q); return 'that one';
+  }
+
+  function choose(i, opts){
+    if(locked) return;
+    locked=true;
+    var q = questions[idx];
+    var ci = correctIndex(q);
+    var good = isCorrect(q,i);
+
+    opts.forEach(function(b,bi){
+      b.setAttribute('disabled','');
+      if(bi!==i && bi!==ci) b.classList.add('dim');
+    });
+
+    var fb = document.getElementById('fb');
+    if(good){
+      score++;
+      opts[i].classList.add('right');
+      fb.className='feedback good';
+      fb.textContent = GOOD[Math.floor(Math.random()*GOOD.length)];
+      chimeGood();
+      burstConfetti();
+    } else {
+      opts[i].classList.add('wrong');
+      if(ci>=0) opts[ci].classList.add('right');
+      fb.className='feedback bad';
+      fb.textContent = 'Oops! The answer is '+answerLabel(q)+'.';
+      chimeBad();
+    }
+    // update score chip
+    var sc = stage.querySelector('.score'); if(sc) sc.textContent='\u2b50 '+score;
+
+    var last = idx===questions.length-1;
+    var nw = document.getElementById('nextWrap');
+    nw.innerHTML = '<button class="btn '+(last?'go':'')+'" id="nextBtn">'+(last?'See my stars!':'Next \u2192')+'</button>';
+    var nb = document.getElementById('nextBtn');
+    nb.addEventListener('click', function(){
+      clickTone();
+      if(last){ renderEnd(); } else { idx++; renderQuestion(); }
+    });
+    nb.focus();
+  }
+
+  function burstConfetti(){
+    var colors=['#F8615A','#4D96FF','#3FC08B','#FFD23F','#FF9F4D'];
+    var wrap=document.createElement('div'); wrap.className='confetti';
+    var n=26;
+    for(var i=0;i<n;i++){
+      var p=document.createElement('i');
+      var left=10+Math.random()*80;
+      p.style.left=left+'%';
+      p.style.top=(28+Math.random()*18)+'%';
+      p.style.background=colors[i%colors.length];
+      p.style.transform='rotate('+(Math.random()*360)+'deg)';
+      wrap.appendChild(p);
+      animateConfetti(p);
+    }
+    stage.appendChild(wrap);
+    setTimeout(function(){ if(wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 1300);
+  }
+  function animateConfetti(el){
+    var dx=(Math.random()*2-1)*140, dy=160+Math.random()*120, rot=(Math.random()*2-1)*540;
+    try{
+      el.animate([
+        {transform:el.style.transform+' translate(0,0)', opacity:1},
+        {transform:'translate('+dx+'px,'+dy+'px) rotate('+rot+'deg)', opacity:0}
+      ], {duration:1100+Math.random()*300, easing:'cubic-bezier(.2,.6,.4,1)', fill:'forwards'});
+    }catch(e){ el.style.opacity=0; }
+  }
+
+  function renderEnd(){
+    var total=questions.length;
+    var stars = score>=total ? 3 : (score>=Math.ceil(total*0.6) ? 2 : 1);
+    var msg;
+    if(stars===3) msg='Master Baker! Perfect score!';
+    else if(stars===2) msg='Great slicing! You really know your fractions.';
+    else msg='Nice try! Every baker gets better with practice.';
+
+    var starHTML='';
+    for(var i=0;i<3;i++){ starHTML += '<span class="star'+(i<stars?'':' empty')+'">\u2b50</span>'; }
+
+    stage.innerHTML =
+      '<div class="end">'+
+        mascotSVG()+
+        '<h1>All done!</h1>'+
+        '<div class="stars" aria-label="'+stars+' out of 3 stars">'+starHTML+'</div>'+
+        '<div class="bigscore">You got '+score+' out of '+total+' slices!</div>'+
+        '<p class="endmsg">'+msg+'</p>'+
+        '<button class="btn go" id="againBtn">Play again</button>'+
+      '</div>';
+    if(stars>=2){ chimeGood(); setTimeout(burstConfetti,150); }
+    document.getElementById('againBtn').addEventListener('click', function(){ clickTone(); renderStart(); });
+  }
+
+  renderStart();
+})();
+</script>
+</body>
+</html>
