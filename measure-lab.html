@@ -87,8 +87,12 @@
   .badge-wrap{text-align:center;}
   .prompt{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:clamp(21px,5.2vw,27px);text-align:center;margin:8px 0 12px;line-height:1.18;}
   .art{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:14px;min-height:90px;}
-  .art-row{display:flex;gap:26px;align-items:flex-end;justify-content:center;}
-  .art svg{display:block;}
+  .art-row{display:flex;gap:20px;align-items:flex-end;justify-content:center;flex-wrap:nowrap;}
+  .art svg{display:block;max-width:100%;height:auto;}
+  .cmp-cell{display:flex;flex-direction:column;align-items:center;gap:7px;flex:0 1 auto;min-width:0;max-width:48%;}
+  .cmp-cell svg{max-width:100%;height:auto;}
+  .cmp-cap{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:var(--ink);
+    background:var(--bg2);border:2.5px solid var(--ink);border-radius:999px;padding:2px 14px;white-space:nowrap;}
   .pop{animation:pop .42s cubic-bezier(.2,1.4,.5,1);}
   @keyframes pop{0%{transform:scale(.6);opacity:0;}100%{transform:scale(1);opacity:1;}}
   .bigemoji{font-size:64px;line-height:1;width:108px;height:108px;display:flex;align-items:center;justify-content:center;
@@ -247,7 +251,11 @@
   function compareCapQ(){
     var big=beakerSVG({w:80,h:128,fill:1}), small=beakerSVG({w:58,h:88,fill:1});
     var bigLeft=Math.random()<0.5;
-    var art='<div class="art-row pop">'+(bigLeft?big:small)+(bigLeft?small:big)+'</div>';
+    var leftSVG=bigLeft?big:small, rightSVG=bigLeft?small:big;
+    var art='<div class="art-row pop">'+
+              '<div class="cmp-cell">'+leftSVG+'<span class="cmp-cap">Left</span></div>'+
+              '<div class="cmp-cell">'+rightSVG+'<span class="cmp-cap">Right</span></div>'+
+            '</div>';
     return {topic:'capacity', prompt:'Which container holds MORE?', artHTML:art, cols:2,
             options:[{html:'<span class="word">\u2b05\ufe0f Left</span>',correct:bigLeft},
                      {html:'<span class="word">Right \u27a1\ufe0f</span>',correct:!bigLeft}],
