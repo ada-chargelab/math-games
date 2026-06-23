@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Mage Adventure! 🧙✨</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Comic Sans MS','Chalkboard SE',system-ui,sans-serif;
+  background:linear-gradient(180deg,#0a1f3d 0%,#1a3a52 40%,#2d5a8d 100%);
+  min-height:100vh;color:white;overflow-x:hidden;
+}
+.game{max-width:680px;margin:0 auto;padding:1rem;position:relative}
+
+/* Magical bg */
+.star-bg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star-bg span{position:absolute;color:#fff;opacity:0.6;animation:twinkle 3s infinite}
+@keyframes twinkle{0%,100%{opacity:0.2}50%{opacity:0.95}}
+
+/* Stats bar */
+.stats-bar{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  background:rgba(0,0,0,0.5);border:2px solid #FFD700;border-radius:14px;
+  padding:8px 12px;margin-bottom:1rem;position:relative;z-index:1;flex-wrap:wrap;
+}
+.stat{display:flex;align-items:center;gap:4px;font-weight:bold;font-size:13px}
+.stat-label{color:#FFD700}
+.potion-btn{
+  background:linear-gradient(180deg,#e74c3c,#c0392b);border:2px solid #fff;
+  color:white;padding:4px 10px;border-radius:18px;cursor:pointer;
+  font-family:inherit;font-weight:bold;font-size:13px;
+  box-shadow:0 3px 0 #7c2020;
+}
+.potion-btn:hover{transform:translateY(-1px)}
+.potion-btn:disabled{opacity:0.4;cursor:not-allowed}
+.sound-btn{
+  background:rgba(0,0,0,0.4);border:2px solid #FFD700;color:white;
+  width:32px;height:32px;border-radius:50%;font-size:14px;cursor:pointer;
+}
+
+/* Arena */
+.arena{
+  background:linear-gradient(180deg,#1a2a4e 0%,#2c3e72 50%,#1e3c72 100%);
+  border:3px solid #FFD700;border-radius:20px;padding:1rem;
+  position:relative;min-height:210px;margin-bottom:1rem;overflow:hidden;
+  z-index:1;box-shadow:0 0 30px rgba(255,215,0,0.3);
+}
+.arena.boss-rage{
+  background:linear-gradient(180deg,#4e1a1a 0%,#722c2c 50%,#a8312e 100%);
+  border-color:#ff4757;box-shadow:0 0 40px rgba(255,71,87,0.6);
+  animation:rage-pulse 1.2s ease-in-out infinite;
+}
+@keyframes rage-pulse{0%,100%{box-shadow:0 0 30px rgba(255,71,87,0.6)}50%{box-shadow:0 0 50px rgba(255,71,87,0.9)}}
+.fighters{
+  display:flex;justify-content:space-around;align-items:flex-end;
+  min-height:170px;position:relative;z-index:2;
+}
+.fighter{text-align:center;position:relative}
+.fighter-emoji{
+  font-size:75px;display:inline-block;animation:idle 2s ease-in-out infinite;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+}
+.fighter.enraged .fighter-emoji{filter:drop-shadow(0 0 20px #ff4757) drop-shadow(0 4px 8px rgba(0,0,0,0.5));animation:rage-shake 0.3s ease-in-out infinite}
+@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes rage-shake{0%,100%{transform:translateX(0) translateY(0)}25%{transform:translateX(-3px) translateY(-5px)}75%{transform:translateX(3px) translateY(-5px)}}
+.fighter-name{font-size:13px;font-weight:bold;color:#FFD700;margin-top:4px;text-shadow:1px 1px 0 #000}
+.weakness-tag{
+  font-size:11px;color:#aaf;margin-top:2px;
+  background:rgba(0,0,0,0.4);padding:2px 8px;border-radius:10px;
+  display:inline-block;border:1px solid rgba(255,255,255,0.3);
+}
+
+.hp-bar-wrap{width:130px;margin:6px auto 0}
+.hp-bar{
+  background:rgba(0,0,0,0.5);border:2px solid #FFD700;border-radius:10px;
+  height:14px;overflow:hidden;
+}
+.hp-fill{
+  height:100%;background:linear-gradient(90deg,#ff4757,#ff6b81);
+  transition:width 0.6s ease;box-shadow:inset 0 -3px 5px rgba(0,0,0,0.3);
+}
+.hp-text{font-size:11px;text-align:center;margin-top:2px;font-weight:bold;text-shadow:1px 1px 0 #000}
+
+/* Damage numbers */
+.damage-num{
+  position:absolute;font-size:34px;font-weight:bold;
+  text-shadow:2px 2px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000;
+  animation:float-up 1.1s ease-out forwards;pointer-events:none;z-index:5;
+}
+.damage-num.player-dmg{color:#ff4757}
+.damage-num.monster-dmg{color:#ffd700}
+.damage-num.bonus{color:#2ecc71;font-size:40px}
+.damage-num.crit{color:#FFD700;font-size:46px;animation:crit-pop 1.2s ease-out forwards}
+@keyframes float-up{
+  0%{transform:translateY(0) scale(0.5);opacity:0}
+  20%{transform:translateY(-10px) scale(1.3);opacity:1}
+  100%{transform:translateY(-90px) scale(1);opacity:0}
+}
+@keyframes crit-pop{
+  0%{transform:scale(0) rotate(-10deg);opacity:0}
+  20%{transform:scale(1.8) rotate(0);opacity:1}
+  60%{transform:scale(1) rotate(0);opacity:1}
+  100%{transform:translateY(-50px) scale(1);opacity:0}
+}
+
+.crit-flash{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(circle,rgba(255,215,0,0.4),rgba(255,215,0,0));
+  pointer-events:none;animation:crit-flash 0.4s;z-index:50;
+}
+@keyframes crit-flash{0%,100%{opacity:0}50%{opacity:1}}
+
+.shake{animation:hit-shake 0.4s}
+@keyframes hit-shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-12px) rotate(-3deg)}
+  40%{transform:translateX(10px) rotate(3deg)}
+  60%{transform:translateX(-8px) rotate(-2deg)}
+  80%{transform:translateX(6px) rotate(1deg)}
+}
+
+/* Spell effects */
+.spell-effect{
+  position:absolute;font-size:55px;z-index:4;pointer-events:none;top:30%;
+  filter:drop-shadow(0 0 12px currentColor);
+}
+.fly-to-monster{animation:fly-to-monster 0.7s ease-out forwards}
+@keyframes fly-to-monster{
+  0%{left:15%;transform:scale(0.5) rotate(0)}
+  50%{transform:scale(1.4) rotate(180deg)}
+  100%{left:70%;transform:scale(1.9) rotate(360deg);opacity:0}
+}
+.fly-to-player{animation:fly-to-player 0.6s ease-in forwards}
+@keyframes fly-to-player{
+  0%{right:15%;transform:scale(0.5)}
+  100%{right:70%;transform:scale(1.5);opacity:0}
+}
+
+/* Action panel */
+.actions{
+  background:rgba(0,0,0,0.55);border:2px solid #FFD700;
+  border-radius:16px;padding:1rem;min-height:200px;position:relative;z-index:1;
+}
+.panel-title{text-align:center;font-size:16px;font-weight:bold;color:#FFD700;margin-bottom:0.75rem}
+
+.spells{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.spell{
+  padding:10px 8px;border:3px solid;border-radius:14px;cursor:pointer;
+  font-family:inherit;font-weight:bold;text-align:center;font-size:13px;
+  color:white;transition:transform 0.15s,box-shadow 0.15s;
+  box-shadow:0 4px 0 rgba(0,0,0,0.4);
+}
+.spell:hover{transform:translateY(-4px);box-shadow:0 8px 0 rgba(0,0,0,0.4)}
+.spell:active{transform:translateY(0);box-shadow:0 2px 0 rgba(0,0,0,0.4)}
+.spell-emoji{font-size:30px;display:block;margin-bottom:2px;filter:drop-shadow(0 0 6px currentColor)}
+.spell-fire{background:linear-gradient(180deg,#ff6b35,#d63031);border-color:#ffaa42}
+.spell-water{background:linear-gradient(180deg,#0984e3,#006ba6);border-color:#74b9ff}
+.spell-lightning{background:linear-gradient(180deg,#fdcb6e,#d35400);border-color:#ffeaa7;color:#2c3e50}
+.spell-light{background:linear-gradient(180deg,#ffffff,#e0d4ff);border-color:#fff;color:#4a2870}
+.spell-diff{font-size:10px;opacity:0.95;display:block;margin-top:2px}
+.spell-dmg{font-size:11px;display:block;margin-top:2px;font-weight:bold}
+
+/* Math question */
+.question-text{
+  font-size:28px;text-align:center;
+  background:linear-gradient(180deg,#fff8dc,#fff);color:#2c3e50;
+  padding:1rem;border-radius:12px;margin-bottom:0.75rem;font-weight:bold;
+  border:3px solid #FFD700;box-shadow:0 0 20px rgba(255,215,0,0.5);
+  line-height:1.3;
+}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice-btn{
+  padding:14px 10px;font-size:22px;border:3px solid #FFD700;
+  background:linear-gradient(180deg,#fff,#f0f0f0);color:#2c3e50;
+  border-radius:12px;cursor:pointer;font-family:inherit;font-weight:bold;
+  transition:transform 0.1s,background 0.2s;box-shadow:0 4px 0 #888;
+}
+.choice-btn:hover:not(:disabled){background:#FFF8DC;transform:scale(1.05)}
+.choice-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #888}
+.choice-btn:disabled{cursor:default}
+.choice-btn.correct{background:linear-gradient(180deg,#2ecc71,#27ae60);color:white;border-color:#fff;animation:wiggle 0.6s}
+.choice-btn.wrong{background:linear-gradient(180deg,#e74c3c,#c0392b);color:white;border-color:#fff;animation:shake 0.4s}
+@keyframes wiggle{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-5deg) scale(1.1)}75%{transform:rotate(5deg) scale(1.1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+.msg{
+  text-align:center;font-size:14px;padding:8px;border-radius:8px;
+  margin-bottom:0.75rem;font-weight:bold;
+}
+.msg.info{background:rgba(255,215,0,0.2);color:#FFD700;border:1px solid #FFD700}
+
+/* Start/End screens */
+.start-screen,.end-screen{
+  text-align:center;padding:2rem 1rem;background:rgba(0,0,0,0.5);
+  border:3px solid #FFD700;border-radius:20px;position:relative;z-index:1;
+  box-shadow:0 0 40px rgba(255,215,0,0.4);
+}
+.big-wizard{font-size:130px;display:inline-block;animation:idle 2s infinite;filter:drop-shadow(0 0 30px #FFD700)}
+.title{font-size:34px;color:#FFD700;text-shadow:3px 3px 0 #6c5ce7,-1px -1px 0 #fff;margin:1rem 0}
+
+.btn-primary{
+  display:block;width:100%;max-width:300px;margin:0.5rem auto;padding:14px;
+  font-size:18px;background:linear-gradient(180deg,#FFD700,#FFA500);
+  color:#2c3e50;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:bold;font-family:inherit;box-shadow:0 5px 0 #B45309;
+  transition:transform 0.1s;
+}
+.btn-primary:hover{background:linear-gradient(180deg,#FFE433,#FFB733)}
+.btn-primary:active{transform:translateY(3px);box-shadow:0 2px 0 #B45309}
+
+.level-up{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,#FFD700,#FFA500);color:#2c3e50;
+  padding:1.5rem 2.5rem;border-radius:20px;border:4px solid #fff;
+  font-size:24px;font-weight:bold;z-index:100;text-align:center;
+  box-shadow:0 0 80px #FFD700;animation:level-pop 2.2s forwards;
+}
+@keyframes level-pop{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(-180deg)}
+  20%{transform:translate(-50%,-50%) scale(1.3) rotate(10deg)}
+  30%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+  85%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}
+}
+
+.toast{
+  position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);
+  color:white;padding:0.9rem 1.8rem;border-radius:14px;border:3px solid #fff;
+  font-size:18px;font-weight:bold;z-index:99;text-align:center;
+  animation:toast-pop 1.6s forwards;
+}
+@keyframes toast-pop{
+  0%{opacity:0;transform:translate(-50%,-30%) scale(0.5)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}
+  25%{transform:translate(-50%,-50%) scale(1)}
+  80%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-70%) scale(1)}
+}
+.toast.super{background:linear-gradient(180deg,#9b59b6,#6c5ce7);box-shadow:0 0 40px rgba(155,89,182,0.7)}
+.toast.crit{background:linear-gradient(180deg,#FFD700,#e17055);color:#2c3e50;box-shadow:0 0 40px rgba(255,215,0,0.8)}
+.toast.fizzle{background:linear-gradient(180deg,#7f8c8d,#34495e);box-shadow:0 0 30px rgba(127,140,141,0.5)}
+.toast.rage{background:linear-gradient(180deg,#e74c3c,#8b0000);box-shadow:0 0 40px rgba(231,76,60,0.8);font-size:22px}
+.toast.heal{background:linear-gradient(180deg,#2ecc71,#27ae60);box-shadow:0 0 40px rgba(46,204,113,0.7)}
+
+.streak-flame{display:inline-block;animation:flame 0.5s infinite alternate}
+@keyframes flame{from{transform:scale(1)}to{transform:scale(1.25)}}
+
+.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:400px;margin:1rem auto;text-align:left}
+.intro-item{font-size:14px;padding:6px 10px;background:rgba(255,215,0,0.15);border-radius:8px;border:1px solid rgba(255,215,0,0.4)}
+</style>
+</head>
+<body>
+<div class="star-bg" id="stars"></div>
+<div class="game" id="game"></div>
+<script>
+// ===== Star background =====
+(function(){
+  const s = document.getElementById('stars');
+  for(let i=0;i<45;i++){
+    const star = document.createElement('span');
+    star.textContent = ['✦','✧','⋆','✨'][Math.floor(Math.random()*4)];
+    star.style.left = Math.random()*100+'vw';
+    star.style.top = Math.random()*100+'vh';
+    star.style.fontSize = (8+Math.random()*14)+'px';
+    star.style.animationDelay = Math.random()*3+'s';
+    s.appendChild(star);
+  }
+})();
+
+// ===== Sound =====
+let audioCtx, soundOn = true;
+function beep(freq, dur, type='square', vol=0.1){
+  if(!soundOn || !audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+function spellSound(t){
+  if(t==='fire'){ beep(180,0.3,'sawtooth',0.12); setTimeout(()=>beep(350,0.2,'sawtooth'),100); setTimeout(()=>beep(500,0.15,'triangle'),200); }
+  if(t==='water'){ [900,700,500,400].forEach((n,i)=>setTimeout(()=>beep(n,0.1,'sine',0.1),i*70)); }
+  if(t==='lightning'){ beep(1200,0.04,'square',0.15); setTimeout(()=>beep(1800,0.04,'square'),40); setTimeout(()=>beep(600,0.15,'square'),120); }
+  if(t==='light'){ [880,1100,1320,1760].forEach((n,i)=>setTimeout(()=>beep(n,0.18,'sine',0.1),i*80)); }
+}
+function hitSound(){ beep(120,0.25,'sawtooth',0.12) }
+function correctSound(){ beep(523,0.1); setTimeout(()=>beep(784,0.15),100) }
+function wrongSound(){ beep(220,0.3,'sawtooth',0.12) }
+function critSound(){ [880,1320,1760,2200].forEach((n,i)=>setTimeout(()=>beep(n,0.12,'square',0.15),i*60)) }
+function healSound(){ [659,784,988,1175].forEach((n,i)=>setTimeout(()=>beep(n,0.15,'sine',0.1),i*80)) }
+function victorySound(){ [523,659,784,1047].forEach((n,i)=>setTimeout(()=>beep(n,0.2),i*150)) }
+function rageSound(){ beep(80,0.4,'sawtooth',0.18); setTimeout(()=>beep(120,0.5,'sawtooth',0.16),200) }
+function levelUpSound(){ [523,659,784,1047,1319].forEach((n,i)=>setTimeout(()=>beep(n,0.25,'square',0.13),i*120)) }
+
+// ===== Data =====
+const SPELLS = {
+  fire:      { emoji:'🔥', name:'Fireball',    damage:15, difficulty:'easy',   diffLabel:'Easy ×',     color:'fire',      element:'fire' },
+  water:     { emoji:'💧', name:'Water Wave',  damage:22, difficulty:'medium', diffLabel:'Medium ÷',   color:'water',     element:'water' },
+  lightning: { emoji:'⚡', name:'Thunderbolt', damage:35, difficulty:'hard',   diffLabel:'Hard 2-digit',color:'lightning', element:'lightning' },
+  light:     { emoji:'✨', name:'Light Beam',  damage:50, difficulty:'expert', diffLabel:'Expert',     color:'light',     element:'light' }
+};
+
+const ELEMENT_EMOJI = { fire:'🔥', water:'💧', lightning:'⚡', light:'✨' };
+
+const MONSTERS = [
+  { name:'Forest Spider',    emoji:'🕷️', maxHp:40,  dmg:6,  xp:25,  weakness:'fire' },
+  { name:'Frost Wolf',       emoji:'🐺', maxHp:65,  dmg:9,  xp:35,  weakness:'fire' },
+  { name:'Fire Scorpion',    emoji:'🦂', maxHp:90,  dmg:12, xp:50,  weakness:'water' },
+  { name:'Stone Golem',      emoji:'🗿', maxHp:115, dmg:15, xp:65,  weakness:'lightning' },
+  { name:'Shadow Ghost',     emoji:'👻', maxHp:140, dmg:18, xp:85,  weakness:'light' },
+  { name:'⚔️ ANCIENT DRAGON', emoji:'🐉', rageEmoji:'🐲', maxHp:220, dmg:22, xp:150, weakness:'light', isBoss:true }
+];
+
+let state = {};
+let busy = false;
+
+function newGame(){
+  state = { hp:100, maxHp:100, xp:0, level:1, monsterIdx:0, monster:null,
+            currentProblem:null, selectedSpell:null, streak:0,
+            potions:1, bossEnraged:false };
+  loadMonster();
+  busy = false;
+}
+function loadMonster(){
+  state.monster = { ...MONSTERS[state.monsterIdx] };
+  state.monster.hp = state.monster.maxHp;
+  state.bossEnraged = false;
+}
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min }
+
+// ===== Math (3rd grade) =====
+function genProblem(difficulty){
+  let answer, text;
+  if(difficulty === 'easy'){
+    const r = Math.random();
+    if(r < 0.45){
+      // Times tables 2-5
+      const a = randInt(2,9), b = randInt(2,5);
+      answer = a*b; text = `${a} × ${b} = ?`;
+    } else if(r < 0.75){
+      // Division (reverse of small times tables)
+      const a = randInt(2,9), b = randInt(2,5);
+      answer = a; text = `${a*b} ÷ ${b} = ?`;
+    } else {
+      // Add/sub with regrouping within 100
+      const a = randInt(25,80), b = randInt(15,a-5);
+      if(Math.random() < 0.5){ answer = a+b; text = `${a} + ${b} = ?`; }
+      else { answer = a-b; text = `${a} − ${b} = ?`; }
+    }
+  } else if(difficulty === 'medium'){
+    const r = Math.random();
+    if(r < 0.45){
+      // Harder times tables 6-9
+      const a = randInt(2,9), b = randInt(6,9);
+      answer = a*b; text = `${a} × ${b} = ?`;
+    } else if(r < 0.7){
+      // Division harder
+      const a = randInt(2,9), b = randInt(6,9);
+      answer = a; text = `${a*b} ÷ ${b} = ?`;
+    } else if(r < 0.9){
+      // Add/sub within 500
+      const a = randInt(120,400), b = randInt(80,a-50);
+      if(Math.random() < 0.5){ answer = a+b; text = `${a} + ${b} = ?`; }
+      else { answer = a-b; text = `${a} − ${b} = ?`; }
+    } else {
+      // Fractions
+      const denom = [2,3,4,5][Math.floor(Math.random()*4)];
+      const whole = denom * randInt(2,8);
+      answer = whole/denom; text = `What is 1/${denom} of ${whole}?`;
+    }
+  } else if(difficulty === 'hard'){
+    const r = Math.random();
+    if(r < 0.4){
+      // 2-digit × 1-digit (easier)
+      const a = randInt(11,29), b = randInt(2,7);
+      answer = a*b; text = `${a} × ${b} = ?`;
+    } else if(r < 0.7){
+      // Word problems
+      const a = randInt(3,9), b = randInt(3,8);
+      const items = [['cookies','plates'],['pencils','boxes'],['stickers','sheets'],['apples','baskets']];
+      const [item, container] = items[Math.floor(Math.random()*items.length)];
+      answer = a*b; text = `${a} ${container} have ${b} ${item} each. How many ${item} total?`;
+    } else if(r < 0.85){
+      // Mixed operations
+      const a = randInt(3,9), b = randInt(2,7), c = randInt(5,20);
+      answer = a*b+c; text = `${a} × ${b} + ${c} = ?`;
+    } else {
+      // Rounding
+      const n = randInt(23,98);
+      answer = Math.round(n/10)*10; text = `Round ${n} to the nearest 10`;
+    }
+  } else { // expert
+    const r = Math.random();
+    if(r < 0.35){
+      // Larger 2-digit × 1-digit
+      const a = randInt(20,50), b = randInt(3,8);
+      answer = a*b; text = `${a} × ${b} = ?`;
+    } else if(r < 0.65){
+      // Area problems
+      const w = randInt(4,12), h = randInt(3,9);
+      answer = w*h; text = `Rectangle is ${w}cm wide & ${h}cm tall. Area in cm²?`;
+    } else if(r < 0.85){
+      // Multi-step word
+      const a = randInt(3,8), b = randInt(3,7), c = randInt(5,20);
+      answer = a*b+c; text = `${a} bags have ${b} candies each, plus ${c} extras. Total?`;
+    } else {
+      // Division word
+      const b = randInt(3,8), a = b * randInt(4,9);
+      answer = a/b; text = `${a} cookies shared by ${b} friends. How many each?`;
+    }
+  }
+  // 4 unique choices
+  const choices = new Set([answer]);
+  while(choices.size < 4){
+    let off = randInt(-15,15);
+    if(off === 0) continue;
+    let w = answer + off;
+    if(w < 0) w = answer + Math.abs(off) + randInt(1,5);
+    if(w !== answer) choices.add(w);
+  }
+  const arr = Array.from(choices);
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return { text, answer, choices: arr };
+}
+
+// ===== Render =====
+function render(){
+  if(state.monsterIdx >= MONSTERS.length){ renderVictory(); return; }
+  document.getElementById('game').innerHTML = `
+    ${renderStats()}
+    ${renderArena()}
+    ${renderActions()}`;
+}
+
+function renderStats(){
+  return `
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-label">⚔️LVL</span> ${state.level}</div>
+      <div class="stat"><span class="stat-label">⭐XP</span> ${state.xp}</div>
+      <div class="stat">${state.streak >= 3 ? '<span class="streak-flame">🔥</span>' : '🔥'} ${state.streak}</div>
+      <button class="potion-btn" onclick="usePotion()" ${state.potions <= 0 || state.hp >= state.maxHp ? 'disabled' : ''}>
+        🧪 ${state.potions}
+      </button>
+      <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+    </div>`;
+}
+
+function renderArena(){
+  const m = state.monster;
+  const enraged = state.bossEnraged;
+  const monsterEmoji = enraged && m.rageEmoji ? m.rageEmoji : m.emoji;
+  return `
+    <div class="arena ${enraged ? 'boss-rage' : ''}" id="arena">
+      <div class="fighters">
+        <div class="fighter" id="player">
+          <div class="fighter-emoji">🧙</div>
+          <div class="fighter-name">You — LVL ${state.level}</div>
+          <div class="hp-bar-wrap">
+            <div class="hp-bar"><div class="hp-fill" id="player-hp-fill" style="width:${state.hp/state.maxHp*100}%"></div></div>
+            <div class="hp-text" id="player-hp-text">${state.hp} / ${state.maxHp}</div>
+          </div>
+        </div>
+        <div class="fighter ${enraged ? 'enraged' : ''}" id="monster">
+          <div class="fighter-emoji">${monsterEmoji}</div>
+          <div class="fighter-name">${m.name}${enraged ? ' 💢' : ''}</div>
+          <div class="weakness-tag">Weak to ${ELEMENT_EMOJI[m.weakness]}</div>
+          <div class="hp-bar-wrap">
+            <div class="hp-bar"><div class="hp-fill" id="monster-hp-fill" style="width:${m.hp/m.maxHp*100}%"></div></div>
+            <div class="hp-text" id="monster-hp-text">${m.hp} / ${m.maxHp}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderActions(){
+  if(state.currentProblem){
+    const s = SPELLS[state.selectedSpell];
+    return `
+      <div class="actions">
+        <div class="msg info">${s.emoji} Cast <strong>${s.name}</strong> — solve to attack!</div>
+        <div class="question-text">${state.currentProblem.text}</div>
+        <div class="choices">
+          ${state.currentProblem.choices.map(c=>`
+            <button class="choice-btn" onclick="answer(${c})">${c}</button>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="actions">
+      <div class="panel-title">⚡ Choose your spell! ⚡</div>
+      <div class="spells">
+        ${Object.entries(SPELLS).map(([k,s])=>`
+          <button class="spell spell-${s.color}" onclick="pickSpell('${k}')">
+            <span class="spell-emoji">${s.emoji}</span>
+            <span>${s.name}</span>
+            <span class="spell-diff">${s.diffLabel}</span>
+            <span class="spell-dmg">💥 ${s.damage} dmg</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+// ===== Logic =====
+function pickSpell(k){
+  if(busy) return;
+  if(!audioCtx) try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
+  state.selectedSpell = k;
+  state.currentProblem = genProblem(SPELLS[k].difficulty);
+  render();
+}
+
+function usePotion(){
+  if(busy || state.potions <= 0 || state.hp >= state.maxHp) return;
+  state.potions--;
+  state.hp = Math.min(state.maxHp, state.hp + 30);
+  healSound();
+  showToast('🧪 +30 HP healed!', 'heal');
+  render();
+}
+
+function answer(choice){
+  if(busy) return;
+  busy = true;
+  const correct = choice === state.currentProblem.answer;
+  document.querySelectorAll('.choice-btn').forEach(b => {
+    b.disabled = true;
+    const v = parseInt(b.textContent);
+    if(v === state.currentProblem.answer) b.classList.add('correct');
+    else if(v === choice && !correct) b.classList.add('wrong');
+  });
+  if(correct){
+    state.streak++;
+    correctSound();
+    setTimeout(()=> castSpell(), 700);
+  } else {
+    state.streak = 0;
+    wrongSound();
+    showToast('💨 Spell fizzled!', 'fizzle');
+    setTimeout(()=> monsterAttack(), 1100);
+  }
+}
+
+function castSpell(){
+  const spell = SPELLS[state.selectedSpell];
+  spellSound(state.selectedSpell);
+  
+  const arena = document.getElementById('arena');
+  const fx = document.createElement('div');
+  fx.className = 'spell-effect fly-to-monster';
+  fx.textContent = spell.emoji;
+  arena.appendChild(fx);
+  
+  setTimeout(()=>{
+    let damage = spell.damage;
+    let isCrit = Math.random() < 0.15;
+    let isWeakness = spell.element === state.monster.weakness;
+    
+    if(state.streak >= 3) damage = Math.floor(damage * 1.5);
+    if(isCrit) damage = Math.floor(damage * 1.5);
+    if(isWeakness) damage = damage * 2;
+    
+    state.monster.hp = Math.max(0, state.monster.hp - damage);
+    
+    if(isCrit){
+      critSound();
+      const flash = document.createElement('div');
+      flash.className = 'crit-flash';
+      document.body.appendChild(flash);
+      setTimeout(()=> flash.remove(), 400);
+      showToast('💥 CRITICAL HIT!', 'crit');
+    } else if(isWeakness){
+      setTimeout(()=> showToast('⚡ SUPER EFFECTIVE!', 'super'), 100);
+    }
+    
+    const dmgEl = document.createElement('div');
+    dmgEl.className = 'damage-num monster-dmg' + (isCrit ? ' crit' : '') + (state.streak >= 3 && !isCrit ? ' bonus' : '');
+    dmgEl.textContent = (isCrit ? '💥' : '') + '-' + damage;
+    dmgEl.style.right = '18%';
+    dmgEl.style.top = '20%';
+    arena.appendChild(dmgEl);
+    
+    document.getElementById('monster').classList.add('shake');
+    hitSound();
+    
+    document.getElementById('monster-hp-fill').style.width = (state.monster.hp / state.monster.maxHp * 100) + '%';
+    document.getElementById('monster-hp-text').textContent = `${state.monster.hp} / ${state.monster.maxHp}`;
+    
+    // Boss enrage check
+    if(state.monster.isBoss && !state.bossEnraged && state.monster.hp <= state.monster.maxHp/2 && state.monster.hp > 0){
+      state.bossEnraged = true;
+      state.monster.dmg = Math.floor(state.monster.dmg * 1.5);
+      setTimeout(()=>{
+        rageSound();
+        showToast('💢 The Dragon ENRAGES! Damage UP!', 'rage');
+        const a = document.getElementById('arena');
+        a.classList.add('boss-rage');
+        document.getElementById('monster').classList.add('enraged');
+        document.querySelector('#monster .fighter-emoji').textContent = state.monster.rageEmoji;
+        document.querySelector('#monster .fighter-name').innerHTML = state.monster.name + ' 💢';
+      }, 400);
+    }
+    
+    setTimeout(()=>{
+      fx.remove(); dmgEl.remove();
+      document.getElementById('monster').classList.remove('shake');
+      if(state.monster.hp <= 0) defeatMonster();
+      else setTimeout(()=> monsterAttack(), 500);
+    }, 900);
+  }, 500);
+}
+
+function monsterAttack(){
+  const arena = document.getElementById('arena');
+  const fx = document.createElement('div');
+  fx.className = 'spell-effect fly-to-player';
+  fx.textContent = '💢';
+  arena.appendChild(fx);
+  beep(150, 0.25, 'sawtooth', 0.1);
+  
+  setTimeout(()=>{
+    const dmg = state.monster.dmg;
+    state.hp = Math.max(0, state.hp - dmg);
+    
+    const dmgEl = document.createElement('div');
+    dmgEl.className = 'damage-num player-dmg';
+    dmgEl.textContent = '-' + dmg;
+    dmgEl.style.left = '18%';
+    dmgEl.style.top = '20%';
+    arena.appendChild(dmgEl);
+    
+    document.getElementById('player').classList.add('shake');
+    hitSound();
+    
+    document.getElementById('player-hp-fill').style.width = (state.hp / state.maxHp * 100) + '%';
+    document.getElementById('player-hp-text').textContent = `${state.hp} / ${state.maxHp}`;
+    
+    setTimeout(()=>{
+      fx.remove(); dmgEl.remove();
+      document.getElementById('player').classList.remove('shake');
+      
+      if(state.hp <= 0){ renderDefeat(); return; }
+      
+      state.currentProblem = null;
+      state.selectedSpell = null;
+      busy = false;
+      render();
+    }, 800);
+  }, 400);
+}
+
+function defeatMonster(){
+  victorySound();
+  state.xp += state.monster.xp;
+  showToast(`✨ Defeated! +${state.monster.xp} XP`, 'super');
+  
+  // Potion drop (40% chance)
+  if(Math.random() < 0.4 && state.potions < 3){
+    state.potions++;
+    setTimeout(()=> showToast('🧪 Found a Potion!', 'heal'), 600);
+  }
+  
+  const xpNeeded = state.level * 50;
+  if(state.xp >= xpNeeded){
+    state.level++;
+    state.xp -= xpNeeded;
+    state.maxHp += 20;
+    state.hp = state.maxHp;
+    setTimeout(showLevelUp, 1200);
+  }
+  
+  state.monsterIdx++;
+  if(state.monsterIdx >= MONSTERS.length){
+    setTimeout(()=> renderVictory(), 2200);
+    return;
+  }
+  
+  loadMonster();
+  state.currentProblem = null;
+  state.selectedSpell = null;
+  busy = false;
+  setTimeout(()=> render(), 2000);
+}
+
+function showLevelUp(){
+  levelUpSound();
+  const lu = document.createElement('div');
+  lu.className = 'level-up';
+  lu.innerHTML = `🌟 LEVEL UP! 🌟<br><span style="font-size:18px">Now Level ${state.level}!</span><br><span style="font-size:14px;opacity:0.9">+20 Max HP — Fully healed!</span>`;
+  document.body.appendChild(lu);
+  setTimeout(()=> lu.remove(), 2200);
+}
+
+function showToast(text, cls){
+  const t = document.createElement('div');
+  t.className = 'toast ' + (cls || '');
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(()=> t.remove(), 1600);
+}
+
+function toggleSound(btn){
+  soundOn = !soundOn;
+  btn.textContent = soundOn ? '🔊' : '🔇';
+}
+
+function renderStart(){
+  document.getElementById('game').innerHTML = `
+    <div class="start-screen">
+      <div class="big-wizard">🧙</div>
+      <h1 class="title">Math Mage Adventure!</h1>
+      <p style="font-size:15px;margin-bottom:0.5rem;line-height:1.5">
+        ⚔️ Battle 6 monsters and the Dragon Boss!
+      </p>
+      <div class="intro-grid">
+        <div class="intro-item">🔥 4 Spells</div>
+        <div class="intro-item">🎯 Weaknesses (2× dmg!)</div>
+        <div class="intro-item">💥 Critical hits</div>
+        <div class="intro-item">🧪 Healing potions</div>
+        <div class="intro-item">⭐ Streak bonus</div>
+        <div class="intro-item">🐲 Boss phases!</div>
+      </div>
+      <p style="font-size:13px;color:#FFD700;margin:0.75rem 0">
+        💡 Match the spell to the monster's weakness for SUPER damage!
+      </p>
+      <button class="btn-primary" onclick="newGame(); render()">⚡ Begin Quest! ⚡</button>
+    </div>`;
+}
+
+function renderVictory(){
+  document.getElementById('game').innerHTML = `
+    <div class="end-screen">
+      <div style="font-size:110px;animation:idle 1.5s infinite;filter:drop-shadow(0 0 30px gold)">🏆</div>
+      <h1 class="title">YOU WIN!</h1>
+      <p style="font-size:18px;margin:1rem 0">You defeated the Ancient Dragon!</p>
+      <p style="font-size:14px;margin-bottom:1.5rem;line-height:1.6">
+        Level <strong>${state.level}</strong> Mage ⭐<br>
+        ${state.xp} XP earned<br>
+        HP: ${state.hp} / ${state.maxHp}<br>
+        Potions left: ${state.potions} 🧪
+      </p>
+      <button class="btn-primary" onclick="renderStart()">🎮 Play Again</button>
+    </div>`;
+  victorySound();
+  setTimeout(victorySound, 900);
+}
+
+function renderDefeat(){
+  document.getElementById('game').innerHTML = `
+    <div class="end-screen">
+      <div style="font-size:110px">😵</div>
+      <h1 class="title" style="color:#ff6b6b">You Fainted!</h1>
+      <p style="font-size:16px;margin:1rem 0">The <strong>${state.monster.name}</strong> was too strong!</p>
+      <p style="font-size:13px;margin-bottom:1.5rem;line-height:1.6">
+        Final Level: <strong>${state.level}</strong><br>
+        Monsters defeated: ${state.monsterIdx}<br>
+        Total XP: ${state.xp}
+      </p>
+      <button class="btn-primary" onclick="renderStart()">🔄 Try Again</button>
+    </div>`;
+}
+
+renderStart();
+</script>
+</body>
+</html>

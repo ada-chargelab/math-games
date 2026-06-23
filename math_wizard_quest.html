@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Wizard Quest! 🧙</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Comic Sans MS','Chalkboard SE',system-ui,sans-serif;
+  background:linear-gradient(180deg,#1a0a2e 0%,#16213e 50%,#0f3460 100%);
+  min-height:100vh;color:white;overflow-x:hidden;
+}
+.game{max-width:680px;margin:0 auto;padding:1rem;position:relative}
+
+/* Stars background */
+.star-bg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.star-bg span{position:absolute;color:#fff;opacity:0.6;animation:twinkle 3s infinite}
+@keyframes twinkle{0%,100%{opacity:0.2}50%{opacity:0.9}}
+
+/* Stats bar */
+.stats-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(0,0,0,0.5);border:2px solid #FFD700;border-radius:14px;
+  padding:8px 14px;margin-bottom:1rem;position:relative;z-index:1;
+}
+.stat{display:flex;align-items:center;gap:5px;font-weight:bold;font-size:14px}
+.stat-label{color:#FFD700}
+.sound-btn{
+  background:rgba(0,0,0,0.4);border:2px solid #FFD700;color:white;
+  width:34px;height:34px;border-radius:50%;font-size:15px;cursor:pointer;
+}
+
+/* Arena */
+.arena{
+  background:linear-gradient(180deg,#2c3e50 0%,#34495e 50%,#1e3c72 100%);
+  border:3px solid #FFD700;border-radius:20px;padding:1rem;
+  position:relative;min-height:200px;margin-bottom:1rem;overflow:hidden;
+  z-index:1;
+  box-shadow:0 0 30px rgba(255,215,0,0.3);
+}
+.arena::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:30px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,0.4));
+}
+.fighters{
+  display:flex;justify-content:space-around;align-items:flex-end;
+  min-height:160px;position:relative;z-index:2;
+}
+.fighter{text-align:center;position:relative}
+.fighter-emoji{font-size:75px;display:inline-block;animation:idle 2s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5))}
+@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.fighter-name{font-size:13px;font-weight:bold;color:#FFD700;margin-top:4px;text-shadow:1px 1px 0 #000}
+
+.hp-bar-wrap{width:130px;margin:6px auto 0}
+.hp-bar{
+  background:rgba(0,0,0,0.5);border:2px solid #FFD700;border-radius:10px;
+  height:14px;overflow:hidden;
+}
+.hp-fill{
+  height:100%;background:linear-gradient(90deg,#ff4757,#ff6b81);
+  transition:width 0.6s ease;box-shadow:inset 0 -3px 5px rgba(0,0,0,0.3);
+}
+.hp-text{font-size:11px;text-align:center;margin-top:2px;font-weight:bold;text-shadow:1px 1px 0 #000}
+
+/* Damage numbers */
+.damage-num{
+  position:absolute;font-size:36px;font-weight:bold;
+  text-shadow:2px 2px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000;
+  animation:float-up 1s ease-out forwards;pointer-events:none;z-index:5;
+}
+.damage-num.player-dmg{color:#ff4757}
+.damage-num.monster-dmg{color:#ffd700}
+.damage-num.bonus{color:#2ecc71;font-size:42px}
+@keyframes float-up{
+  0%{transform:translateY(0) scale(0.5);opacity:0}
+  20%{transform:translateY(-10px) scale(1.3);opacity:1}
+  100%{transform:translateY(-80px) scale(1);opacity:0}
+}
+
+.shake{animation:hit-shake 0.4s}
+@keyframes hit-shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-12px) rotate(-3deg)}
+  40%{transform:translateX(10px) rotate(3deg)}
+  60%{transform:translateX(-8px) rotate(-2deg)}
+  80%{transform:translateX(6px) rotate(1deg)}
+}
+
+/* Spell effects */
+.spell-effect{
+  position:absolute;font-size:55px;z-index:4;pointer-events:none;top:35%;
+  filter:drop-shadow(0 0 12px currentColor);
+}
+.fly-to-monster{animation:fly-to-monster 0.7s ease-out forwards}
+@keyframes fly-to-monster{
+  0%{left:15%;transform:scale(0.5) rotate(0)}
+  50%{transform:scale(1.3) rotate(180deg)}
+  100%{left:70%;transform:scale(1.8) rotate(360deg);opacity:0}
+}
+.fly-to-player{animation:fly-to-player 0.6s ease-in forwards}
+@keyframes fly-to-player{
+  0%{right:15%;transform:scale(0.5)}
+  100%{right:70%;transform:scale(1.5);opacity:0}
+}
+
+/* Action panel */
+.actions{
+  background:rgba(0,0,0,0.55);border:2px solid #FFD700;
+  border-radius:16px;padding:1rem;min-height:200px;position:relative;z-index:1;
+}
+.panel-title{
+  text-align:center;font-size:16px;font-weight:bold;
+  color:#FFD700;margin-bottom:0.75rem;
+}
+
+.spells{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.spell{
+  padding:12px 6px;border:3px solid;border-radius:14px;cursor:pointer;
+  font-family:inherit;font-weight:bold;text-align:center;font-size:12px;
+  color:white;transition:transform 0.15s,box-shadow 0.15s;
+  box-shadow:0 4px 0 rgba(0,0,0,0.4);
+}
+.spell:hover{transform:translateY(-4px);box-shadow:0 8px 0 rgba(0,0,0,0.4)}
+.spell:active{transform:translateY(0);box-shadow:0 2px 0 rgba(0,0,0,0.4)}
+.spell-emoji{font-size:32px;display:block;margin-bottom:4px;filter:drop-shadow(0 0 6px currentColor)}
+.spell-fire{background:linear-gradient(180deg,#ff6b35,#d63031);border-color:#ffaa42}
+.spell-water{background:linear-gradient(180deg,#0984e3,#006ba6);border-color:#74b9ff}
+.spell-lightning{background:linear-gradient(180deg,#fdcb6e,#d35400);border-color:#ffeaa7;color:#2c3e50}
+.spell-diff{font-size:10px;opacity:0.95;display:block;margin-top:3px}
+.spell-dmg{font-size:11px;display:block;margin-top:2px;font-weight:bold}
+
+/* Math question */
+.question-text{
+  font-size:34px;text-align:center;
+  background:linear-gradient(180deg,#fff8dc,#fff);color:#2c3e50;
+  padding:1rem;border-radius:12px;margin-bottom:0.75rem;font-weight:bold;
+  border:3px solid #FFD700;box-shadow:0 0 20px rgba(255,215,0,0.5);
+}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice-btn{
+  padding:16px 10px;font-size:24px;border:3px solid #FFD700;
+  background:linear-gradient(180deg,#fff,#f0f0f0);color:#2c3e50;
+  border-radius:12px;cursor:pointer;font-family:inherit;font-weight:bold;
+  transition:transform 0.1s,background 0.2s;box-shadow:0 4px 0 #888;
+}
+.choice-btn:hover:not(:disabled){background:#FFF8DC;transform:scale(1.05)}
+.choice-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #888}
+.choice-btn:disabled{cursor:default}
+.choice-btn.correct{
+  background:linear-gradient(180deg,#2ecc71,#27ae60);color:white;
+  border-color:#fff;animation:wiggle 0.6s;
+}
+.choice-btn.wrong{
+  background:linear-gradient(180deg,#e74c3c,#c0392b);color:white;
+  border-color:#fff;animation:shake 0.4s;
+}
+@keyframes wiggle{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-5deg) scale(1.1)}75%{transform:rotate(5deg) scale(1.1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+
+.msg{
+  text-align:center;font-size:15px;padding:8px;border-radius:8px;
+  margin-bottom:0.75rem;font-weight:bold;
+}
+.msg.info{background:rgba(255,215,0,0.2);color:#FFD700;border:1px solid #FFD700}
+
+/* Start/End screens */
+.start-screen,.end-screen{
+  text-align:center;padding:2rem 1rem;background:rgba(0,0,0,0.5);
+  border:3px solid #FFD700;border-radius:20px;position:relative;z-index:1;
+  box-shadow:0 0 40px rgba(255,215,0,0.4);
+}
+.big-wizard{font-size:130px;display:inline-block;animation:idle 2s infinite;filter:drop-shadow(0 0 30px #FFD700)}
+.title{font-size:38px;color:#FFD700;text-shadow:3px 3px 0 #ff6b35,-1px -1px 0 #fff;margin:1rem 0}
+
+.btn-primary{
+  display:block;width:100%;max-width:300px;margin:0.5rem auto;padding:14px;
+  font-size:18px;background:linear-gradient(180deg,#FFD700,#FFA500);
+  color:#2c3e50;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:bold;font-family:inherit;box-shadow:0 5px 0 #B45309;
+  transition:transform 0.1s;
+}
+.btn-primary:hover{background:linear-gradient(180deg,#FFE433,#FFB733)}
+.btn-primary:active{transform:translateY(3px);box-shadow:0 2px 0 #B45309}
+
+/* Level up popup */
+.level-up{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,#FFD700,#FFA500);color:#2c3e50;
+  padding:1.5rem 2.5rem;border-radius:20px;border:4px solid #fff;
+  font-size:26px;font-weight:bold;z-index:100;text-align:center;
+  box-shadow:0 0 80px #FFD700;animation:level-pop 2.2s forwards;
+}
+@keyframes level-pop{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(-180deg)}
+  20%{transform:translate(-50%,-50%) scale(1.3) rotate(10deg)}
+  30%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+  85%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}
+}
+
+.toast{
+  position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,#2ecc71,#27ae60);color:white;
+  padding:1rem 2rem;border-radius:14px;border:3px solid #fff;
+  font-size:20px;font-weight:bold;z-index:99;text-align:center;
+  box-shadow:0 0 40px rgba(46,204,113,0.7);animation:toast-pop 1.5s forwards;
+}
+@keyframes toast-pop{
+  0%{opacity:0;transform:translate(-50%,-30%) scale(0.5)}
+  20%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  80%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-70%) scale(1)}
+}
+
+.streak-flame{
+  display:inline-block;
+  animation:flame 0.5s infinite alternate;
+}
+@keyframes flame{from{transform:scale(1)}to{transform:scale(1.2)}}
+</style>
+</head>
+<body>
+<div class="star-bg" id="stars"></div>
+<div class="game" id="game"></div>
+<script>
+// ===== Star background =====
+(function(){
+  const s = document.getElementById('stars');
+  for(let i=0;i<40;i++){
+    const star = document.createElement('span');
+    star.textContent = '✦';
+    star.style.left = Math.random()*100+'vw';
+    star.style.top = Math.random()*100+'vh';
+    star.style.fontSize = (8+Math.random()*12)+'px';
+    star.style.animationDelay = Math.random()*3+'s';
+    s.appendChild(star);
+  }
+})();
+
+// ===== Sound =====
+let audioCtx, soundOn = true;
+function beep(freq, dur, type='square', vol=0.1){
+  if(!soundOn || !audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+function spellSound(type){
+  if(type==='fire'){ beep(180,0.3,'sawtooth',0.12); setTimeout(()=>beep(350,0.2,'sawtooth',0.1),100); setTimeout(()=>beep(500,0.15,'triangle',0.1),200); }
+  if(type==='water'){ [900,700,500,400].forEach((n,i)=>setTimeout(()=>beep(n,0.1,'sine',0.1),i*70)); }
+  if(type==='lightning'){ beep(1200,0.04,'square',0.15); setTimeout(()=>beep(1800,0.04,'square',0.12),40); setTimeout(()=>beep(600,0.15,'square',0.1),120); }
+}
+function hitSound(){ beep(120,0.25,'sawtooth',0.12) }
+function correctSound(){ beep(523,0.1); setTimeout(()=>beep(784,0.15),100) }
+function wrongSound(){ beep(220,0.3,'sawtooth',0.12) }
+function victorySound(){ [523,659,784,1047].forEach((n,i)=>setTimeout(()=>beep(n,0.2),i*150)) }
+function levelUpSound(){ [523,659,784,1047,1319].forEach((n,i)=>setTimeout(()=>beep(n,0.25,'square',0.13),i*120)) }
+
+// ===== Data =====
+const MONSTERS = [
+  { name:'Goo Slime',      emoji:'🟢', maxHp:30,  dmg:5,  xp:25 },
+  { name:'Sneaky Goblin',  emoji:'👹', maxHp:55,  dmg:8,  xp:35 },
+  { name:'Spooky Bat',     emoji:'🦇', maxHp:75,  dmg:11, xp:50 },
+  { name:'Bone Skeleton',  emoji:'💀', maxHp:100, dmg:14, xp:65 },
+  { name:'⚡ DRAGON BOSS', emoji:'🐉', maxHp:150, dmg:18, xp:100 }
+];
+
+const SPELLS = {
+  fire:      { emoji:'🔥', name:'Fireball',   damage:15, difficulty:'easy',   diffLabel:'Easy',   color:'fire'      },
+  water:     { emoji:'💧', name:'Water Blast',damage:25, difficulty:'medium', diffLabel:'Medium', color:'water'     },
+  lightning: { emoji:'⚡', name:'Lightning',  damage:40, difficulty:'hard',   diffLabel:'Hard',   color:'lightning' }
+};
+
+let state = {};
+let busy = false;
+
+function newGame(){
+  state = { hp:100, maxHp:100, xp:0, level:1, monsterIdx:0, monster:null, currentProblem:null, selectedSpell:null, streak:0 };
+  loadMonster();
+  busy = false;
+}
+function loadMonster(){
+  state.monster = { ...MONSTERS[state.monsterIdx] };
+  state.monster.hp = state.monster.maxHp;
+}
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min }
+
+// Math generator (grade 2 appropriate)
+function genProblem(difficulty){
+  let answer, text;
+  if(difficulty === 'easy'){
+    if(Math.random() < 0.5){
+      const a = randInt(2,15), b = randInt(2,15);
+      answer = a+b; text = `${a} + ${b} = ?`;
+    } else {
+      const a = randInt(5,20), b = randInt(1,a-1);
+      answer = a-b; text = `${a} − ${b} = ?`;
+    }
+  } else if(difficulty === 'medium'){
+    if(Math.random() < 0.5){
+      const a = randInt(10,55), b = randInt(10,40);
+      answer = a+b; text = `${a} + ${b} = ?`;
+    } else {
+      const a = randInt(30,99), b = randInt(10,a-5);
+      answer = a-b; text = `${a} − ${b} = ?`;
+    }
+  } else {
+    const r = Math.random();
+    if(r < 0.4){
+      const a = randInt(2,9), b = [2,5,10][Math.floor(Math.random()*3)];
+      answer = a*b; text = `${a} × ${b} = ?`;
+    } else if(r < 0.7){
+      const a = randInt(10,50), b = randInt(10,40);
+      answer = b; text = `${a} + ? = ${a+b}`;
+    } else {
+      const a = randInt(20,60), b = randInt(5,15), c = randInt(3,12);
+      answer = a+b-c; text = `${a} + ${b} − ${c} = ?`;
+    }
+  }
+  // 4 unique choices
+  const choices = new Set([answer]);
+  while(choices.size < 4){
+    let wrong = answer + randInt(-12,12);
+    if(wrong < 0) wrong = answer + randInt(1,12);
+    if(wrong !== answer) choices.add(wrong);
+  }
+  const arr = Array.from(choices);
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return { text, answer, choices: arr };
+}
+
+// ===== Render =====
+function render(){
+  if(state.monsterIdx >= MONSTERS.length){ renderVictory(); return; }
+  document.getElementById('game').innerHTML = `
+    ${renderStats()}
+    ${renderArena()}
+    ${renderActions()}`;
+}
+
+function renderStats(){
+  return `
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-label">⚔️ LVL</span> ${state.level}</div>
+      <div class="stat"><span class="stat-label">⭐ XP</span> ${state.xp}</div>
+      <div class="stat">${state.streak >= 3 ? '<span class="streak-flame">🔥</span>' : '🔥'} ${state.streak}</div>
+      <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+    </div>`;
+}
+
+function renderArena(){
+  return `
+    <div class="arena" id="arena">
+      <div class="fighters">
+        <div class="fighter" id="player">
+          <div class="fighter-emoji">🧙</div>
+          <div class="fighter-name">You — LVL ${state.level}</div>
+          <div class="hp-bar-wrap">
+            <div class="hp-bar"><div class="hp-fill" id="player-hp-fill" style="width:${state.hp/state.maxHp*100}%"></div></div>
+            <div class="hp-text" id="player-hp-text">${state.hp} / ${state.maxHp}</div>
+          </div>
+        </div>
+        <div class="fighter" id="monster">
+          <div class="fighter-emoji">${state.monster.emoji}</div>
+          <div class="fighter-name">${state.monster.name}</div>
+          <div class="hp-bar-wrap">
+            <div class="hp-bar"><div class="hp-fill" id="monster-hp-fill" style="width:${state.monster.hp/state.monster.maxHp*100}%"></div></div>
+            <div class="hp-text" id="monster-hp-text">${state.monster.hp} / ${state.monster.maxHp}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderActions(){
+  if(state.currentProblem){
+    const s = SPELLS[state.selectedSpell];
+    return `
+      <div class="actions">
+        <div class="msg info">${s.emoji} Cast <strong>${s.name}</strong> — solve to attack!</div>
+        <div class="question-text">${state.currentProblem.text}</div>
+        <div class="choices">
+          ${state.currentProblem.choices.map(c=>`
+            <button class="choice-btn" onclick="answer(${c})">${c}</button>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="actions">
+      <div class="panel-title">⚡ Choose your spell! ⚡</div>
+      <div class="spells">
+        ${Object.entries(SPELLS).map(([k,s])=>`
+          <button class="spell spell-${s.color}" onclick="pickSpell('${k}')">
+            <span class="spell-emoji">${s.emoji}</span>
+            <span>${s.name}</span>
+            <span class="spell-diff">${s.diffLabel} math</span>
+            <span class="spell-dmg">💥 ${s.damage} dmg</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+function pickSpell(k){
+  if(busy) return;
+  if(!audioCtx) try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
+  state.selectedSpell = k;
+  state.currentProblem = genProblem(SPELLS[k].difficulty);
+  render();
+}
+
+function answer(choice){
+  if(busy) return;
+  busy = true;
+  const correct = choice === state.currentProblem.answer;
+  document.querySelectorAll('.choice-btn').forEach(b => {
+    b.disabled = true;
+    const v = parseInt(b.textContent);
+    if(v === state.currentProblem.answer) b.classList.add('correct');
+    else if(v === choice && !correct) b.classList.add('wrong');
+  });
+  
+  if(correct){
+    state.streak++;
+    correctSound();
+    setTimeout(()=> castSpell(), 700);
+  } else {
+    state.streak = 0;
+    wrongSound();
+    showToast('💨 Spell fizzled!', '#e74c3c');
+    setTimeout(()=> monsterAttack(), 1100);
+  }
+}
+
+function castSpell(){
+  const spell = SPELLS[state.selectedSpell];
+  spellSound(state.selectedSpell);
+  
+  const arena = document.getElementById('arena');
+  const fx = document.createElement('div');
+  fx.className = 'spell-effect fly-to-monster';
+  fx.textContent = spell.emoji;
+  arena.appendChild(fx);
+  
+  setTimeout(()=>{
+    let damage = spell.damage;
+    let bonus = false;
+    if(state.streak >= 3){ damage = Math.floor(damage * 1.5); bonus = true; }
+    
+    state.monster.hp = Math.max(0, state.monster.hp - damage);
+    
+    const dmgEl = document.createElement('div');
+    dmgEl.className = 'damage-num monster-dmg' + (bonus ? ' bonus' : '');
+    dmgEl.textContent = (bonus ? '🔥' : '') + '-' + damage;
+    dmgEl.style.right = '18%';
+    dmgEl.style.top = '20%';
+    arena.appendChild(dmgEl);
+    
+    document.getElementById('monster').classList.add('shake');
+    hitSound();
+    
+    document.getElementById('monster-hp-fill').style.width = (state.monster.hp / state.monster.maxHp * 100) + '%';
+    document.getElementById('monster-hp-text').textContent = `${state.monster.hp} / ${state.monster.maxHp}`;
+    
+    setTimeout(()=>{
+      fx.remove(); dmgEl.remove();
+      document.getElementById('monster').classList.remove('shake');
+      if(state.monster.hp <= 0) defeatMonster();
+      else setTimeout(()=> monsterAttack(), 500);
+    }, 800);
+  }, 500);
+}
+
+function monsterAttack(){
+  const arena = document.getElementById('arena');
+  
+  // Monster attack visual
+  const fx = document.createElement('div');
+  fx.className = 'spell-effect fly-to-player';
+  fx.textContent = '💢';
+  arena.appendChild(fx);
+  beep(150, 0.25, 'sawtooth', 0.1);
+  
+  setTimeout(()=>{
+    const dmg = state.monster.dmg;
+    state.hp = Math.max(0, state.hp - dmg);
+    
+    const dmgEl = document.createElement('div');
+    dmgEl.className = 'damage-num player-dmg';
+    dmgEl.textContent = '-' + dmg;
+    dmgEl.style.left = '18%';
+    dmgEl.style.top = '20%';
+    arena.appendChild(dmgEl);
+    
+    document.getElementById('player').classList.add('shake');
+    hitSound();
+    
+    document.getElementById('player-hp-fill').style.width = (state.hp / state.maxHp * 100) + '%';
+    document.getElementById('player-hp-text').textContent = `${state.hp} / ${state.maxHp}`;
+    
+    setTimeout(()=>{
+      fx.remove(); dmgEl.remove();
+      document.getElementById('player').classList.remove('shake');
+      
+      if(state.hp <= 0){ renderDefeat(); return; }
+      
+      state.currentProblem = null;
+      state.selectedSpell = null;
+      busy = false;
+      render();
+    }, 800);
+  }, 400);
+}
+
+function defeatMonster(){
+  victorySound();
+  state.xp += state.monster.xp;
+  showToast(`✨ Defeated! +${state.monster.xp} XP`, '#2ecc71');
+  
+  const xpNeeded = state.level * 50;
+  if(state.xp >= xpNeeded){
+    state.level++;
+    state.xp -= xpNeeded;
+    state.maxHp += 20;
+    state.hp = state.maxHp;
+    setTimeout(showLevelUp, 700);
+  }
+  
+  state.monsterIdx++;
+  
+  if(state.monsterIdx >= MONSTERS.length){
+    setTimeout(()=> renderVictory(), 2000);
+    return;
+  }
+  
+  loadMonster();
+  state.currentProblem = null;
+  state.selectedSpell = null;
+  busy = false;
+  setTimeout(()=> render(), 1800);
+}
+
+function showLevelUp(){
+  levelUpSound();
+  const lu = document.createElement('div');
+  lu.className = 'level-up';
+  lu.innerHTML = `🌟 LEVEL UP! 🌟<br><span style="font-size:18px">You are now Level ${state.level}!</span><br><span style="font-size:14px;opacity:0.9">+20 Max HP! Fully healed!</span>`;
+  document.body.appendChild(lu);
+  setTimeout(()=> lu.remove(), 2200);
+}
+
+function showToast(text, color){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  t.style.background = `linear-gradient(180deg,${color},${color}dd)`;
+  document.body.appendChild(t);
+  setTimeout(()=> t.remove(), 1500);
+}
+
+function toggleSound(btn){
+  soundOn = !soundOn;
+  btn.textContent = soundOn ? '🔊' : '🔇';
+}
+
+function renderStart(){
+  document.getElementById('game').innerHTML = `
+    <div class="start-screen">
+      <div class="big-wizard">🧙</div>
+      <h1 class="title">Math Wizard Quest!</h1>
+      <p style="font-size:16px;margin-bottom:1.5rem;line-height:1.7">
+        🧙‍♂️ You are a young wizard!<br>
+        ⚔️ Battle 5 magical monsters!<br>
+        ✨ Cast spells by solving math problems!<br>
+        🔥 Build a streak for bonus damage!<br>
+        🏆 Defeat the Dragon Boss to win!
+      </p>
+      <button class="btn-primary" onclick="newGame(); render()">⚡ Start Adventure! ⚡</button>
+    </div>`;
+}
+
+function renderVictory(){
+  document.getElementById('game').innerHTML = `
+    <div class="end-screen">
+      <div style="font-size:110px;animation:idle 1.5s infinite;filter:drop-shadow(0 0 30px gold)">🏆</div>
+      <h1 class="title" style="font-size:34px">YOU WIN!</h1>
+      <p style="font-size:20px;margin:1rem 0">You defeated the Dragon Boss!</p>
+      <p style="font-size:15px;margin-bottom:1.5rem;line-height:1.6">
+        Level <strong>${state.level}</strong> Wizard ⭐<br>
+        ${state.xp} XP earned<br>
+        HP: ${state.hp} / ${state.maxHp}
+      </p>
+      <button class="btn-primary" onclick="renderStart()">🎮 Play Again</button>
+    </div>`;
+  victorySound();
+  setTimeout(victorySound, 900);
+}
+
+function renderDefeat(){
+  document.getElementById('game').innerHTML = `
+    <div class="end-screen">
+      <div style="font-size:110px">😵</div>
+      <h1 class="title" style="color:#ff6b6b">You Fainted!</h1>
+      <p style="font-size:17px;margin:1rem 0">The <strong>${state.monster.name}</strong> was too strong!</p>
+      <p style="font-size:14px;margin-bottom:1.5rem;line-height:1.6">
+        Final Level: <strong>${state.level}</strong><br>
+        Monsters defeated: ${state.monsterIdx}<br>
+        Total XP: ${state.xp}
+      </p>
+      <button class="btn-primary" onclick="renderStart()">🔄 Try Again</button>
+    </div>`;
+}
+
+renderStart();
+</script>
+</body>
+</html>

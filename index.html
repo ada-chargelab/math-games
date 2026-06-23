@@ -21,10 +21,30 @@
   }
   header h1 { font-size: 28px; font-weight: 900; letter-spacing: .5px; }
   header p  { font-size: 14px; opacity: .85; margin-top: 4px; }
+
+  .section-title {
+    max-width: 900px;
+    margin: 36px auto 16px;
+    padding: 0 20px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, var(--red), transparent);
+    border-radius: 2px;
+  }
+
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px; max-width: 900px; margin: 36px auto; padding: 0 20px;
+    gap: 20px; max-width: 900px; margin: 0 auto; padding: 0 20px;
   }
   a.card {
     background: var(--card); border-radius: var(--radius);
@@ -45,6 +65,20 @@
   .card.shapes  { --accent: #4361ee; }
   .card.fraction { --accent: #f8615a; }
   .card.measure { --accent: #27b4c2; }
+  .card.wizard  { --accent: #8e44ad; }
+  .card.mage    { --accent: #c0392b; }
+
+  .grade-badge {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--accent);
+    color: #fff;
+    letter-spacing: .3px;
+  }
 </style>
 </head>
 <body>
@@ -52,6 +86,8 @@
   <h1>🎮 Math Games for Kids</h1>
   <p>Pick a game and start playing!</p>
 </header>
+
+<h2 class="section-title">📚 Classic Math Games</h2>
 <div class="grid">
 
   <a class="card store" href="store-game.html">
@@ -103,5 +139,25 @@
   </a>
 
 </div>
+
+<h2 class="section-title">⚔️ Math Battle RPG</h2>
+<div class="grid">
+
+  <a class="card wizard" href="math_wizard_quest.html">
+    <div class="card-icon">🧙</div>
+    <div class="card-title">Math Wizard Quest</div>
+    <div class="card-desc">Cast spells by solving math problems! Battle 5 monsters and defeat the Dragon Boss with addition, subtraction, and times tables.</div>
+    <span class="grade-badge">Grade 2</span>
+  </a>
+
+  <a class="card mage" href="math_mage_adventure.html">
+    <div class="card-icon">✨</div>
+    <div class="card-title">Math Mage Adventure</div>
+    <div class="card-desc">4 spells, monster weaknesses, critical hits, healing potions, and a 2-phase Dragon Boss! Multiplication, division, fractions and word problems.</div>
+    <span class="grade-badge">Grade 3</span>
+  </a>
+
+</div>
+
 </body>
 </html>
