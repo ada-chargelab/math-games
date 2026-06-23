@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏰 Math Tower Defense</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;
+  min-height:100vh;padding:1rem;padding-bottom:3rem;
+}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#6c5ce7,#5341d6);color:#fff;text-align:center;
+  padding:16px 18px;border-radius:18px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:22px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.sound-btn{
+  position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:14px;
+}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:80px;background:#fff;border:2px solid #6c5ce7;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#6c5ce7;font-weight:800;display:block;margin-top:2px}
+
+.field-wrap{
+  width:100%;aspect-ratio:580/320;background:linear-gradient(180deg,#d4e9c8,#a8d088);
+  border:3px solid #6c5ce7;border-radius:18px;overflow:hidden;
+  margin-bottom:1rem;box-shadow:0 4px 20px rgba(0,0,0,0.08);
+  position:relative;transition:box-shadow 0.3s,border-color 0.3s;
+}
+.field-wrap.battle-active{
+  border-color:#d63031;
+  animation:battle-pulse 1.2s ease-in-out infinite;
+}
+@keyframes battle-pulse{
+  0%,100%{box-shadow:0 4px 20px rgba(214,48,49,0.3)}
+  50%{box-shadow:0 4px 20px rgba(214,48,49,0.6),0 0 30px rgba(214,48,49,0.5)}
+}
+.field-svg{width:100%;height:100%;display:block;user-select:none}
+
+.math-panel{
+  background:#fff;border:3px solid #6c5ce7;border-radius:16px;
+  padding:12px 14px;margin-bottom:1rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.math-label{font-size:11px;color:#888;font-weight:700;letter-spacing:0.5px;margin-bottom:4px}
+.math-question{
+  font-size:26px;font-weight:800;color:#6c5ce7;margin:0.4rem 0;
+  background:#f4f0ff;padding:8px;border-radius:10px;border:2px dashed #6c5ce7;
+}
+.math-choices{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.math-choice{
+  padding:10px 4px;font-size:18px;font-weight:800;background:#fff;
+  border:2px solid #6c5ce7;border-radius:10px;color:#6c5ce7;
+  cursor:pointer;font-family:inherit;transition:transform 0.1s,background 0.2s;
+}
+.math-choice:hover:not(:disabled){background:#f4f0ff;transform:scale(1.05)}
+.math-choice:disabled{cursor:default}
+.math-choice.correct{background:#00b894;color:#fff;border-color:#00a884;animation:bounce 0.5s}
+.math-choice.wrong{background:#d63031;color:#fff;border-color:#d63031;animation:shake 0.4s}
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.shop{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.tower-card{
+  background:#fff;border:3px solid #6c5ce7;border-radius:14px;
+  padding:8px 4px;text-align:center;cursor:pointer;font-family:inherit;
+  transition:transform 0.1s;
+}
+.tower-card:hover:not(:disabled){transform:translateY(-2px)}
+.tower-card.selected{
+  background:#fff8dc;box-shadow:0 0 0 3px #ffd700;border-color:#ffd700;
+}
+.tower-card.disabled{opacity:0.45;cursor:not-allowed}
+.tower-emoji{font-size:28px;display:block;line-height:1}
+.tower-name{font-size:11px;font-weight:800;color:#555;display:block;margin-top:3px}
+.tower-stats{font-size:10px;color:#888;display:block;margin-top:1px}
+.tower-cost{font-size:13px;color:#d4af37;font-weight:800;display:block;margin-top:3px}
+
+.btn{
+  display:block;width:100%;padding:14px;border-radius:12px;font-family:inherit;
+  font-weight:800;font-size:16px;cursor:pointer;border:3px solid;
+  transition:transform 0.1s;
+}
+.btn:hover:not(:disabled){transform:translateY(-2px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.btn-primary{background:#00b894;border-color:#00a884;color:#fff}
+.btn-primary:hover:not(:disabled){background:#00cea1}
+
+.start-screen,.end-screen{
+  background:#fff;border:3px solid #6c5ce7;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-castle{font-size:80px;display:inline-block;animation:float 2s infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.start-screen h2,.end-screen h2{font-size:26px;margin:0.5rem 0}
+.start-screen p,.end-screen p{font-size:14px;color:#666;line-height:1.7;margin:1rem 0}
+
+.coin-popup{
+  position:fixed;font-size:18px;font-weight:800;color:#d4af37;
+  pointer-events:none;z-index:1000;
+  text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;
+  animation:coin-float 1.2s ease-out forwards;
+}
+@keyframes coin-float{
+  0%{opacity:0;transform:translateY(0) scale(0.5)}
+  20%{opacity:1;transform:translateY(-5px) scale(1.2)}
+  100%{opacity:0;transform:translateY(-50px) scale(1)}
+}
+
+.confetti{
+  position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px;
+}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+.hint-text{
+  font-size:13px;color:#666;text-align:center;margin-bottom:1rem;
+  background:#FFF8DC;padding:8px 12px;border-radius:10px;border:1px dashed #d4af37;
+  font-weight:600;
+}
+.hint-text.wave-info{background:#f4f0ff;border-color:#6c5ce7;color:#6c5ce7}
+
+.wave-banner{
+  position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,#d63031,#b32424);color:white;
+  padding:1.2rem 2.5rem;border:4px solid #fff;border-radius:20px;
+  font-size:28px;font-weight:800;z-index:100;
+  box-shadow:0 0 50px rgba(214,48,49,0.8);text-align:center;
+  animation:wave-banner 2.2s forwards;pointer-events:none;
+}
+@keyframes wave-banner{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.3) rotate(-15deg)}
+  12%{opacity:1;transform:translate(-50%,-50%) scale(1.2) rotate(3deg)}
+  22%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+  78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}
+}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+// === SOUND ===
+let audioCtx, soundOn = true;
+function beep(f,d,t='square',v=0.06){
+  if(!soundOn || !audioCtx) return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=t; o.frequency.value=f;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+d);
+}
+function clickSnd(){beep(600,0.05,'triangle')}
+function placeSnd(){beep(440,0.08); setTimeout(()=>beep(660,0.1),60)}
+function dingSnd(){beep(880,0.1); setTimeout(()=>beep(1175,0.15),80)}
+function buzzSnd(){beep(200,0.25,'sawtooth',0.08)}
+function killSnd(){beep(150,0.08,'sawtooth'); setTimeout(()=>beep(100,0.1,'sawtooth'),50)}
+function waveStartSnd(){[440,554,659,880].forEach((n,i)=>setTimeout(()=>beep(n,0.15,'square',0.08),i*100))}
+function winSnd(){[523,659,784,1047,1319].forEach((n,i)=>setTimeout(()=>beep(n,0.2,'square',0.1),i*120))}
+function loseSnd(){[400,300,200].forEach((n,i)=>setTimeout(()=>beep(n,0.3,'sawtooth',0.1),i*200))}
+function toggleSound(btn){soundOn=!soundOn; btn.textContent=soundOn?'🔊':'🔇'}
+
+// === CONSTANTS ===
+const FIELD_W=580, FIELD_H=320;
+
+const PATH=[
+  {x:0, y:80},
+  {x:200, y:80},
+  {x:200, y:240},
+  {x:380, y:240},
+  {x:380, y:80},
+  {x:580, y:80}
+];
+
+const TOWER_SLOTS=[
+  {x:100, y:30}, {x:100, y:160}, {x:100, y:290},
+  {x:290, y:30}, {x:290, y:160}, {x:290, y:290},
+  {x:480, y:30}, {x:480, y:160}, {x:480, y:290}
+];
+
+const TOWER_TYPES={
+  archer:{emoji:'🏹', name:'Archer', cost:20, damage:8,  range:90,  fireRate:500,  color:'#8B6F47'},
+  cannon:{emoji:'💣', name:'Cannon', cost:50, damage:25, range:100, fireRate:1200, color:'#2c3e50'},
+  wizard:{emoji:'⚡', name:'Wizard', cost:80, damage:18, range:130, fireRate:400,  color:'#9b59b6'}
+};
+
+const ENEMY_TYPES={
+  slime:   {emoji:'🟢', color:'#27ae60', hp:25,  speed:50, reward:5,  damage:1},
+  scorpion:{emoji:'🦂', color:'#e17055', hp:40,  speed:65, reward:8,  damage:1},
+  wolf:    {emoji:'🐺', color:'#636e72', hp:35,  speed:95, reward:7,  damage:1},
+  goblin:  {emoji:'👹', color:'#8e44ad', hp:70,  speed:55, reward:12, damage:2},
+  ogre:    {emoji:'🧌', color:'#2d3436', hp:120, speed:45, reward:20, damage:2},
+  dragon:  {emoji:'🐲', color:'#c0392b', hp:300, speed:50, reward:80, damage:3}
+};
+
+const WAVES=[
+  {enemies:[{type:'slime',count:5}], delay:700},
+  {enemies:[{type:'slime',count:8}], delay:600},
+  {enemies:[{type:'slime',count:6},{type:'wolf',count:3}], delay:700},
+  {enemies:[{type:'wolf',count:8}], delay:600},
+  {enemies:[{type:'scorpion',count:8},{type:'wolf',count:4}], delay:600},
+  {enemies:[{type:'goblin',count:5},{type:'wolf',count:5}], delay:700},
+  {enemies:[{type:'goblin',count:10}], delay:600},
+  {enemies:[{type:'ogre',count:4},{type:'wolf',count:8}], delay:600},
+  {enemies:[{type:'scorpion',count:8},{type:'goblin',count:8}], delay:500},
+  {enemies:[{type:'dragon',count:1},{type:'goblin',count:8},{type:'ogre',count:3}], delay:600}
+];
+
+// === STATE ===
+let state={phase:'start'};
+
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+
+function newGame(){
+  if(!audioCtx) try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  state={
+    phase:'prep', lives:10, coins:60, waveIdx:0,
+    towers:{}, enemies:[], zaps:[],
+    spawnQueue:[], lastSpawn:0,
+    selectedTowerType:null, mathProblem:null, mathDisabled:false
+  };
+  state.mathProblem=genMath();
+  render();
+  startLoop();
+}
+
+function startWave(){
+  state.phase='wave';
+  state.selectedTowerType=null;
+  const wave=WAVES[state.waveIdx];
+  const queue=[];
+  wave.enemies.forEach(e=>{for(let i=0;i<e.count;i++) queue.push(e.type)});
+  state.spawnQueue=queue;
+  state.lastSpawn=performance.now()-wave.delay;
+  waveStartSnd();
+  showWaveBanner(state.waveIdx+1);
+  render();
+}
+
+function endWave(){
+  state.phase='wave-end';
+  state.waveIdx++;
+  if(state.waveIdx>=WAVES.length){
+    state.phase='win';
+    winSnd();
+    burst(50);
+    render();
+    return;
+  }
+  const bonus=10+state.waveIdx*5;
+  state.coins+=bonus;
+  showCoinPopup('+'+bonus+' gold!', window.innerWidth/2, 120);
+  setTimeout(()=>{
+    state.phase='prep';
+    state.mathProblem=genMath();
+    render();
+  }, 1500);
+}
+
+function gameOver(){
+  state.phase='lose';
+  loseSnd();
+  render();
+}
+
+// === MATH ===
+function genMath(){
+  let answer, text;
+  const r=Math.random();
+  if(r<0.5){
+    const a=randInt(2,9), b=randInt(2,9);
+    answer=a*b; text=`${a} × ${b}`;
+  } else if(r<0.75){
+    const a=randInt(2,9), b=randInt(2,9);
+    answer=a; text=`${a*b} ÷ ${b}`;
+  } else {
+    const a=randInt(20,60), b=randInt(10,40);
+    if(Math.random()<0.5){answer=a+b; text=`${a} + ${b}`}
+    else {
+      const big=Math.max(a,b), sm=Math.min(a,b);
+      answer=big-sm; text=`${big} − ${sm}`;
+    }
+  }
+  const choices=new Set([answer]);
+  while(choices.size<4){
+    let off=randInt(-10,10);
+    if(off===0) continue;
+    let w=answer+off;
+    if(w<0) w=answer+Math.abs(off)+randInt(1,3);
+    if(w!==answer) choices.add(w);
+  }
+  return {text, answer, choices:shuffle([...choices])};
+}
+
+function answerMath(choice){
+  if(state.mathDisabled) return;
+  state.mathDisabled=true;
+  const correct=choice===state.mathProblem.answer;
+  document.querySelectorAll('.math-choice').forEach(b=>{
+    b.disabled=true;
+    const v=parseInt(b.textContent);
+    if(v===state.mathProblem.answer) b.classList.add('correct');
+    else if(v===choice && !correct) b.classList.add('wrong');
+  });
+  if(correct){
+    const reward=10+state.waveIdx*2;
+    state.coins+=reward;
+    showCoinPopup('+'+reward+'💰', window.innerWidth/2, 350);
+    dingSnd();
+  } else {
+    buzzSnd();
+  }
+  setTimeout(()=>{
+    state.mathProblem=genMath();
+    state.mathDisabled=false;
+    renderMath();
+    renderStats();
+  }, 800);
+}
+
+// === GAME LOGIC ===
+function updateSpawn(now){
+  if(state.spawnQueue.length===0) return;
+  const wave=WAVES[state.waveIdx];
+  if(now-state.lastSpawn>=wave.delay){
+    const type=state.spawnQueue.shift();
+    const et=ENEMY_TYPES[type];
+    state.enemies.push({
+      id:Math.random(), type, hp:et.hp, maxHp:et.hp,
+      segmentIdx:0, progress:0,
+      x:PATH[0].x, y:PATH[0].y,
+      spawnTime:now
+    });
+    state.lastSpawn=now;
+  }
+}
+
+function updateEnemies(dt){
+  state.enemies.forEach(e=>{
+    if(e.dead) return;
+    const type=ENEMY_TYPES[e.type];
+    let a=PATH[e.segmentIdx], b=PATH[e.segmentIdx+1];
+    if(!b) return;
+    let segLen=Math.hypot(b.x-a.x, b.y-a.y);
+    e.progress+=(type.speed*dt)/segLen;
+    while(e.progress>=1 && e.segmentIdx<PATH.length-1){
+      e.progress-=1;
+      e.segmentIdx++;
+      a=PATH[e.segmentIdx]; b=PATH[e.segmentIdx+1];
+      if(!b) break;
+      segLen=Math.hypot(b.x-a.x, b.y-a.y);
+    }
+    if(e.segmentIdx>=PATH.length-1){
+      state.lives-=type.damage;
+      e.dead=true;
+      if(state.lives<=0){gameOver(); return}
+      return;
+    }
+    const na=PATH[e.segmentIdx], nb=PATH[e.segmentIdx+1];
+    e.x=na.x+(nb.x-na.x)*e.progress;
+    e.y=na.y+(nb.y-na.y)*e.progress;
+  });
+  state.enemies=state.enemies.filter(e=>!e.dead);
+}
+
+function updateTowers(now){
+  for(const [slotIdx, tower] of Object.entries(state.towers)){
+    const type=TOWER_TYPES[tower.type];
+    if(now-tower.lastFire<type.fireRate) continue;
+    const slot=TOWER_SLOTS[slotIdx];
+    let target=null, bestProgress=-1;
+    state.enemies.forEach(e=>{
+      if(e.dead || e.x===undefined) return;
+      const d=Math.hypot(e.x-slot.x, e.y-slot.y);
+      if(d>type.range) return;
+      const tp=e.segmentIdx+e.progress;
+      if(tp>bestProgress){bestProgress=tp; target=e}
+    });
+    if(target){
+      tower.lastFire=now;
+      target.hp-=type.damage;
+      state.zaps.push({
+        fromX:slot.x, fromY:slot.y,
+        toX:target.x, toY:target.y,
+        time:now, color:type.color
+      });
+      if(target.hp<=0){
+        target.dead=true;
+        state.coins+=ENEMY_TYPES[target.type].reward;
+        killSnd();
+      }
+    }
+  }
+}
+
+function cleanupZaps(now){state.zaps=state.zaps.filter(z=>now-z.time<200)}
+
+function checkWaveEnd(){
+  if(state.spawnQueue.length===0 && state.enemies.length===0 && state.phase==='wave'){
+    endWave();
+  }
+}
+
+// === ACTIONS ===
+function selectTower(type){
+  if(state.coins<TOWER_TYPES[type].cost) return;
+  state.selectedTowerType=state.selectedTowerType===type?null:type;
+  clickSnd();
+  renderShop();
+  renderAction();
+}
+
+function placeTower(slotIdx){
+  if(state.towers[slotIdx]) return;
+  if(!state.selectedTowerType) return;
+  const cost=TOWER_TYPES[state.selectedTowerType].cost;
+  if(state.coins<cost) return;
+  state.coins-=cost;
+  state.towers[slotIdx]={type:state.selectedTowerType, lastFire:0};
+  state.selectedTowerType=null;
+  placeSnd();
+  renderStats();
+  renderShop();
+  renderAction();
+}
+
+function onSlotClick(idx){
+  if(state.selectedTowerType) placeTower(idx);
+}
+
+function handleFieldPointer(e){
+  if(!state.selectedTowerType) return;
+  const svg=document.getElementById('field-svg');
+  if(!svg) return;
+  const rect=svg.getBoundingClientRect();
+  if(!rect.width || !rect.height) return;
+  // Convert screen coords to SVG viewBox coords
+  const svgX=((e.clientX-rect.left)/rect.width)*FIELD_W;
+  const svgY=((e.clientY-rect.top)/rect.height)*FIELD_H;
+  let closest=-1, closestDist=40;
+  TOWER_SLOTS.forEach((slot,i)=>{
+    if(state.towers[i]) return;
+    const d=Math.hypot(svgX-slot.x, svgY-slot.y);
+    if(d<closestDist){closestDist=d; closest=i}
+  });
+  if(closest>=0){
+    e.preventDefault();
+    placeTower(closest);
+  }
+}
+
+function attachFieldHandler(){
+  const svg=document.getElementById('field-svg');
+  if(!svg) return;
+  // pointerdown fires immediately for mouse, touch, and pen — no 300ms tap delay
+  svg.addEventListener('pointerdown', handleFieldPointer);
+  // Fallback for very old browsers without Pointer Events
+  if(!window.PointerEvent){
+    svg.addEventListener('click', handleFieldPointer);
+    svg.addEventListener('touchstart', (e)=>{
+      if(e.touches && e.touches[0]) handleFieldPointer(e.touches[0]);
+    });
+  }
+}
+
+// === LOOP ===
+let lastTime=0, loopRunning=false;
+function startLoop(){
+  if(loopRunning) return;
+  loopRunning=true; lastTime=0;
+  requestAnimationFrame(loop);
+}
+function loop(ts){
+  if(lastTime===0) lastTime=ts;
+  const dt=Math.min(0.05, (ts-lastTime)/1000);
+  lastTime=ts;
+  if(state.phase==='wave'){
+    updateSpawn(ts);
+    updateEnemies(dt);
+    updateTowers(ts);
+    cleanupZaps(ts);
+    checkWaveEnd();
+  }
+  if(['prep','wave','wave-end'].includes(state.phase)){
+    renderField();
+    if(state.phase==='wave') updateWaveInfo();
+    requestAnimationFrame(loop);
+  } else {
+    loopRunning=false;
+  }
+}
+
+// === RENDER ===
+function render(){
+  const game=document.getElementById('game');
+  if(state.phase==='start') game.innerHTML=renderStart();
+  else if(state.phase==='win' || state.phase==='lose') game.innerHTML=renderEnd();
+  else {
+    game.innerHTML=renderPlay();
+    attachFieldHandler();
+    if(!loopRunning) startLoop();
+  }
+}
+
+function renderHeader(){
+  return `<header>
+    <h1>🏰 Math Tower Defense ⚔️</h1>
+    <p>Solve math → Earn gold → Place towers → Defend!</p>
+    <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+  </header>`;
+}
+
+function renderStart(){
+  return `${renderHeader()}
+    <div class="start-screen">
+      <div class="big-castle">🏰</div>
+      <h2 style="color:#6c5ce7">Defend the Kingdom!</h2>
+      <p style="text-align:left;max-width:380px;margin:1rem auto">
+        🧮 Solve math problems to earn <strong>gold</strong><br>
+        🏹 Buy towers (Archer, Cannon, Wizard) with gold<br>
+        🎯 Place towers on slots near the path<br>
+        💀 Towers auto-shoot enemies that walk by<br>
+        ❤️ Don't let enemies reach the castle!<br>
+        🌊 Survive <strong>10 waves</strong> to win!
+      </p>
+      <button class="btn btn-primary" onclick="newGame()" style="max-width:280px;margin:1rem auto">
+        ⚔️ Start Defending! ⚔️
+      </button>
+    </div>`;
+}
+
+function renderPlay(){
+  return `${renderHeader()}
+    <div id="stats-area">${statsHtml()}</div>
+    <div class="field-wrap ${state.phase==='wave'?'battle-active':''}"><svg viewBox="0 0 ${FIELD_W} ${FIELD_H}" class="field-svg" id="field-svg" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div id="math-area">${mathHtml()}</div>
+    <div id="shop-area">${shopHtml()}</div>
+    <div id="action-area">${actionHtml()}</div>`;
+}
+
+function renderEnd(){
+  const won=state.phase==='win';
+  setTimeout(()=>{if(won) burst(50)}, 100);
+  return `${renderHeader()}
+    <div class="end-screen">
+      <div class="big-castle">${won?'🏆':'💀'}</div>
+      <h2 style="color:${won?'#00b894':'#d63031'}">${won?'VICTORY!':'Game Over!'}</h2>
+      <p>${won 
+        ? `You defended the kingdom through all 10 waves!<br>❤️ Lives left: <strong>${state.lives}</strong><br>💰 Gold remaining: <strong>${state.coins}</strong>`
+        : `The enemies broke through on wave ${state.waveIdx+1}.<br>Better tower placement next time!`}</p>
+      <button class="btn btn-primary" onclick="newGame()" style="max-width:280px;margin:1rem auto">🔄 Play Again</button>
+    </div>`;
+}
+
+function statsHtml(){
+  return `<div class="stats">
+    <div class="stat">
+      <span class="stat-label">❤️ LIVES</span>
+      <span class="stat-value" style="color:#d63031">${state.lives}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">💰 GOLD</span>
+      <span class="stat-value" style="color:#d4af37">${state.coins}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">🌊 WAVE</span>
+      <span class="stat-value">${state.waveIdx+1}/${WAVES.length}</span>
+    </div>
+  </div>`;
+}
+
+function mathHtml(){
+  if(state.phase==='wave'){
+    const total=state.enemies.length+state.spawnQueue.length;
+    return `<div class="hint-text wave-info">⚔️ Wave ${state.waveIdx+1} — <strong>${total}</strong> enemies remaining</div>`;
+  }
+  if(state.phase==='wave-end'){
+    return `<div class="hint-text wave-info">🎉 Wave complete! Get ready for the next one...</div>`;
+  }
+  if(!state.mathProblem) return '';
+  return `<div class="math-panel">
+    <div class="math-label">💡 SOLVE TO EARN +${10+state.waveIdx*2} GOLD</div>
+    <div class="math-question">${state.mathProblem.text} = ?</div>
+    <div class="math-choices">
+      ${state.mathProblem.choices.map(c=>`<button class="math-choice" onclick="answerMath(${c})">${c}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function shopHtml(){
+  return `<div class="shop">
+    ${Object.entries(TOWER_TYPES).map(([k,t])=>{
+      const can=state.coins>=t.cost;
+      const sel=state.selectedTowerType===k;
+      return `<button class="tower-card ${sel?'selected':''} ${!can?'disabled':''}" onclick="selectTower('${k}')" ${!can?'disabled':''}>
+        <span class="tower-emoji">${t.emoji}</span>
+        <span class="tower-name">${t.name}</span>
+        <span class="tower-stats">DMG ${t.damage} • RNG ${t.range}</span>
+        <span class="tower-cost">💰 ${t.cost}</span>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+function actionHtml(){
+  if(state.phase==='prep'){
+    if(state.selectedTowerType){
+      const t=TOWER_TYPES[state.selectedTowerType];
+      return `<div class="hint-text" style="background:#FFF3D6;border-color:#d4af37;color:#8B6F00;font-size:15px;font-weight:700">
+          👆 Tap a <span style="color:#d4af37">💛 glowing circle</span> on the field to place your ${t.emoji} ${t.name}!
+        </div>
+        <button class="btn" style="background:#fff;border-color:#888;color:#555" onclick="cancelSelection()">✗ Cancel</button>`;
+    }
+    return `<button class="btn btn-primary" onclick="startWave()">⚔️ Start Wave ${state.waveIdx+1}!</button>`;
+  }
+  if(state.phase==='wave'){
+    if(state.selectedTowerType){
+      const t=TOWER_TYPES[state.selectedTowerType];
+      return `<div class="hint-text" style="background:#FFF3D6;border-color:#d4af37;color:#8B6F00;font-weight:700">
+          👆 Tap a 💛 glowing slot to place your ${t.emoji} ${t.name}!
+        </div>
+        <button class="btn" style="background:#fff;border-color:#888;color:#555" onclick="cancelSelection()">✗ Cancel</button>`;
+    }
+    return `<div class="hint-text">💡 Pick a tower above to place during the wave!</div>`;
+  }
+  return '';
+}
+
+function renderEnemyShape(type){
+  switch(type){
+    case 'slime': return `
+      <ellipse cx="0" cy="4" rx="15" ry="12" fill="#27ae60" stroke="#1e6e3d" stroke-width="1.5"/>
+      <ellipse cx="-4" cy="-3" rx="5" ry="3" fill="#5fc77f" opacity="0.8"/>
+      <circle cx="-5" cy="0" r="3.5" fill="white"/>
+      <circle cx="5" cy="0" r="3.5" fill="white"/>
+      <circle cx="-4" cy="1" r="1.8" fill="#1a1a1a"/>
+      <circle cx="6" cy="1" r="1.8" fill="#1a1a1a"/>
+      <path d="M -3 7 Q 0 10 3 7" stroke="#1e6e3d" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    case 'scorpion': return `
+      <ellipse cx="0" cy="5" rx="13" ry="8" fill="#e17055" stroke="#7c2f15" stroke-width="1.5"/>
+      <ellipse cx="-12" cy="0" rx="5" ry="3" fill="#e17055" stroke="#7c2f15" stroke-width="1.2" transform="rotate(-35 -12 0)"/>
+      <ellipse cx="12" cy="0" rx="5" ry="3" fill="#e17055" stroke="#7c2f15" stroke-width="1.2" transform="rotate(35 12 0)"/>
+      <path d="M 0 -1 Q -5 -8 -2 -13 Q 0 -16 3 -13" stroke="#7c2f15" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <polygon points="2,-13 5,-15 3,-11" fill="#1a1a1a"/>
+      <circle cx="-3" cy="3" r="1.5" fill="#fbe540"/>
+      <circle cx="3" cy="3" r="1.5" fill="#fbe540"/>
+      <circle cx="-3" cy="3" r="0.7" fill="#1a1a1a"/>
+      <circle cx="3" cy="3" r="0.7" fill="#1a1a1a"/>`;
+    case 'wolf': return `
+      <ellipse cx="0" cy="9" rx="13" ry="7" fill="#636e72"/>
+      <polygon points="-9,-7 -6,-15 -3,-8" fill="#636e72"/>
+      <polygon points="9,-7 6,-15 3,-8" fill="#636e72"/>
+      <polygon points="-8,-9 -6,-13 -4,-9" fill="#ffb8a8"/>
+      <polygon points="8,-9 6,-13 4,-9" fill="#ffb8a8"/>
+      <ellipse cx="0" cy="-1" rx="11" ry="10" fill="#7f8c8d"/>
+      <ellipse cx="0" cy="5" rx="6" ry="5" fill="#5d6d7e"/>
+      <circle cx="-4" cy="-3" r="2.2" fill="#fbe540"/>
+      <circle cx="4" cy="-3" r="2.2" fill="#fbe540"/>
+      <circle cx="-4" cy="-3" r="1" fill="#1a1a1a"/>
+      <circle cx="4" cy="-3" r="1" fill="#1a1a1a"/>
+      <ellipse cx="0" cy="4" rx="2" ry="1.4" fill="#1a1a1a"/>`;
+    case 'goblin': return `
+      <ellipse cx="0" cy="8" rx="11" ry="7" fill="#7d3c98"/>
+      <circle cx="0" cy="-3" r="11" fill="#a569bd"/>
+      <polygon points="-10,-3 -17,-7 -10,4" fill="#7d3c98"/>
+      <polygon points="10,-3 17,-7 10,4" fill="#7d3c98"/>
+      <ellipse cx="0" cy="-7" rx="9" ry="3" fill="#7d3c98" opacity="0.5"/>
+      <ellipse cx="-4" cy="-3" rx="3" ry="2.3" fill="#a8e040"/>
+      <ellipse cx="4" cy="-3" rx="3" ry="2.3" fill="#a8e040"/>
+      <circle cx="-4" cy="-3" r="1.2" fill="#1a1a1a"/>
+      <circle cx="4" cy="-3" r="1.2" fill="#1a1a1a"/>
+      <path d="M -4 3 L 4 3 L 3 6 L -3 6 Z" fill="#2d1c33"/>
+      <polygon points="-3,3 -2.5,5.5 -2,3" fill="white"/>
+      <polygon points="3,3 2.5,5.5 2,3" fill="white"/>`;
+    case 'ogre': return `
+      <ellipse cx="0" cy="9" rx="15" ry="9" fill="#2d3436"/>
+      <ellipse cx="0" cy="-3" rx="13" ry="11" fill="#5d6d7e"/>
+      <polygon points="-9,-9 -7,-17 -4,-11" fill="#dfe4ea" stroke="#7f8c8d" stroke-width="1"/>
+      <polygon points="9,-9 7,-17 4,-11" fill="#dfe4ea" stroke="#7f8c8d" stroke-width="1"/>
+      <circle cx="-5" cy="-4" r="2.5" fill="#e74c3c"/>
+      <circle cx="5" cy="-4" r="2.5" fill="#e74c3c"/>
+      <circle cx="-5" cy="-4" r="1.1" fill="#1a1a1a"/>
+      <circle cx="5" cy="-4" r="1.1" fill="#1a1a1a"/>
+      <polygon points="-4,4 -3,10 -2,4" fill="white"/>
+      <polygon points="4,4 3,10 2,4" fill="white"/>
+      <path d="M -5 3 Q 0 7 5 3" stroke="#1a1a1a" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+    case 'dragon': return `
+      <path d="M -10 -1 Q -24 -8 -22 7 Q -16 2 -10 6 Z" fill="#7c2f15" opacity="0.9"/>
+      <path d="M 10 -1 Q 24 -8 22 7 Q 16 2 10 6 Z" fill="#7c2f15" opacity="0.9"/>
+      <path d="M -18 -3 Q -22 0 -20 4" stroke="#5b1a08" stroke-width="0.8" fill="none"/>
+      <path d="M 18 -3 Q 22 0 20 4" stroke="#5b1a08" stroke-width="0.8" fill="none"/>
+      <ellipse cx="0" cy="6" rx="14" ry="11" fill="#c0392b" stroke="#7c2f15" stroke-width="2"/>
+      <path d="M -10 6 L -8 0 L -4 4 L 0 -1 L 4 4 L 8 0 L 10 6" stroke="#7c2f15" stroke-width="1.5" fill="none"/>
+      <ellipse cx="0" cy="-7" rx="10" ry="8" fill="#e74c3c" stroke="#7c2f15" stroke-width="2"/>
+      <polygon points="-7,-12 -5,-18 -3,-13" fill="#dfe4ea" stroke="#7f8c8d" stroke-width="0.8"/>
+      <polygon points="7,-12 5,-18 3,-13" fill="#dfe4ea" stroke="#7f8c8d" stroke-width="0.8"/>
+      <circle cx="-4" cy="-7" r="2.5" fill="#fbe540"/>
+      <circle cx="4" cy="-7" r="2.5" fill="#fbe540"/>
+      <ellipse cx="-4" cy="-7" rx="0.6" ry="1.3" fill="#1a1a1a"/>
+      <ellipse cx="4" cy="-7" rx="0.6" ry="1.3" fill="#1a1a1a"/>
+      <circle cx="-2" cy="-3" r="0.9" fill="#1a1a1a"/>
+      <circle cx="2" cy="-3" r="0.9" fill="#1a1a1a"/>
+      <ellipse cx="0" cy="-1" rx="4" ry="1.5" fill="#7c2f15"/>`;
+  }
+  return `<circle r="14" fill="#888"/>`;
+}
+
+function renderStats(){const el=document.getElementById('stats-area'); if(el) el.innerHTML=statsHtml()}
+function renderMath(){const el=document.getElementById('math-area'); if(el) el.innerHTML=mathHtml()}
+function renderShop(){const el=document.getElementById('shop-area'); if(el) el.innerHTML=shopHtml()}
+function renderAction(){const el=document.getElementById('action-area'); if(el) el.innerHTML=actionHtml()}
+
+function cancelSelection(){
+  state.selectedTowerType=null;
+  clickSnd();
+  renderShop();
+  renderAction();
+}
+
+function renderField(){
+  const svg=document.getElementById('field-svg');
+  if(!svg) return;
+  const now=performance.now();
+  const parts=[];
+  
+  // Grass texture (simple dots)
+  for(let i=0;i<15;i++){
+    const sx=((i*73)%FIELD_W), sy=((i*47+30)%FIELD_H);
+    parts.push(`<circle cx="${sx}" cy="${sy}" r="3" fill="#7cb35e" opacity="0.5"/>`);
+  }
+  
+  // Path - dirt road with edges
+  const pathD=PATH.map((p,i)=>(i===0?'M':'L')+p.x+' '+p.y).join(' ');
+  parts.push(`<path d="${pathD}" stroke="#8B4513" stroke-width="42" fill="none" stroke-linejoin="round" stroke-linecap="round"/>`);
+  parts.push(`<path d="${pathD}" stroke="#D2B48C" stroke-width="32" fill="none" stroke-linejoin="round" stroke-linecap="round"/>`);
+  parts.push(`<path d="${pathD}" stroke="#bea584" stroke-width="2" fill="none" stroke-dasharray="6 6" stroke-linecap="round"/>`);
+  
+  // Start/End
+  parts.push(`<g transform="translate(${PATH[0].x},${PATH[0].y})">
+    <circle r="18" fill="#27ae60" stroke="#1e6e3d" stroke-width="3"/>
+    <text text-anchor="middle" y="6" font-size="18">⛩️</text>
+  </g>`);
+  parts.push(`<g transform="translate(${PATH[PATH.length-1].x},${PATH[PATH.length-1].y})">
+    <circle r="18" fill="#c0392b" stroke="#7c2020" stroke-width="3"/>
+    <text text-anchor="middle" y="6" font-size="18">🏰</text>
+  </g>`);
+  
+  // Range circles for placed towers (subtle)
+  Object.entries(state.towers).forEach(([i,t])=>{
+    const s=TOWER_SLOTS[i];
+    const r=TOWER_TYPES[t.type].range;
+    parts.push(`<circle cx="${s.x}" cy="${s.y}" r="${r}" fill="none" stroke="${TOWER_TYPES[t.type].color}" stroke-width="1" stroke-dasharray="3 4" opacity="0.2"/>`);
+  });
+  
+  // Range preview for selected tower type
+  if(state.selectedTowerType){
+    const range=TOWER_TYPES[state.selectedTowerType].range;
+    TOWER_SLOTS.forEach((slot,i)=>{
+      if(state.towers[i]) return;
+      parts.push(`<circle cx="${slot.x}" cy="${slot.y}" r="${range}" fill="rgba(255,215,0,0.07)" stroke="rgba(255,215,0,0.4)" stroke-width="1" stroke-dasharray="3 4"/>`);
+    });
+  }
+  
+  // Slots
+  TOWER_SLOTS.forEach((slot,i)=>{
+    if(state.towers[i]){
+      const t=state.towers[i];
+      const type=TOWER_TYPES[t.type];
+      parts.push(`<g><circle cx="${slot.x}" cy="${slot.y}" r="20" fill="white" stroke="${type.color}" stroke-width="3"/>
+        <text x="${slot.x}" y="${slot.y+8}" text-anchor="middle" font-size="24">${type.emoji}</text></g>`);
+    } else {
+      const interactive=state.selectedTowerType && state.coins>=TOWER_TYPES[state.selectedTowerType].cost;
+      if(interactive){
+        // Pulsing gold slot with + sign — impossible to miss
+        const pulse=Math.sin(now/220)*0.5+0.5;
+        const r=22+pulse*5;
+        parts.push(`<circle cx="${slot.x}" cy="${slot.y}" r="${r+6}" fill="none" stroke="#ffd700" stroke-width="2" opacity="${0.3+pulse*0.4}"/>`);
+        parts.push(`<circle cx="${slot.x}" cy="${slot.y}" r="${r}" fill="rgba(255,215,0,0.55)" stroke="#ffd700" stroke-width="4" style="cursor:pointer" onclick="onSlotClick(${i})"/>`);
+        parts.push(`<text x="${slot.x}" y="${slot.y+9}" text-anchor="middle" font-size="26" fill="#8B6F00" font-weight="bold" pointer-events="none">+</text>`);
+      } else {
+        parts.push(`<circle cx="${slot.x}" cy="${slot.y}" r="16" fill="rgba(255,255,255,0.4)" stroke="rgba(108,92,231,0.4)" stroke-width="2" stroke-dasharray="4 3"/>`);
+      }
+    }
+  });
+  
+  // Zaps
+  state.zaps.forEach(z=>{
+    const age=now-z.time;
+    const opacity=Math.max(0, 1-age/200);
+    parts.push(`<line x1="${z.fromX}" y1="${z.fromY}" x2="${z.toX}" y2="${z.toY}" stroke="${z.color}" stroke-width="${3+opacity*3}" opacity="${opacity}" stroke-linecap="round"/>`);
+  });
+  
+  // Enemies (on top) - hand-drawn SVG cartoon shapes
+  state.enemies.forEach(e=>{
+    if(e.x===undefined) return;
+    const type=ENEMY_TYPES[e.type];
+    const hpPct=e.hp/e.maxHp;
+    // Strong spawn glow for first 800ms
+    const spawnAge=now-(e.spawnTime||0);
+    if(spawnAge<800){
+      const g=1-spawnAge/800;
+      parts.push(`<circle cx="${e.x}" cy="${e.y}" r="${22+g*28}" fill="none" stroke="#ffd700" stroke-width="${g*5}" opacity="${g}"/>`);
+    }
+    // Subtle gentle bobbing (different phase per enemy so they don't sync)
+    const bob=Math.sin(now/300+e.id*7)*1.5;
+    parts.push(`<g transform="translate(${e.x},${e.y+bob})">
+      <ellipse cx="0" cy="18" rx="14" ry="3" fill="rgba(0,0,0,0.35)"/>
+      <rect x="-22" y="-28" width="44" height="6" fill="rgba(0,0,0,0.7)" rx="3"/>
+      <rect x="-22" y="-28" width="${44*hpPct}" height="6" fill="${hpPct>0.5?'#2ecc71':hpPct>0.25?'#f39c12':'#e74c3c'}" rx="3"/>
+      ${renderEnemyShape(e.type)}
+    </g>`);
+  });
+  
+  svg.innerHTML=parts.join('');
+}
+
+// === EFFECTS ===
+function showCoinPopup(text,x,y){
+  const el=document.createElement('div');
+  el.className='coin-popup';
+  el.textContent=text;
+  el.style.left=(x-30)+'px';
+  el.style.top=y+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1200);
+}
+
+function showWaveBanner(num){
+  const el=document.createElement('div');
+  el.className='wave-banner';
+  el.innerHTML=`⚔️ WAVE ${num} ⚔️<br><span style="font-size:14px;font-weight:normal;opacity:0.95">Enemies incoming!</span>`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2200);
+}
+
+function updateWaveInfo(){
+  if(state.phase!=='wave') return;
+  const el=document.querySelector('.wave-info');
+  if(!el) return;
+  const total=state.enemies.length+state.spawnQueue.length;
+  el.innerHTML=`⚔️ Wave ${state.waveIdx+1} — <strong>${total}</strong> enemies remaining`;
+}
+
+function burst(count){
+  const emojis=['🎉','⭐','💰','✨','🏆','💎'];
+  for(let i=0;i<count;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDelay=Math.random()*0.8+'s';
+    c.style.animationDuration=(1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+render();
+</script>
+</body>
+</html>

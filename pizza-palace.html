@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍕 Pizza Palace</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;min-height:100vh;padding:1rem;padding-bottom:3rem}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#d63031,#b32424);color:#fff;text-align:center;
+  padding:18px 20px;border-radius:18px;margin-bottom:1rem;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:24px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.flag-stripe{display:flex;height:5px;border-radius:3px;margin-top:10px;overflow:hidden}
+.flag-stripe div{flex:1}
+.flag-stripe div:nth-child(1){background:#009246}
+.flag-stripe div:nth-child(2){background:#fff}
+.flag-stripe div:nth-child(3){background:#ce2b37}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:90px;background:#fff;border:2px solid #d63031;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#d63031;font-weight:800;display:block;margin-top:2px}
+
+.customer-card{
+  background:#fff;border:3px solid #d63031;border-radius:20px;
+  padding:14px;margin-bottom:1rem;display:flex;gap:14px;align-items:flex-start;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.customer-avatar{font-size:56px;flex-shrink:0;animation:wave 2.5s ease-in-out infinite;line-height:1}
+@keyframes wave{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.order-bubble{
+  background:#FFF8DC;border:2px solid #d63031;border-radius:14px;
+  padding:10px 14px;flex:1;font-size:15px;line-height:1.5;position:relative;
+}
+.order-bubble::before,.order-bubble::after{content:'';position:absolute;border:8px solid transparent}
+.order-bubble::before{left:-16px;top:18px;border-right-color:#d63031}
+.order-bubble::after{left:-12px;top:18px;border-right-color:#FFF8DC}
+.order-bubble strong{color:#d63031}
+
+.pizza-section{
+  background:#fff;border:3px solid #d63031;border-radius:20px;
+  padding:1rem;margin-bottom:1rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.pizza-label{font-size:12px;color:#888;margin-bottom:0.5rem;font-weight:700;letter-spacing:0.5px}
+.pizza{
+  width:220px;height:220px;margin:0 auto;border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 30%,rgba(255,235,180,0.5),transparent 40%),
+    radial-gradient(circle,#ff8862 0%,#d63031 60%,#C19A6B 60%,#a87749 100%);
+  border:8px solid #C19A6B;
+  box-shadow:0 6px 20px rgba(0,0,0,0.3),inset 0 0 30px rgba(0,0,0,0.1);
+  position:relative;overflow:hidden;
+}
+.pizza::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 25px 12px at 30% 40%,rgba(255,230,150,0.6),transparent),
+    radial-gradient(ellipse 20px 15px at 65% 55%,rgba(255,230,150,0.5),transparent),
+    radial-gradient(ellipse 18px 10px at 45% 70%,rgba(255,230,150,0.6),transparent),
+    radial-gradient(ellipse 22px 12px at 70% 30%,rgba(255,230,150,0.55),transparent);
+}
+.pizza-topping{
+  position:absolute;font-size:26px;transform:translate(-50%,-50%);
+  animation:drop-in 0.4s ease-out;
+  filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.3));
+}
+@keyframes drop-in{
+  0%{transform:translate(-50%,-200%) scale(0) rotate(-180deg)}
+  60%{transform:translate(-50%,-35%) scale(1.3) rotate(20deg)}
+  100%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+}
+
+.toppings{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+@media(max-width:480px){.toppings{grid-template-columns:repeat(2,1fr)}}
+.topping-btn{
+  background:#fff;border:3px solid #d63031;border-radius:14px;
+  padding:10px 8px 8px;cursor:pointer;font-family:inherit;
+  position:relative;transition:transform 0.1s,background 0.15s;
+}
+.topping-btn:hover{background:#FFF8DC;transform:translateY(-2px)}
+.topping-btn:active{transform:translateY(0)}
+.topping-emoji{font-size:30px;display:block;line-height:1}
+.topping-name{font-size:11px;font-weight:700;color:#555;display:block;margin-top:4px}
+.topping-price{font-size:13px;color:#d63031;font-weight:800;display:block}
+.topping-count{
+  position:absolute;top:-8px;right:-8px;background:#00b894;color:#fff;
+  border-radius:50%;width:26px;height:26px;font-size:13px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;border:2px solid #fff;
+  box-shadow:0 2px 4px rgba(0,0,0,0.2);
+}
+.topping-count.empty{display:none}
+
+.actions{display:flex;gap:10px;margin-bottom:1rem}
+.btn{
+  flex:1;padding:14px;border-radius:12px;font-family:inherit;
+  font-weight:800;font-size:16px;cursor:pointer;border:3px solid;
+  transition:transform 0.1s;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:#00b894;border-color:#00a884;color:#fff}
+.btn-primary:hover{background:#00cea1}
+.btn-secondary{background:#fff;border-color:#999;color:#555}
+.btn-secondary:hover{background:#f5f5f5}
+
+.question-card,.result-card,.end-screen{
+  background:#fff;border:3px solid #d63031;border-radius:20px;
+  padding:1.5rem 1rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.question-card h3{font-size:18px;color:#d63031;margin-bottom:1rem}
+.math-display{
+  background:#FFF8DC;border:2px dashed #d63031;border-radius:12px;
+  padding:1rem;margin-bottom:1rem;font-size:16px;line-height:1.9;
+}
+.math-display strong{color:#d63031;font-size:18px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice-btn{
+  padding:14px 8px;font-size:22px;font-weight:800;
+  background:#fff;border:3px solid #d63031;color:#d63031;
+  border-radius:12px;cursor:pointer;font-family:inherit;
+  transition:transform 0.1s,background 0.2s;
+}
+.choice-btn:hover:not(:disabled){background:#FFF8DC;transform:scale(1.05)}
+.choice-btn:disabled{cursor:default}
+.choice-btn.correct{background:#00b894;color:#fff;border-color:#00a884;animation:bounce 0.6s}
+.choice-btn.wrong{background:#d63031;color:#fff;animation:shake 0.4s}
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+.stars-row{display:flex;justify-content:center;gap:8px;margin:1rem 0}
+.star{font-size:36px;opacity:0.25;transition:all 0.3s}
+.star.earned{opacity:1;animation:star-pop 0.5s}
+@keyframes star-pop{
+  0%{transform:scale(0) rotate(-180deg)}
+  60%{transform:scale(1.4) rotate(20deg)}
+  100%{transform:scale(1) rotate(0)}
+}
+.feedback-msg{font-size:18px;font-weight:800;color:#00b894;margin:1rem 0}
+.feedback-msg.warn{color:#e17055}
+.tip-display{
+  background:#FFF8DC;border:2px solid #d4af37;border-radius:12px;
+  padding:0.85rem;margin:1rem 0;font-size:15px;line-height:1.7;
+}
+.feedback-list{
+  text-align:left;margin:0.75rem auto;max-width:320px;font-size:14px;
+  background:#FFE8E0;padding:0.75rem 1rem;border-radius:10px;border:1px solid #e17055;
+}
+.feedback-list div{margin:4px 0}
+
+.start-screen{
+  background:#fff;border:3px solid #d63031;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-pizza{font-size:80px;display:inline-block;animation:wave 2s infinite}
+.start-screen h2{font-size:26px;color:#d63031;margin:0.5rem 0}
+.start-screen p{font-size:15px;color:#666;line-height:1.7;margin:1rem 0}
+
+.confetti{
+  position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px;
+}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+.sound-btn{
+  position:absolute;top:18px;right:18px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:36px;height:36px;border-radius:50%;
+  cursor:pointer;font-size:16px;
+}
+header{position:relative}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+// === SOUND ===
+let audioCtx, soundOn = true;
+function beep(freq, dur, type='square', vol=0.08){
+  if(!soundOn || !audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+function clickSound(){ beep(600+Math.random()*200, 0.06, 'triangle') }
+function dingSound(){ beep(880,0.1); setTimeout(()=>beep(1175,0.15),80) }
+function buzzSound(){ beep(220,0.3,'sawtooth',0.1) }
+function cheerSound(){ [523,659,784,1047,1319].forEach((n,i)=>setTimeout(()=>beep(n,0.18,'square',0.1),i*100)) }
+function toggleSound(btn){ soundOn = !soundOn; btn.textContent = soundOn?'🔊':'🔇'; }
+
+// === DATA ===
+const TOPPINGS = {
+  pepperoni:{emoji:'🍖',name:'Pepperoni',price:3},
+  cheese:   {emoji:'🧀',name:'Cheese',   price:2},
+  mushroom: {emoji:'🍄',name:'Mushroom', price:3},
+  olive:    {emoji:'🫒',name:'Olive',    price:2},
+  pepper:   {emoji:'🌶️',name:'Pepper',  price:4},
+  pineapple:{emoji:'🍍',name:'Pineapple',price:4}
+};
+const CUSTOMERS = ['👧','👦','🧑','👩','👨','🧓','👵','👴','🧒','🧔','👱','🧕'];
+const GREETINGS = [
+  "Hi chef! I'd like",
+  "Hello! Can I have",
+  "Pizza time! I want",
+  "I'm hungry! Make me",
+  "Order up! I'll take",
+  "Good day! I'd love"
+];
+
+// === UTILS ===
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a;
+}
+function generateOrder(n){
+  const numTypes = n<=1?1:(n<=3?2:3);
+  const keys = shuffle(Object.keys(TOPPINGS)).slice(0,numTypes);
+  const order = {};
+  keys.forEach(k => { order[k] = randInt(1, n<=2?3:4) });
+  return order;
+}
+function calcPrice(order){
+  let p = 0;
+  for(const [k,c] of Object.entries(order)) p += TOPPINGS[k].price * c;
+  return p;
+}
+function generatePayment(price){
+  if(price <= 5) return 5;
+  if(price <= 10) return 10;
+  if(price <= 15) return 15;
+  if(price <= 20) return 20;
+  if(price <= 25) return 25;
+  return Math.ceil(price/10)*10;
+}
+function generateChoices(correct, range=4){
+  const choices = new Set([correct]);
+  while(choices.size < 4){
+    let off = randInt(-range, range);
+    if(off === 0) continue;
+    let w = correct + off;
+    if(w < 0) w = correct + Math.abs(off) + randInt(1,3);
+    if(w !== correct) choices.add(w);
+  }
+  return shuffle([...choices]);
+}
+
+// === STATE ===
+let state = { phase: 'start' };
+
+function newGame(){
+  if(!audioCtx) try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
+  state = {
+    customerNum: 0,
+    totalCustomers: 5,
+    earnings: 0,
+    perfectOrders: 0
+  };
+  nextCustomer();
+}
+
+function nextCustomer(){
+  state.customerNum++;
+  state.phase = 'order';
+  state.built = {};
+  state.customer = pick(CUSTOMERS);
+  state.greeting = pick(GREETINGS);
+  state.order = generateOrder(state.customerNum);
+  state.orderPrice = calcPrice(state.order);
+  state.paymentAmount = generatePayment(state.orderPrice);
+  state.stars = 0;
+  render();
+}
+
+// === RENDER ===
+function render(){
+  const game = document.getElementById('game');
+  if(state.phase === 'start'){
+    game.innerHTML = renderStart();
+    return;
+  }
+  let body = renderHeader() + renderStats();
+  if(state.phase === 'order'){
+    body += renderCustomer() + renderPizza() + renderToppings() + renderActions();
+  } else if(state.phase === 'order-feedback'){
+    body += renderCustomer() + renderOrderFeedback();
+  } else if(state.phase === 'pricing'){
+    body += renderCustomer() + renderPricingQuestion();
+  } else if(state.phase === 'change'){
+    body += renderCustomer() + renderChangeQuestion();
+  } else if(state.phase === 'result'){
+    body += renderResult();
+  } else if(state.phase === 'summary'){
+    body += renderSummary();
+  }
+  game.innerHTML = body;
+  
+  // Rebuild pizza topping visuals
+  if(state.phase === 'order'){
+    Object.entries(state.built).forEach(([key,count])=>{
+      for(let i=0;i<count;i++) addToppingVisual(TOPPINGS[key].emoji, false);
+    });
+  }
+}
+
+function renderHeader(){
+  return `
+    <header>
+      <h1>🍕 Pizza Palace 🍕</h1>
+      <p>Take orders • Make pizzas • Earn tips!</p>
+      <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+      <div class="flag-stripe"><div></div><div></div><div></div></div>
+    </header>`;
+}
+
+function renderStats(){
+  return `
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">CUSTOMER</span>
+        <span class="stat-value">${state.customerNum}/${state.totalCustomers}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">EARNED</span>
+        <span class="stat-value">$${state.earnings}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">⭐ PERFECT</span>
+        <span class="stat-value">${state.perfectOrders}</span>
+      </div>
+    </div>`;
+}
+
+function renderCustomer(){
+  const parts = Object.entries(state.order).map(([k,c])=>{
+    const t = TOPPINGS[k];
+    return `<strong>${c} ${t.name} ${t.emoji}</strong>`;
+  });
+  let orderText;
+  if(parts.length === 1) orderText = parts[0];
+  else if(parts.length === 2) orderText = parts.join(' and ');
+  else orderText = parts.slice(0,-1).join(', ') + ', and ' + parts[parts.length-1];
+  
+  return `
+    <div class="customer-card">
+      <div class="customer-avatar">${state.customer}</div>
+      <div class="order-bubble">${state.greeting} ${orderText} please!</div>
+    </div>`;
+}
+
+function renderPizza(){
+  return `
+    <div class="pizza-section">
+      <div class="pizza-label">🍕 YOUR PIZZA 🍕</div>
+      <div class="pizza" id="pizza"></div>
+    </div>`;
+}
+
+function renderToppings(){
+  const btns = Object.entries(TOPPINGS).map(([k,t])=>{
+    const count = state.built[k] || 0;
+    return `
+      <button class="topping-btn" onclick="addTopping('${k}')">
+        <span class="topping-emoji">${t.emoji}</span>
+        <span class="topping-name">${t.name}</span>
+        <span class="topping-price">$${t.price}</span>
+        <span class="topping-count ${count===0?'empty':''}">${count}</span>
+      </button>`;
+  }).join('');
+  return `<div class="toppings">${btns}</div>`;
+}
+
+function renderActions(){
+  return `
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="clearPizza()">🗑️ Clear</button>
+      <button class="btn btn-primary" onclick="submitOrder()">✅ Done!</button>
+    </div>`;
+}
+
+function addTopping(key){
+  state.built[key] = (state.built[key] || 0) + 1;
+  addToppingVisual(TOPPINGS[key].emoji, true);
+  clickSound();
+  // Update count badges only
+  const btns = document.querySelectorAll('.topping-btn');
+  Object.keys(TOPPINGS).forEach((k,i)=>{
+    const badge = btns[i].querySelector('.topping-count');
+    const c = state.built[k] || 0;
+    badge.textContent = c;
+    badge.classList.toggle('empty', c === 0);
+  });
+}
+
+function addToppingVisual(emoji, animate){
+  const pizza = document.getElementById('pizza');
+  if(!pizza) return;
+  const t = document.createElement('div');
+  t.className = 'pizza-topping';
+  if(!animate) t.style.animation = 'none';
+  t.textContent = emoji;
+  const angle = Math.random() * 2 * Math.PI;
+  const dist = Math.random() * 30 + 5;
+  t.style.left = (50 + Math.cos(angle) * dist) + '%';
+  t.style.top = (50 + Math.sin(angle) * dist) + '%';
+  pizza.appendChild(t);
+}
+
+function clearPizza(){
+  state.built = {};
+  clickSound();
+  render();
+}
+
+function submitOrder(){
+  // Check match
+  let matches = true;
+  for(const [k,v] of Object.entries(state.order))
+    if((state.built[k] || 0) !== v){ matches = false; break }
+  for(const [k,v] of Object.entries(state.built))
+    if((state.order[k] || 0) !== v){ matches = false; break }
+  
+  state.orderCorrect = matches;
+  if(matches){ state.stars++; dingSound(); }
+  else buzzSound();
+  
+  state.phase = 'order-feedback';
+  render();
+}
+
+function renderOrderFeedback(){
+  if(state.orderCorrect){
+    return `
+      <div class="result-card">
+        <div style="font-size:60px">🎉</div>
+        <div class="feedback-msg">⭐ Perfect Order!</div>
+        <p style="color:#666">The customer is happy with their pizza!</p>
+        <button class="btn btn-primary" onclick="goToPricing()" style="margin-top:1rem">
+          💰 Calculate the price →
+        </button>
+      </div>`;
+  }
+  // Show what's wrong
+  const diffs = [];
+  for(const [k,c] of Object.entries(state.order)){
+    const got = state.built[k] || 0;
+    if(got !== c){
+      diffs.push(`<div>• Ordered ${c} ${TOPPINGS[k].emoji}, you made ${got}</div>`);
+    }
+  }
+  for(const [k,c] of Object.entries(state.built)){
+    if(!state.order[k]){
+      diffs.push(`<div>• Extra ${c} ${TOPPINGS[k].emoji} (not asked for)</div>`);
+    }
+  }
+  return `
+    <div class="result-card">
+      <div style="font-size:60px">😅</div>
+      <div class="feedback-msg warn">Close, but not quite!</div>
+      <div class="feedback-list">${diffs.join('')}</div>
+      <p style="color:#666;font-size:13px">Don't worry! Let's still calculate the price together.</p>
+      <button class="btn btn-primary" onclick="goToPricing()" style="margin-top:1rem">
+        💰 Calculate the price →
+      </button>
+    </div>`;
+}
+
+function goToPricing(){
+  state.phase = 'pricing';
+  render();
+}
+
+function renderPricingQuestion(){
+  // Use ORDER price (teaches calculating based on what was asked)
+  const lines = Object.entries(state.order).map(([k,c])=>{
+    const t = TOPPINGS[k];
+    return `${c} ${t.emoji} × $${t.price}`;
+  }).join('<br>');
+  const choices = generateChoices(state.orderPrice, 4);
+  return `
+    <div class="question-card">
+      <h3>💰 How much does the pizza cost?</h3>
+      <div class="math-display">
+        ${lines}<br>
+        <span style="color:#d63031;font-weight:800">Total = ?</span>
+      </div>
+      <div class="choices">
+        ${choices.map(c=>`<button class="choice-btn" onclick="answerPrice(${c})">$${c}</button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function answerPrice(choice){
+  const correct = choice === state.orderPrice;
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    b.disabled = true;
+    const v = parseInt(b.textContent.replace('$',''));
+    if(v === state.orderPrice) b.classList.add('correct');
+    else if(v === choice && !correct) b.classList.add('wrong');
+  });
+  if(correct){ state.stars++; dingSound(); }
+  else buzzSound();
+  setTimeout(()=>{ state.phase = 'change'; render(); }, 1300);
+}
+
+function renderChangeQuestion(){
+  const change = state.paymentAmount - state.orderPrice;
+  const choices = generateChoices(change, 3);
+  return `
+    <div class="question-card">
+      <h3>💵 How much change?</h3>
+      <div class="math-display">
+        Pizza total: <strong>$${state.orderPrice}</strong><br>
+        Customer pays: <strong>$${state.paymentAmount}</strong><br>
+        Change = $${state.paymentAmount} − $${state.orderPrice} = <strong>?</strong>
+      </div>
+      <div class="choices">
+        ${choices.map(c=>`<button class="choice-btn" onclick="answerChange(${c})">$${c}</button>`).join('')}
+      </div>
+    </div>`;
+}
+
+function answerChange(choice){
+  const correctChange = state.paymentAmount - state.orderPrice;
+  const correct = choice === correctChange;
+  document.querySelectorAll('.choice-btn').forEach(b=>{
+    b.disabled = true;
+    const v = parseInt(b.textContent.replace('$',''));
+    if(v === correctChange) b.classList.add('correct');
+    else if(v === choice && !correct) b.classList.add('wrong');
+  });
+  if(correct){ state.stars++; dingSound(); }
+  else buzzSound();
+  setTimeout(()=>{ state.phase = 'result'; render(); }, 1300);
+}
+
+function renderResult(){
+  const tip = [0,1,3,5][state.stars] || 0;
+  const earned = state.orderPrice + tip;
+  state.earnings += earned;
+  if(state.stars === 3) state.perfectOrders++;
+  
+  if(state.stars === 3){
+    setTimeout(()=>{ burst(); cheerSound(); }, 100);
+  }
+  
+  const msgs = ['😅 Keep practicing!', '👌 Not bad!', '👍 Good job!', '🎉 Perfect customer!'];
+  const isEnd = state.customerNum >= state.totalCustomers;
+  return `
+    <div class="result-card">
+      <div style="font-size:64px">${state.customer}</div>
+      <div class="stars-row">
+        ${[1,2,3].map(i=>`<span class="star ${i<=state.stars?'earned':''}">⭐</span>`).join('')}
+      </div>
+      <div class="feedback-msg" style="${state.stars<2?'color:#e17055':''}">${msgs[state.stars]}</div>
+      <div class="tip-display">
+        Pizza: <strong>$${state.orderPrice}</strong><br>
+        ${tip > 0 ? `Tip: <strong style="color:#d4af37">+$${tip} 💰</strong><br>` : 'No tip this time 😬<br>'}
+        <span style="font-size:18px">Earned: <strong style="color:#00b894">$${earned}</strong></span>
+      </div>
+      <button class="btn btn-primary" onclick="${isEnd?'endDay()':'nextCustomer()'}">
+        ${isEnd ? '🏁 End of Day!' : '➡️ Next Customer'}
+      </button>
+    </div>`;
+}
+
+function endDay(){ state.phase = 'summary'; render(); }
+
+function renderSummary(){
+  let medal = '🥉', msg = "Good first day!";
+  const r = state.perfectOrders / state.totalCustomers;
+  if(r === 1){ medal = '🏆'; msg = "AMAZING! Master Pizza Chef!"; }
+  else if(r >= 0.6){ medal = '🥇'; msg = "Great work, Chef!"; }
+  else if(r >= 0.4){ medal = '🥈'; msg = "Nice job!"; }
+  
+  setTimeout(()=>{ burst(); cheerSound(); }, 200);
+  
+  return `
+    <div class="end-screen">
+      <div style="font-size:80px">${medal}</div>
+      <h2 style="font-size:24px;color:#d63031;margin:0.5rem 0">${msg}</h2>
+      <div class="tip-display" style="font-size:16px;line-height:1.8">
+        💰 Total earned: <strong>$${state.earnings}</strong><br>
+        ⭐ Perfect orders: <strong>${state.perfectOrders}/${state.totalCustomers}</strong><br>
+        🍕 Customers served: <strong>${state.totalCustomers}</strong>
+      </div>
+      <button class="btn btn-primary" onclick="newGame()" style="margin-top:1rem;max-width:280px;margin-left:auto;margin-right:auto;display:block">
+        🍕 Open Tomorrow!
+      </button>
+    </div>`;
+}
+
+function renderStart(){
+  return `
+    ${renderHeader()}
+    <div class="start-screen">
+      <div class="big-pizza">🍕</div>
+      <h2>Welcome, Chef!</h2>
+      <p style="text-align:left;max-width:380px;margin:1rem auto">
+        🧑‍🍳 Serve 5 customers their pizzas<br>
+        📝 Read each order carefully<br>
+        🍕 Add the right toppings<br>
+        💰 Calculate the total price<br>
+        💵 Make the right change<br>
+        ⭐ Earn ⭐⭐⭐ for the best tips!
+      </p>
+      <button class="btn btn-primary" onclick="newGame()" style="max-width:280px;margin:1rem auto;display:block">
+        🍕 Open the Shop! 🍕
+      </button>
+    </div>`;
+}
+
+function burst(){
+  const emojis = ['🎉','⭐','🍕','💰','✨','🍅','🧀'];
+  for(let i=0;i<28;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.textContent = pick(emojis);
+    c.style.left = Math.random()*100+'vw';
+    c.style.animationDelay = Math.random()*0.6+'s';
+    c.style.animationDuration = (1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),3800);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
