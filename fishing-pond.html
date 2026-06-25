@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎣 Fishing Pond</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;
+  padding:1rem;padding-bottom:3rem;min-height:100vh;
+}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#0984e3,#06529a);color:#fff;text-align:center;
+  padding:16px 18px;border-radius:18px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:22px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.sound-btn{
+  position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:14px;
+}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:90px;background:#fff;border:2px solid #0984e3;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#0984e3;font-weight:800;display:block;margin-top:2px}
+
+.goal-banner{
+  background:linear-gradient(180deg,#fff8dc,#fff);
+  border:3px dashed #d4af37;border-radius:14px;
+  padding:12px 16px;text-align:center;font-size:16px;font-weight:700;
+  color:#555;margin-bottom:1rem;
+}
+.goal-banner strong{color:#d4af37;font-size:22px}
+
+.pond-wrap{
+  width:100%;aspect-ratio:580/320;
+  background:linear-gradient(180deg,#54aef3,#1e6ebd 60%,#0d4d96);
+  border:4px solid #0984e3;border-radius:20px;overflow:hidden;
+  position:relative;margin-bottom:1rem;
+  box-shadow:0 4px 20px rgba(0,0,0,0.15),inset 0 0 30px rgba(0,0,0,0.2);
+}
+.pond-svg{width:100%;height:100%;display:block;cursor:crosshair;user-select:none;touch-action:manipulation}
+
+.combo{
+  position:absolute;top:10px;left:10px;
+  background:linear-gradient(180deg,#ff6b35,#d63031);color:#fff;
+  font-weight:800;padding:6px 14px;border-radius:14px;font-size:14px;
+  border:2px solid #fff;pointer-events:none;
+  box-shadow:0 3px 0 rgba(0,0,0,0.3);
+  animation:combo-pop 0.3s;
+}
+@keyframes combo-pop{0%{transform:scale(0.8)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+
+.start-screen,.end-screen{
+  background:#fff;border:3px solid #0984e3;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-fish{font-size:80px;display:inline-block;animation:swim 2s ease-in-out infinite}
+@keyframes swim{0%,100%{transform:translateX(0) rotate(-5deg)}50%{transform:translateX(15px) rotate(5deg)}}
+
+.btn{
+  display:block;width:100%;max-width:300px;margin:1rem auto;padding:14px;
+  font-size:17px;background:linear-gradient(180deg,#0984e3,#06529a);
+  color:#fff;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:800;font-family:inherit;box-shadow:0 5px 0 #06529a;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #06529a}
+
+.float-popup{
+  position:fixed;font-size:22px;font-weight:800;pointer-events:none;z-index:100;
+  text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;
+  animation:float-up 1s ease-out forwards;
+}
+.float-popup.good{color:#00b894}
+.float-popup.gold{color:#d4af37;font-size:28px}
+.float-popup.bad{color:#d63031}
+@keyframes float-up{
+  0%{opacity:0;transform:translateY(0) scale(0.5)}
+  20%{opacity:1;transform:translateY(-5px) scale(1.3)}
+  100%{opacity:0;transform:translateY(-70px) scale(1)}
+}
+
+.sparkle{
+  position:fixed;pointer-events:none;font-size:20px;z-index:99;
+  animation:sparkle-fly 0.9s ease-out forwards;
+}
+@keyframes sparkle-fly{
+  0%{opacity:1;transform:translate(0,0) scale(0.5)}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1)}
+}
+
+.round-banner{
+  position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,#d4af37,#b8860b);color:#fff;
+  padding:1.2rem 2.5rem;border:4px solid #fff;border-radius:20px;
+  font-size:26px;font-weight:800;z-index:99;text-align:center;
+  box-shadow:0 0 50px rgba(212,175,55,0.8);pointer-events:none;
+  animation:round-banner 2.5s forwards;
+}
+@keyframes round-banner{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.3) rotate(-15deg)}
+  12%{opacity:1;transform:translate(-50%,-50%) scale(1.2) rotate(3deg)}
+  22%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+  78%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}
+}
+
+.confetti{
+  position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px;
+}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+// === SOUND ===
+let audioCtx, soundOn=true;
+function beep(f,d,t='square',v=0.06){
+  if(!soundOn||!audioCtx) return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=t; o.frequency.value=f;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+d);
+}
+function catchSnd(){beep(523,0.08); setTimeout(()=>beep(659,0.08),60); setTimeout(()=>beep(784,0.12),120)}
+function goldSnd(){[523,659,784,1047,1319].forEach((n,i)=>setTimeout(()=>beep(n,0.1,'square',0.08),i*70))}
+function wrongSnd(){beep(220,0.25,'sawtooth',0.08)}
+function roundSnd(){[523,659,784,1047].forEach((n,i)=>setTimeout(()=>beep(n,0.18,'square',0.1),i*110))}
+function winSnd(){[523,659,784,1047,1319,1568,2093].forEach((n,i)=>setTimeout(()=>beep(n,0.22,'square',0.1),i*120))}
+function toggleSound(btn){soundOn=!soundOn; btn.textContent=soundOn?'🔊':'🔇'}
+
+// === CONSTANTS ===
+const POND_W=580, POND_H=320;
+const FISH_COLORS=[
+  {body:'#ff6b35', tail:'#d63031'},
+  {body:'#fdcb6e', tail:'#e17055'},
+  {body:'#74b9ff', tail:'#0984e3'},
+  {body:'#a29bfe', tail:'#6c5ce7'},
+  {body:'#ff7f50', tail:'#c0392b'},
+  {body:'#55efc4', tail:'#00b894'},
+  {body:'#ff9ff3', tail:'#e056b6'}
+];
+const GOLD_COLOR={body:'#ffd700', tail:'#d4af37'};
+const TOTAL_ROUNDS=7;
+
+// === UTILS ===
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}
+  return r;
+}
+
+// === STATE ===
+let state={phase:'start'};
+let fishIdCounter=0, lastTime=0, loopRunning=false;
+
+function newGame(){
+  if(!audioCtx) try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  state={
+    phase:'playing', roundNum:1, score:0, perfectRounds:0,
+    combo:0, maxCombo:0, mistakes:0,
+    fish:[], goal:null, lastType:null
+  };
+  startRound();
+  render();
+  startLoop();
+}
+
+function makeFish(value, text){
+  return {
+    id:fishIdCounter++,
+    value, text,
+    isGolden:Math.random()<0.08,
+    x:60+Math.random()*(POND_W-120),
+    y:60+Math.random()*(POND_H-120),
+    vx:(Math.random()<0.5?-1:1)*(20+Math.random()*25),
+    vy:(Math.random()-0.5)*15,
+    color:pick(FISH_COLORS),
+    age:Math.random()*10,
+    caught:false, flyingAway:false, flyStart:0
+  };
+}
+
+function getExpressionsFor(target){
+  const exprs=new Set([String(target)]);
+  for(let a=2;a<=10;a++){
+    if(target%a===0){
+      const b=target/a;
+      if(b>=2 && b<=10 && a<=b) exprs.add(`${a}×${b}`);
+    }
+  }
+  // some additions
+  const halfA=Math.floor(target/2);
+  if(halfA>0 && target-halfA>0 && halfA!==target-halfA) exprs.add(`${halfA}+${target-halfA}`);
+  if(target>=6){
+    const a=randInt(2,target-2);
+    if(target-a>0 && a!==target-a) exprs.add(`${a}+${target-a}`);
+  }
+  // subtraction
+  const sub=target+randInt(3,12);
+  exprs.add(`${sub}−${sub-target}`);
+  return shuffle([...exprs]);
+}
+
+// Generate a random expression that evaluates to `value`. Used for "wrong"
+// distractor fish so kids can't shortcut by catching anything with an operator.
+function randomExprFor(value){
+  const opts=[];
+  // Multiplication (both factors 2-10)
+  for(let a=2;a<=9;a++){
+    if(value%a===0){
+      const b=value/a;
+      if(b>=2 && b<=10 && a<=b) opts.push(`${a}×${b}`);
+    }
+  }
+  // Addition (both addends ≥ 2)
+  if(value>=4){
+    const a=randInt(2, value-2);
+    const b=value-a;
+    if(b>=2) opts.push(`${a}+${b}`);
+  }
+  // Subtraction
+  const off=randInt(2,9);
+  opts.push(`${value+off}−${off}`);
+  return opts.length ? pick(opts) : String(value);
+}
+
+function startRound(){
+  const types=['equal','problem','eo','gt'];
+  let type;
+  do{type=pick(types)}while(type===state.lastType && state.roundNum>1);
+  state.lastType=type;
+  
+  const lvl=state.roundNum;
+  let fish=[], goal=null;
+  
+  if(type==='equal'){
+    const target=lvl<=3?randInt(12,24):randInt(20,42);
+    const exprs=getExpressionsFor(target).slice(0, 3+Math.floor(lvl/3));
+    exprs.forEach(e=>fish.push(makeFish(target,e)));
+    // Probability that a wrong fish shows an expression (instead of plain number).
+    // Scales with level so early rounds stay friendlier.
+    const exprProb=Math.min(0.7, 0.25+lvl*0.08);
+    while(fish.length<11){
+      const w=target+randInt(-12,12);
+      if(w===target||w<1) continue;
+      if(fish.find(f=>f.value===w)) continue;
+      const text=Math.random()<exprProb ? randomExprFor(w) : String(w);
+      fish.push(makeFish(w,text));
+    }
+    goal={type, target, description:`Catch all fish that equal <strong>${target}</strong>`};
+  }
+  else if(type==='problem'){
+    const a=lvl<=2?randInt(2,7):randInt(3,9);
+    const b=lvl<=2?randInt(2,7):randInt(3,9);
+    const target=a*b;
+    fish.push(makeFish(target,String(target)));
+    // optional: one more fish with same answer
+    if(Math.random()<0.4){
+      const exprs=getExpressionsFor(target).filter(e=>e!==`${a}×${b}` && !e.includes('+') && !e.includes('−'));
+      if(exprs.length>0) fish.push(makeFish(target, exprs[0]));
+    }
+    while(fish.length<9){
+      const w=target+randInt(-12,12);
+      if(w===target||w<1) continue;
+      if(fish.find(f=>f.value===w)) continue;
+      fish.push(makeFish(w,String(w)));
+    }
+    goal={type, target, description:`Catch the fish that equals <strong>${a} × ${b}</strong>`};
+  }
+  else if(type==='eo'){
+    const isEven=Math.random()<0.5;
+    const max=lvl<=3?25:50;
+    while(fish.length<12){
+      const v=randInt(1,max);
+      if(fish.find(f=>f.value===v)) continue;
+      fish.push(makeFish(v,String(v)));
+    }
+    let want=isEven?'even':'odd';
+    let count=fish.filter(f=>(f.value%2===0)===isEven).length;
+    while(count<4){
+      const v=isEven?(randInt(1,max/2)*2):(randInt(0,max/2)*2+1);
+      if(fish.find(f=>f.value===v)) continue;
+      fish.push(makeFish(v,String(v)));
+      count++;
+    }
+    goal={type:want, description:`Catch all <strong>${want.toUpperCase()}</strong> number fish`};
+  }
+  else { // gt
+    const threshold=lvl<=3?randInt(10,18):randInt(18,32);
+    while(fish.length<12){
+      const v=randInt(2,threshold+25);
+      if(v===threshold) continue;
+      if(fish.find(f=>f.value===v)) continue;
+      fish.push(makeFish(v,String(v)));
+    }
+    let gtCount=fish.filter(f=>f.value>threshold).length;
+    while(gtCount<4){
+      const v=threshold+randInt(1,20);
+      if(fish.find(f=>f.value===v)) continue;
+      fish.push(makeFish(v,String(v)));
+      gtCount++;
+    }
+    goal={type, threshold, description:`Catch fish <strong>greater than ${threshold}</strong>`};
+  }
+  
+  state.fish=shuffle(fish);
+  state.goal=goal;
+  state.combo=0;
+  state.mistakes=0;
+}
+
+function isCorrect(fish, goal){
+  const g=goal||state.goal;
+  if(!g) return false;
+  if(g.type==='equal'||g.type==='problem') return fish.value===g.target;
+  if(g.type==='even') return fish.value%2===0;
+  if(g.type==='odd') return fish.value%2===1;
+  if(g.type==='gt') return fish.value>g.threshold;
+  return false;
+}
+
+// === INPUT ===
+function handlePondClick(e){
+  if(state.phase!=='playing') return;
+  const svg=document.getElementById('pond-svg');
+  if(!svg) return;
+  const rect=svg.getBoundingClientRect();
+  if(!rect.width||!rect.height) return;
+  const cx=((e.clientX-rect.left)/rect.width)*POND_W;
+  const cy=((e.clientY-rect.top)/rect.height)*POND_H;
+  
+  let target=null, best=36;
+  state.fish.forEach(f=>{
+    if(f.caught||f.flyingAway) return;
+    const d=Math.hypot(f.x-cx,f.y-cy);
+    if(d<best){best=d; target=f}
+  });
+  
+  if(target){
+    e.preventDefault();
+    catchAttempt(target, e.clientX, e.clientY);
+  }
+}
+
+function catchAttempt(fish, sx, sy){
+  const correct=isCorrect(fish);
+  if(correct){
+    fish.flyingAway=true;
+    fish.flyStart=performance.now();
+    state.combo++;
+    state.maxCombo=Math.max(state.maxCombo,state.combo);
+    let pts=10+(state.combo-1)*2;
+    if(fish.isGolden){pts*=3; goldSnd(); sparkleAt(sx,sy);}
+    else catchSnd();
+    state.score+=pts;
+    showFloat(`+${pts}${fish.isGolden?' ⭐':''}`, sx, sy, fish.isGolden?'gold':'good');
+    // Round complete check
+    const remaining=state.fish.filter(f=>!f.caught&&!f.flyingAway&&isCorrect(f));
+    if(remaining.length===0) endRound();
+  } else {
+    state.combo=0;
+    state.mistakes++;
+    state.score=Math.max(0,state.score-3);
+    showFloat('−3 ✗', sx, sy, 'bad');
+    wrongSnd();
+    fish.vx=(Math.random()<0.5?-1:1)*60;
+    fish.vy=(Math.random()-0.5)*40;
+  }
+  renderStats();
+}
+
+function endRound(){
+  state.phase='roundEnd';
+  let bonusText='';
+  if(state.mistakes===0){
+    state.perfectRounds++;
+    state.score+=20;
+    bonusText='<br><span style="font-size:14px;font-weight:normal">⭐ Perfect! +20 bonus</span>';
+  }
+  roundSnd();
+  const banner=document.createElement('div');
+  banner.className='round-banner';
+  banner.innerHTML=`🎉 Round ${state.roundNum} Complete!${bonusText}`;
+  document.body.appendChild(banner);
+  setTimeout(()=>banner.remove(),2500);
+  
+  setTimeout(()=>{
+    state.roundNum++;
+    if(state.roundNum>TOTAL_ROUNDS){
+      state.phase='gameEnd';
+      winSnd();
+      confetti();
+      setTimeout(confetti,800);
+      render();
+      return;
+    }
+    state.phase='playing';
+    startRound();
+    render();
+  },2200);
+}
+
+// === LOOP ===
+function startLoop(){
+  if(loopRunning) return;
+  loopRunning=true; lastTime=0;
+  requestAnimationFrame(loop);
+}
+
+function loop(ts){
+  if(lastTime===0) lastTime=ts;
+  const dt=Math.min(0.05,(ts-lastTime)/1000);
+  lastTime=ts;
+  if(state.phase==='playing'||state.phase==='roundEnd'){
+    updateFish(dt,ts);
+    renderPond(ts);
+    requestAnimationFrame(loop);
+  } else {
+    loopRunning=false;
+  }
+}
+
+function updateFish(dt, now){
+  state.fish.forEach(f=>{
+    f.age+=dt;
+    if(f.caught) return;
+    if(f.flyingAway){
+      const t=(now-f.flyStart)/800;
+      if(t>=1){f.caught=true; return}
+      f.y-=120*dt;
+      f.x+=(Math.random()-0.5)*40*dt;
+      return;
+    }
+    f.x+=f.vx*dt;
+    f.y+=f.vy*dt;
+    // Wall bounce
+    if(f.x<35){f.x=35; f.vx=Math.abs(f.vx)}
+    if(f.x>POND_W-35){f.x=POND_W-35; f.vx=-Math.abs(f.vx)}
+    if(f.y<45){f.y=45; f.vy=Math.abs(f.vy)}
+    if(f.y>POND_H-30){f.y=POND_H-30; f.vy=-Math.abs(f.vy)}
+    // Occasional direction tweak
+    if(Math.random()<0.005){
+      f.vy+=(Math.random()-0.5)*25;
+      f.vy=Math.max(-25,Math.min(25,f.vy));
+    }
+  });
+}
+
+// === RENDER ===
+function render(){
+  const game=document.getElementById('game');
+  if(state.phase==='start') game.innerHTML=renderStart();
+  else if(state.phase==='gameEnd') game.innerHTML=renderEnd();
+  else {
+    game.innerHTML=renderPlay();
+    attachPondHandler();
+    if(!loopRunning) startLoop();
+  }
+}
+
+function renderHeader(){
+  return `<header>
+    <h1>🎣 Fishing Pond 🐟</h1>
+    <p>Catch the right fish — every round is different!</p>
+    <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+  </header>`;
+}
+
+function renderStart(){
+  return `${renderHeader()}
+  <div class="start-screen">
+    <div class="big-fish">🎣</div>
+    <h2 style="font-size:26px;color:#0984e3;margin:0.5rem 0">Welcome, Angler!</h2>
+    <p style="font-size:15px;color:#555;line-height:1.7;margin:1rem auto;text-align:left;max-width:380px">
+      🎯 Each round has a <strong>different goal</strong>:<br>
+      • Catch all fish that <strong>equal a target</strong> (many ways!)<br>
+      • Solve a <strong>math problem</strong> and catch the answer<br>
+      • Catch all <strong>EVEN</strong> or <strong>ODD</strong> fish<br>
+      • Catch fish <strong>greater than</strong> a number<br><br>
+      🔥 Build <strong>combos</strong> for bonus points<br>
+      ✨ Watch for <strong>GOLDEN fish</strong> — 3× points!<br>
+      🏆 ${TOTAL_ROUNDS} rounds with perfect-round bonuses
+    </p>
+    <button class="btn" onclick="newGame()">🎣 Start Fishing!</button>
+  </div>`;
+}
+
+function renderPlay(){
+  return `${renderHeader()}
+  <div id="stats-area">${statsHtml()}</div>
+  <div class="goal-banner">${state.goal.description}</div>
+  <div class="pond-wrap">
+    ${state.combo>=2?`<div class="combo">🔥 Combo ×${state.combo}</div>`:''}
+    <svg viewBox="0 0 ${POND_W} ${POND_H}" id="pond-svg" class="pond-svg" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>`;
+}
+
+function renderEnd(){
+  let medal='🥉', msg='Nice fishing!';
+  if(state.perfectRounds===TOTAL_ROUNDS){medal='🏆'; msg='PERFECT! Master Angler!'}
+  else if(state.perfectRounds>=TOTAL_ROUNDS-2){medal='🥇'; msg='Great fishing!'}
+  else if(state.perfectRounds>=3){medal='🥈'; msg='Good job!'}
+  return `${renderHeader()}
+  <div class="end-screen">
+    <div style="font-size:90px">${medal}</div>
+    <h2 style="font-size:26px;color:#0984e3;margin:0.5rem 0">${msg}</h2>
+    <div style="background:#fff8dc;border:2px solid #d4af37;border-radius:12px;padding:1rem;margin:1rem 0;font-size:16px;line-height:1.8">
+      💰 Total score: <strong>${state.score}</strong><br>
+      🌟 Perfect rounds: <strong>${state.perfectRounds}/${TOTAL_ROUNDS}</strong><br>
+      🔥 Best combo: <strong>×${state.maxCombo}</strong>
+    </div>
+    <button class="btn" onclick="newGame()">🎣 Fish Again!</button>
+  </div>`;
+}
+
+function statsHtml(){
+  return `<div class="stats">
+    <div class="stat">
+      <span class="stat-label">🎣 ROUND</span>
+      <span class="stat-value">${state.roundNum}/${TOTAL_ROUNDS}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">💰 SCORE</span>
+      <span class="stat-value">${state.score}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">⭐ PERFECT</span>
+      <span class="stat-value">${state.perfectRounds}</span>
+    </div>
+  </div>`;
+}
+
+function renderStats(){const el=document.getElementById('stats-area'); if(el) el.innerHTML=statsHtml()}
+
+function attachPondHandler(){
+  const svg=document.getElementById('pond-svg');
+  if(!svg) return;
+  svg.addEventListener('pointerdown', handlePondClick);
+}
+
+function renderPond(now){
+  const svg=document.getElementById('pond-svg');
+  if(!svg) return;
+  const parts=[];
+  
+  // Bubbles drifting upward
+  for(let i=0;i<10;i++){
+    const seed=i*73+1;
+    const bx=((seed*13)%POND_W);
+    const by=(POND_H-((now*0.04+seed*47)%POND_H));
+    const bsize=2+(seed%4);
+    parts.push(`<circle cx="${bx}" cy="${by}" r="${bsize}" fill="#fff" opacity="0.18"/>`);
+  }
+  
+  // Water lily pads (decorative)
+  parts.push(`<ellipse cx="80" cy="${POND_H-25}" rx="40" ry="14" fill="#2ecc71" opacity="0.55"/>`);
+  parts.push(`<ellipse cx="83" cy="${POND_H-32}" rx="6" ry="4" fill="#27ae60" opacity="0.7"/>`);
+  parts.push(`<ellipse cx="500" cy="38" rx="45" ry="16" fill="#2ecc71" opacity="0.55"/>`);
+  parts.push(`<ellipse cx="495" cy="32" rx="6" ry="4" fill="#27ae60" opacity="0.7"/>`);
+  
+  // Bottom rocks
+  parts.push(`<ellipse cx="220" cy="${POND_H-8}" rx="40" ry="10" fill="#7c5d4a" opacity="0.6"/>`);
+  parts.push(`<ellipse cx="380" cy="${POND_H-6}" rx="50" ry="11" fill="#7c5d4a" opacity="0.6"/>`);
+  
+  // Render fish
+  state.fish.forEach(f=>{
+    if(f.caught) return;
+    const facingRight=f.vx>=0;
+    const flip=facingRight?1:-1;
+    const op=f.flyingAway?Math.max(0,1-(performance.now()-f.flyStart)/800):1;
+    const bob=Math.sin(f.age*2.5+f.id)*1.5;
+    const yp=f.y+bob;
+    
+    // Shadow on water
+    parts.push(`<ellipse cx="${f.x}" cy="${yp+18}" rx="20" ry="3.5" fill="rgba(0,0,0,0.2)" opacity="${op*0.7}"/>`);
+    
+    // Golden glow
+    if(f.isGolden && !f.flyingAway){
+      const pulse=Math.sin(now/180+f.id)*0.3+0.7;
+      parts.push(`<circle cx="${f.x}" cy="${yp}" r="${28+pulse*3}" fill="none" stroke="#ffd700" stroke-width="3" opacity="${pulse*0.8}"/>`);
+      parts.push(`<circle cx="${f.x}" cy="${yp}" r="${34}" fill="#ffd700" opacity="${pulse*0.15}"/>`);
+    }
+    
+    const color=f.isGolden?GOLD_COLOR:f.color;
+    
+    parts.push(`<g transform="translate(${f.x},${yp})" opacity="${op}">
+      <g transform="scale(${flip},1)">
+        <ellipse cx="0" cy="0" rx="24" ry="14" fill="${color.body}" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>
+        <polygon points="-22,0 -36,-13 -36,13" fill="${color.tail}" stroke="rgba(0,0,0,0.35)" stroke-width="1.2"/>
+        <ellipse cx="-6" cy="-4" rx="14" ry="4" fill="rgba(255,255,255,0.25)"/>
+        <circle cx="11" cy="-4" r="4.5" fill="#fff"/>
+        <circle cx="12" cy="-4" r="2.2" fill="#1a1a1a"/>
+        <circle cx="12.5" cy="-5" r="0.7" fill="#fff"/>
+        <path d="M 16 1 Q 20 3 16 6" stroke="rgba(0,0,0,0.4)" stroke-width="1.2" fill="none"/>
+        ${f.isGolden?`<path d="M -8 -8 L -4 -10 L -2 -8 L 2 -10 L 4 -8" stroke="#b8860b" stroke-width="1.5" fill="none"/>`:''}
+      </g>
+      <rect x="-19" y="-8" width="38" height="16" rx="4" fill="rgba(255,255,255,0.92)" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>
+      <text x="0" y="4" text-anchor="middle" font-size="13" font-weight="800" fill="#1a1a1a" pointer-events="none" font-family="system-ui,sans-serif">${f.text}</text>
+    </g>`);
+  });
+  
+  svg.innerHTML=parts.join('');
+}
+
+// === EFFECTS ===
+function showFloat(text,x,y,cls){
+  const el=document.createElement('div');
+  el.className='float-popup '+cls;
+  el.textContent=text;
+  el.style.left=(x-25)+'px';
+  el.style.top=y+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1000);
+}
+
+function sparkleAt(x,y){
+  const emojis=['✨','⭐','💫'];
+  for(let i=0;i<8;i++){
+    const el=document.createElement('div');
+    el.className='sparkle';
+    el.textContent=pick(emojis);
+    el.style.left=x+'px';
+    el.style.top=y+'px';
+    const dx=(Math.random()-0.5)*90;
+    const dy=-30-Math.random()*50;
+    el.style.setProperty('--dx',dx+'px');
+    el.style.setProperty('--dy',dy+'px');
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),900);
+  }
+}
+
+function confetti(){
+  const emojis=['🎉','🌟','🐟','💰','✨','🎣'];
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=pick(emojis);
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDelay=Math.random()*0.8+'s';
+    c.style.animationDuration=(1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+render();
+</script>
+</body>
+</html>

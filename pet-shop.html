@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐾 Pet Shop</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;
+  padding:1rem;padding-bottom:3rem;min-height:100vh;
+}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#fd79a8,#c0397c);color:#fff;text-align:center;
+  padding:16px 18px;border-radius:18px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:22px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.sound-btn{
+  position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:14px;
+}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:90px;background:#fff;border:2px solid #fd79a8;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#c0397c;font-weight:800;display:block;margin-top:2px}
+
+.customer-bubble{
+  background:#fff;border:3px solid #fd79a8;border-radius:18px;
+  padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;
+  box-shadow:0 4px 14px rgba(253,121,168,0.15);
+}
+.customer-avatar{
+  font-size:50px;line-height:1;flex-shrink:0;
+  background:#fff0f8;border-radius:50%;padding:8px;
+  border:3px solid #fd79a8;
+}
+.customer-text{
+  background:#fff8f0;padding:10px 14px;border-radius:14px;
+  position:relative;flex:1;font-size:15px;line-height:1.4;font-weight:600;color:#333;
+}
+.customer-text::before{
+  content:'';position:absolute;left:-10px;top:18px;
+  border:7px solid transparent;border-right-color:#fff8f0;
+}
+.customer-text .name{display:block;font-size:12px;color:#c0397c;font-weight:800;margin-bottom:2px}
+.math-hint{
+  background:#fff8dc;border:2px dashed #d4af37;border-radius:10px;
+  padding:8px 12px;margin-bottom:1rem;text-align:center;
+  font-size:16px;font-weight:800;color:#7c5d10;
+}
+
+.pet-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;
+}
+.pet-card{
+  background:#fff;border:3px solid #ddd;border-radius:14px;
+  padding:10px 8px;text-align:center;cursor:pointer;transition:all 0.2s;
+  position:relative;user-select:none;
+}
+.pet-card.tappable:hover{transform:translateY(-3px);border-color:#fd79a8}
+.pet-card.tappable:active{transform:scale(0.97)}
+.pet-card.selected{
+  border-color:#fd79a8;background:#fff0f8;
+  box-shadow:0 0 0 3px rgba(253,121,168,0.3),0 4px 14px rgba(253,121,168,0.4);
+}
+.pet-card.focal{
+  border-color:#d4af37;background:#fff8dc;
+  box-shadow:0 0 0 3px rgba(212,175,55,0.3);
+}
+.pet-card.not-tappable{cursor:default;opacity:0.85}
+.pet-icon{font-size:42px;line-height:1.1}
+.pet-name{font-size:11px;font-weight:700;color:#666;margin:3px 0 1px}
+.pet-kind{font-size:11px;font-weight:600;color:#999}
+.pet-price{
+  background:#00b894;color:#fff;border-radius:8px;
+  padding:3px 10px;font-weight:800;font-size:14px;display:inline-block;margin-top:4px;
+  box-shadow:0 2px 0 #00997a;
+}
+.pet-card.selected .pet-price{background:#fd79a8;box-shadow:0 2px 0 #c0397c}
+.checkmark{
+  position:absolute;top:4px;right:4px;background:#fd79a8;color:#fff;
+  width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;border:2px solid #fff;
+}
+
+.selection-summary{
+  background:#fff;border:2px solid #fd79a8;border-radius:12px;
+  padding:10px 14px;margin-bottom:0.7rem;font-size:14px;text-align:center;font-weight:700;color:#555;
+}
+.selection-summary strong{color:#c0397c;font-size:16px}
+
+.action-row{display:flex;gap:8px;margin-bottom:1rem}
+.action-btn{
+  flex:1;background:linear-gradient(180deg,#fd79a8,#c0397c);color:#fff;
+  border:3px solid #fff;border-radius:12px;padding:14px;font-weight:800;
+  cursor:pointer;font-size:16px;font-family:inherit;box-shadow:0 5px 0 #c0397c;
+}
+.action-btn:hover{transform:translateY(-2px)}
+.action-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #c0397c}
+.action-btn.secondary{
+  background:linear-gradient(180deg,#bbb,#999);box-shadow:0 5px 0 #777;
+  flex:0 0 auto;padding:14px 18px;
+}
+.action-btn.secondary:active{box-shadow:0 2px 0 #777}
+
+.choice-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;
+}
+.choice-btn{
+  background:#fff;border:3px solid #fd79a8;border-radius:14px;
+  padding:18px 8px;font-size:20px;font-weight:800;cursor:pointer;
+  color:#c0397c;font-family:inherit;transition:all 0.15s;
+  box-shadow:0 4px 0 #fd79a8;
+}
+.choice-btn:hover{background:#fff0f8;transform:translateY(-2px)}
+.choice-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #fd79a8}
+
+.start-screen,.end-screen{
+  background:#fff;border:3px solid #fd79a8;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-pet{font-size:80px;display:inline-block;animation:wag 1.5s ease-in-out infinite}
+@keyframes wag{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+
+.btn{
+  display:block;width:100%;max-width:300px;margin:1rem auto;padding:14px;
+  font-size:17px;background:linear-gradient(180deg,#fd79a8,#c0397c);
+  color:#fff;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:800;font-family:inherit;box-shadow:0 5px 0 #c0397c;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #c0397c}
+
+.feedback-banner{
+  position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);
+  padding:1.2rem 2rem;border:4px solid #fff;border-radius:20px;
+  font-size:22px;font-weight:800;z-index:99;text-align:center;
+  pointer-events:none;animation:fb 1.8s forwards;color:#fff;
+  max-width:90%;
+}
+.feedback-banner.good{
+  background:linear-gradient(180deg,#00b894,#00997a);
+  box-shadow:0 0 50px rgba(0,184,148,0.6);
+}
+.feedback-banner.bad{
+  background:linear-gradient(180deg,#e17055,#c0392b);
+  box-shadow:0 0 50px rgba(225,112,85,0.5);
+}
+.feedback-banner.hint{
+  background:linear-gradient(180deg,#fdcb6e,#e67e22);
+  box-shadow:0 0 50px rgba(253,203,110,0.6);
+}
+@keyframes fb{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.4) rotate(-8deg)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(3deg)}
+  30%{transform:translate(-50%,-50%) scale(1)}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}
+}
+
+.float-popup{
+  position:fixed;font-size:22px;font-weight:800;pointer-events:none;z-index:100;
+  text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;
+  animation:float-up 1s ease-out forwards;
+}
+.float-popup.good{color:#00b894}
+.float-popup.bad{color:#d63031}
+@keyframes float-up{
+  0%{opacity:0;transform:translateY(0) scale(0.5)}
+  20%{opacity:1;transform:translateY(-5px) scale(1.3)}
+  100%{opacity:0;transform:translateY(-70px) scale(1)}
+}
+
+.confetti{
+  position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px;
+}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+// === SOUND ===
+let audioCtx, soundOn=true;
+function beep(f,d,t='square',v=0.06){
+  if(!soundOn||!audioCtx) return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=t; o.frequency.value=f;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+d);
+}
+function tapSnd(){beep(800,0.05,'sine',0.04)}
+function chaChing(){beep(880,0.08); setTimeout(()=>beep(1320,0.08),60); setTimeout(()=>beep(1760,0.15),130)}
+function wrongSnd(){beep(220,0.25,'sawtooth',0.07)}
+function nextSnd(){beep(440,0.08); setTimeout(()=>beep(660,0.1),60)}
+function winSnd(){[523,659,784,1047,1319,1568,2093].forEach((n,i)=>setTimeout(()=>beep(n,0.22,'square',0.1),i*120))}
+function toggleSound(btn){soundOn=!soundOn; btn.textContent=soundOn?'🔊':'🔇'}
+
+// === DATA ===
+const PETS=[
+  {id:'fish',    icon:'🐠', name:'Splash',   kind:'Goldfish', price:4},
+  {id:'hamster', icon:'🐹', name:'Pip',      kind:'Hamster',  price:9},
+  {id:'turtle',  icon:'🐢', name:'Shelly',   kind:'Turtle',   price:12},
+  {id:'rabbit',  icon:'🐰', name:'Hopper',   kind:'Rabbit',   price:18},
+  {id:'kitten',  icon:'🐱', name:'Whiskers', kind:'Kitten',   price:24},
+  {id:'puppy',   icon:'🐶', name:'Buddy',    kind:'Puppy',    price:30}
+];
+const AVATARS=['👧','👦','👵','👴','👨','👩','🧒','🧓','👲','👨‍🦱','👩‍🦰','🧑'];
+const NAMES=['Sara','Max','Granny Rose','Grandpa Lou','Dad','Mom','Sam','Jack','Lily','Mia','Tom','Ben','Zoe','Eli'];
+
+const TOTAL_CUSTOMERS=7;
+const REQUEST_TYPES=['exact','budget','bundle','between','multiply','change','addCost'];
+
+// === UTILS ===
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}
+  return r;
+}
+function petById(id){return PETS.find(p=>p.id===id)}
+
+// === STATE ===
+let state={phase:'start'};
+
+function newGame(){
+  if(!audioCtx) try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  state={
+    phase:'playing',
+    customerNum:1,
+    score:0,
+    combo:0,
+    maxCombo:0,
+    perfectCustomers:0,
+    customerMistakes:0,
+    selectedPetIds:[],
+    request:null,
+    customer:null,
+    typeQueue:shuffle([...REQUEST_TYPES]),
+    answered:false
+  };
+  nextCustomer();
+}
+
+function nextCustomer(){
+  state.customer={
+    avatar:pick(AVATARS),
+    name:pick(NAMES)
+  };
+  state.selectedPetIds=[];
+  state.customerMistakes=0;
+  state.answered=false;
+  state.request=generateRequest();
+  render();
+}
+
+function generateRequest(){
+  if(state.typeQueue.length===0) state.typeQueue=shuffle([...REQUEST_TYPES]);
+  const type=state.typeQueue.shift();
+  
+  if(type==='exact'){
+    const pet=pick(PETS);
+    return {
+      type, mode:'tap', focalPetId:pet.id,
+      text:`Hi! I'd like a pet that costs exactly <strong>$${pet.price}</strong>. Which one is it?`,
+      correctPetIds:[pet.id]
+    };
+  }
+  if(type==='budget'){
+    const budget=pick([10,15,20,25,30]);
+    const eligible=PETS.filter(p=>p.price<=budget).map(p=>p.id);
+    return {
+      type, mode:'tap', budget,
+      text:`I want <strong>one</strong> pet for <strong>$${budget}</strong> or less. Tap every pet I could afford!`,
+      correctPetIds:eligible
+    };
+  }
+  if(type==='bundle'){
+    const budget=pick([25,30,35,40]);
+    return {
+      type, mode:'tap', bundleBudget:budget,
+      text:`I want to take home <strong>several pets</strong>! I have <strong>$${budget}</strong> to spend. Pick <strong>2 or more pets</strong> whose total fits my budget.`
+    };
+  }
+  if(type==='between'){
+    const ranges=[
+      {min:5,max:20},{min:8,max:22},{min:10,max:25},{min:6,max:18},{min:15,max:30}
+    ];
+    let r;
+    let eligible;
+    do{
+      r=pick(ranges);
+      eligible=PETS.filter(p=>p.price>r.min && p.price<r.max).map(p=>p.id);
+    } while(eligible.length<2);
+    return {
+      type, mode:'tap', min:r.min, max:r.max,
+      text:`I want a pet that costs <strong>more than $${r.min}</strong> AND <strong>less than $${r.max}</strong>. Which pets work?`,
+      correctPetIds:eligible
+    };
+  }
+  if(type==='multiply'){
+    const easyPets=PETS.filter(p=>p.price<=15);
+    const pet=pick(easyPets);
+    const count=randInt(2,4);
+    const total=pet.price*count;
+    return {
+      type, mode:'choice', focalPetId:pet.id, count,
+      text:`I'd like <strong>${count} ${pet.kind}s</strong>! How much will that cost?`,
+      hint:`${count} × $${pet.price} = ?`,
+      answer:total,
+      choices:makeChoices(total,5,3,'$')
+    };
+  }
+  if(type==='change'){
+    const pet=pick(PETS);
+    const payment=pet.price+randInt(2,10);
+    const change=payment-pet.price;
+    return {
+      type, mode:'choice', focalPetId:pet.id, payment,
+      text:`I'll take <strong>${pet.name} the ${pet.kind}</strong>. Here's <strong>$${payment}</strong>. How much change should I get back?`,
+      hint:`$${payment} − $${pet.price} = ?`,
+      answer:change,
+      choices:makeChoices(change,3,3,'$')
+    };
+  }
+  if(type==='addCost'){
+    const pet=pick(PETS);
+    const food=randInt(3,9);
+    const total=pet.price+food;
+    return {
+      type, mode:'choice', focalPetId:pet.id, food,
+      text:`I want <strong>${pet.name} the ${pet.kind}</strong> AND a bag of food for <strong>$${food}</strong>. Total cost?`,
+      hint:`$${pet.price} + $${food} = ?`,
+      answer:total,
+      choices:makeChoices(total,5,3,'$')
+    };
+  }
+}
+
+function makeChoices(correct, range, count, prefix=''){
+  const set=new Set([correct]);
+  let guard=0;
+  while(set.size<count && guard<50){
+    guard++;
+    const off=randInt(-range,range);
+    if(off===0) continue;
+    const v=correct+off;
+    if(v<=0) continue;
+    set.add(v);
+  }
+  return shuffle([...set]).map(v=>({label:`${prefix}${v}`, value:v}));
+}
+
+// === HANDLERS ===
+function togglePet(id){
+  if(state.answered) return;
+  if(state.request.mode!=='tap') return;
+  tapSnd();
+  const idx=state.selectedPetIds.indexOf(id);
+  if(idx>=0) state.selectedPetIds.splice(idx,1);
+  else state.selectedPetIds.push(id);
+  render();
+}
+
+function confirmSale(){
+  if(state.answered) return;
+  const req=state.request;
+  // Bundle mode: gentle nudge if < 2 selected (no penalty)
+  if(req.bundleBudget!==undefined && state.selectedPetIds.length<2){
+    showFeedback('🐾 Pick at least 2 pets to bundle!','hint');
+    return;
+  }
+  state.answered=true;
+  let isCorrect;
+  if(req.bundleBudget!==undefined){
+    const sum=state.selectedPetIds.reduce((s,id)=>s+petById(id).price,0);
+    isCorrect=sum<=req.bundleBudget;
+  } else {
+    const sel=new Set(state.selectedPetIds);
+    const correct=new Set(req.correctPetIds);
+    isCorrect=sel.size===correct.size && [...sel].every(id=>correct.has(id)) && sel.size>0;
+  }
+  handleResult(isCorrect);
+}
+
+function pickChoice(value){
+  if(state.answered) return;
+  state.answered=true;
+  const isCorrect=value===state.request.answer;
+  handleResult(isCorrect);
+}
+
+function handleResult(isCorrect){
+  if(isCorrect){
+    state.combo++;
+    state.maxCombo=Math.max(state.maxCombo,state.combo);
+    let pts=10+(state.combo-1)*2;
+    state.score+=pts;
+    if(state.customerMistakes===0) state.perfectCustomers++;
+    chaChing();
+    showFeedback(`✨ ${pick(["Thanks so much!","You're the best!","Perfect!","Wonderful!"])} +${pts}`, 'good');
+    setTimeout(advance,1700);
+  } else {
+    state.combo=0;
+    state.customerMistakes++;
+    state.score=Math.max(0,state.score-3);
+    wrongSnd();
+    showFeedback(`🤔 Hmm, let me think again... −3`, 'bad');
+    // Allow retry
+    setTimeout(()=>{
+      state.answered=false;
+      state.selectedPetIds=[];
+      render();
+    },1700);
+  }
+  renderStats();
+}
+
+function advance(){
+  if(state.customerNum>=TOTAL_CUSTOMERS){
+    state.phase='gameEnd';
+    winSnd();
+    confetti();
+    setTimeout(confetti,800);
+    render();
+    return;
+  }
+  state.customerNum++;
+  nextSnd();
+  nextCustomer();
+}
+
+// === RENDER ===
+function render(){
+  const g=document.getElementById('game');
+  if(state.phase==='start') g.innerHTML=renderStart();
+  else if(state.phase==='gameEnd') g.innerHTML=renderEnd();
+  else g.innerHTML=renderPlay();
+}
+
+function renderHeader(){
+  return `<header>
+    <h1>🐾 Pet Shop 🐾</h1>
+    <p>Help your customers find the perfect pet!</p>
+    <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+  </header>`;
+}
+
+function renderStart(){
+  return `${renderHeader()}
+  <div class="start-screen">
+    <div class="big-pet">🐶</div>
+    <h2 style="font-size:26px;color:#c0397c;margin:0.5rem 0">Welcome, Shopkeeper!</h2>
+    <p style="font-size:15px;color:#555;line-height:1.7;margin:1rem auto;text-align:left;max-width:380px">
+      ${TOTAL_CUSTOMERS} customers will visit your shop. Each one wants something different:<br><br>
+      💵 <strong>"Exactly $X"</strong> — find the matching pet<br>
+      💰 <strong>"One pet for $X"</strong> — find all they can afford<br>
+      📦 <strong>"Bundle for $X"</strong> — pick multiple pets that fit together<br>
+      🔍 <strong>"Between $X and $Y"</strong> — find pets in range<br>
+      ✖️ <strong>"I want N pets"</strong> — calculate the total<br>
+      💲 <strong>Make change</strong> from their payment<br>
+      🛒 <strong>Pet + food</strong> — total it up<br><br>
+      🔥 Build <strong>combos</strong> by helping customers in a row<br>
+      ⭐ Perfect customers = no mistakes on that sale
+    </p>
+    <button class="btn" onclick="newGame()">🛎️ Open the Shop!</button>
+  </div>`;
+}
+
+function renderPlay(){
+  const req=state.request;
+  const mode=req.mode;
+  
+  return `${renderHeader()}
+  ${statsHtml()}
+  <div class="customer-bubble">
+    <div class="customer-avatar">${state.customer.avatar}</div>
+    <div class="customer-text">
+      <span class="name">${state.customer.name}</span>
+      ${req.text}
+    </div>
+  </div>
+  ${req.hint?`<div class="math-hint">📐 ${req.hint}</div>`:''}
+  <div class="pet-grid">
+    ${PETS.map(p=>renderPet(p)).join('')}
+  </div>
+  ${renderInteraction()}`;
+}
+
+function renderPet(p){
+  const req=state.request;
+  const mode=req.mode;
+  const selected=state.selectedPetIds.includes(p.id);
+  const focal=mode==='choice' && req.focalPetId===p.id;
+  const tappable=mode==='tap' && !state.answered;
+  const classes=['pet-card'];
+  if(tappable) classes.push('tappable');
+  else classes.push('not-tappable');
+  if(selected) classes.push('selected');
+  if(focal) classes.push('focal');
+  const click=tappable?`onclick="togglePet('${p.id}')"`:'';
+  return `<div class="${classes.join(' ')}" ${click}>
+    ${selected?'<div class="checkmark">✓</div>':''}
+    <div class="pet-icon">${p.icon}</div>
+    <div class="pet-name">${p.name}</div>
+    <div class="pet-kind">${p.kind}</div>
+    <div class="pet-price">$${p.price}</div>
+  </div>`;
+}
+
+function renderInteraction(){
+  const req=state.request;
+  if(req.mode==='tap'){
+    const selected=state.selectedPetIds.map(petById);
+    let summary='';
+    if(req.bundleBudget!==undefined){
+      // Bundle mode: show selections + budget, but NOT the running total
+      // (kids should compute the sum themselves)
+      const budget=req.bundleBudget;
+      if(selected.length===0){
+        summary=`<div class="selection-summary">Tap 2 or more pets · Budget <strong>$${budget}</strong></div>`;
+      } else {
+        const breakdown=selected.map(p=>`$${p.price}`).join(' + ');
+        const hint=selected.length<2
+          ? `<div style="color:#888;margin-top:6px;font-size:13px">Pick at least 1 more pet</div>`
+          : '';
+        summary=`<div class="selection-summary">
+          Selected: <strong>${breakdown}</strong> · Budget <strong>$${budget}</strong>
+          ${hint}
+        </div>`;
+      }
+    } else {
+      // Regular tap mode (exact, budget, between): list individual prices
+      if(selected.length===0){
+        summary=`<div class="selection-summary">Tap pets to select them</div>`;
+      } else if(selected.length===1){
+        summary=`<div class="selection-summary">Selected: <strong>${selected[0].name}</strong> · <strong>$${selected[0].price}</strong></div>`;
+      } else {
+        const prices=selected.map(p=>`$${p.price}`).join(', ');
+        summary=`<div class="selection-summary">Selected <strong>${selected.length} pets</strong>: ${prices}</div>`;
+      }
+    }
+    const btnLabel=req.bundleBudget!==undefined
+      ? '📦 Bundle!'
+      : '💰 Sell'+(selected.length===1?' Pet':selected.length>1?' Pets':'')+'!';
+    return `${summary}
+    <div class="action-row">
+      ${selected.length>0?`<button class="action-btn secondary" onclick="state.selectedPetIds=[];render()">Clear</button>`:''}
+      <button class="action-btn" onclick="confirmSale()">${btnLabel}</button>
+    </div>`;
+  } else {
+    return `<div class="choice-grid">
+      ${req.choices.map(c=>`<button class="choice-btn" onclick="pickChoice(${c.value})">${c.label}</button>`).join('')}
+    </div>`;
+  }
+}
+
+function renderEnd(){
+  let medal='🥉', msg='Nice work!';
+  const pct=state.perfectCustomers/TOTAL_CUSTOMERS;
+  if(state.perfectCustomers===TOTAL_CUSTOMERS){medal='🏆'; msg='PERFECT! Master Shopkeeper!'}
+  else if(pct>=0.7){medal='🥇'; msg='Excellent service!'}
+  else if(pct>=0.5){medal='🥈'; msg='Good job!'}
+  return `${renderHeader()}
+  <div class="end-screen">
+    <div style="font-size:90px">${medal}</div>
+    <h2 style="font-size:26px;color:#c0397c;margin:0.5rem 0">${msg}</h2>
+    <div style="background:#fff0f8;border:2px solid #fd79a8;border-radius:12px;padding:1rem;margin:1rem 0;font-size:16px;line-height:1.8">
+      💰 Final score: <strong>${state.score}</strong><br>
+      ⭐ Perfect sales: <strong>${state.perfectCustomers}/${TOTAL_CUSTOMERS}</strong><br>
+      🔥 Best combo: <strong>×${state.maxCombo}</strong>
+    </div>
+    <button class="btn" onclick="newGame()">🛎️ Open Again!</button>
+  </div>`;
+}
+
+function statsHtml(){
+  return `<div id="stats-area"><div class="stats">
+    <div class="stat">
+      <span class="stat-label">🛎️ CUSTOMER</span>
+      <span class="stat-value">${state.customerNum}/${TOTAL_CUSTOMERS}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">💰 COINS</span>
+      <span class="stat-value">${state.score}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">🔥 COMBO</span>
+      <span class="stat-value">×${state.combo}</span>
+    </div>
+  </div></div>`;
+}
+
+function renderStats(){
+  const el=document.getElementById('stats-area');
+  if(el) el.outerHTML=statsHtml();
+}
+
+// === EFFECTS ===
+function showFeedback(text, kind){
+  const el=document.createElement('div');
+  el.className='feedback-banner '+kind;
+  el.innerHTML=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1800);
+}
+
+function confetti(){
+  const emojis=['🎉','🌟','🐾','💰','✨','🐶','🐱','🐰'];
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=pick(emojis);
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDelay=Math.random()*0.8+'s';
+    c.style.animationDuration=(1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
