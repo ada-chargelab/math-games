@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏗️ Equation Builder</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;
+  padding:1rem;padding-bottom:3rem;min-height:100vh;
+}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#f39c12,#b06010);color:#fff;text-align:center;
+  padding:16px 18px;border-radius:18px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:22px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.sound-btn{
+  position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:14px;
+}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:90px;background:#fff;border:2px solid #f39c12;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#b06010;font-weight:800;display:block;margin-top:2px}
+
+.target-display{
+  background:linear-gradient(180deg,#fff8dc,#fff);
+  border:4px dashed #f39c12;border-radius:18px;
+  padding:14px 16px;text-align:center;margin-bottom:1rem;
+  box-shadow:0 3px 12px rgba(243,156,18,0.15);
+}
+.target-label{
+  font-size:13px;color:#b06010;font-weight:800;letter-spacing:1.5px;
+}
+.target-value{
+  font-size:54px;font-weight:900;color:#b06010;letter-spacing:1px;line-height:1.1;
+  text-shadow:2px 2px 0 rgba(0,0,0,0.08);
+}
+
+.expression-area{
+  background:#fff;border:3px solid #f39c12;border-radius:14px;
+  padding:14px 12px;min-height:74px;
+  display:flex;align-items:center;justify-content:center;
+  gap:6px;margin-bottom:6px;flex-wrap:wrap;
+}
+.expression-empty{color:#aaa;font-style:italic;font-size:14px}
+.hint-text{
+  text-align:center;font-size:11px;color:#999;
+  margin-bottom:1rem;font-style:italic;
+}
+
+.token{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:46px;height:48px;border-radius:8px;
+  font-size:22px;font-weight:800;cursor:pointer;border:3px solid;
+  user-select:none;transition:transform 0.1s;
+}
+.token.num{background:#fff8dc;border-color:#f39c12;color:#b06010}
+.token.op{background:#b06010;border-color:#8b4a05;color:#fff;min-width:38px}
+.token:hover{transform:translateY(-2px)}
+.token:active{transform:scale(0.92)}
+@keyframes tokenIn{
+  0%{transform:scale(0) rotate(-180deg);opacity:0}
+  60%{transform:scale(1.15) rotate(10deg);opacity:1}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+.token{animation:tokenIn 0.25s ease-out}
+
+.section-label{
+  font-size:11px;font-weight:800;color:#888;
+  margin-bottom:6px;letter-spacing:1.5px;
+}
+
+.card-grid{
+  display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;
+}
+.card-btn{
+  min-width:54px;height:58px;font-size:22px;font-weight:800;
+  border-radius:10px;cursor:pointer;border:3px solid;
+  transition:all 0.15s;font-family:inherit;user-select:none;
+}
+.card-btn.num{
+  background:#fff;border-color:#f39c12;color:#b06010;
+  box-shadow:0 4px 0 #f39c12;
+}
+.card-btn.op{
+  background:linear-gradient(180deg,#b06010,#8b4a05);
+  border-color:#6b3505;color:#fff;
+  box-shadow:0 4px 0 #6b3505;min-width:58px;
+}
+.card-btn:hover{transform:translateY(-2px)}
+.card-btn.num:active{transform:translateY(3px);box-shadow:0 1px 0 #f39c12}
+.card-btn.op:active{transform:translateY(3px);box-shadow:0 1px 0 #6b3505}
+
+.action-row{display:flex;gap:8px;margin-bottom:1rem}
+.action-btn{
+  flex:1;border:3px solid #fff;border-radius:12px;padding:14px;
+  font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;
+}
+.action-btn.submit{
+  background:linear-gradient(180deg,#00b894,#00997a);
+  box-shadow:0 5px 0 #00997a;
+}
+.action-btn.clear{
+  background:linear-gradient(180deg,#bbb,#999);
+  box-shadow:0 5px 0 #777;flex:0 0 auto;padding:14px 20px;
+}
+.action-btn:active{transform:translateY(3px)}
+.action-btn.submit:active{box-shadow:0 2px 0 #00997a}
+.action-btn.clear:active{box-shadow:0 2px 0 #777}
+
+.start-screen,.end-screen{
+  background:#fff;border:3px solid #f39c12;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-icon{font-size:80px;display:inline-block;animation:bobIcon 1.8s ease-in-out infinite}
+@keyframes bobIcon{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-8px) rotate(5deg)}}
+
+.demo-row{
+  display:flex;justify-content:center;align-items:center;gap:6px;
+  margin:0.8rem 0;
+}
+.demo-token{
+  min-width:42px;height:46px;border-radius:8px;font-size:20px;font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center;border:3px solid;
+}
+.demo-token.num{background:#fff8dc;border-color:#f39c12;color:#b06010}
+.demo-token.op{background:#b06010;border-color:#8b4a05;color:#fff;min-width:34px}
+.demo-token.target{background:#fff;border-color:#00b894;color:#00b894;min-width:46px;font-size:18px}
+
+.btn{
+  display:block;width:100%;max-width:300px;margin:1rem auto;padding:14px;
+  font-size:17px;background:linear-gradient(180deg,#f39c12,#b06010);
+  color:#fff;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:800;font-family:inherit;box-shadow:0 5px 0 #b06010;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b06010}
+
+.feedback-banner{
+  position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);
+  padding:1.2rem 2rem;border:4px solid #fff;border-radius:20px;
+  font-size:22px;font-weight:800;z-index:99;text-align:center;
+  pointer-events:none;animation:fb 2s forwards;color:#fff;max-width:90%;
+}
+.feedback-banner.good{
+  background:linear-gradient(180deg,#00b894,#00997a);
+  box-shadow:0 0 50px rgba(0,184,148,0.6);
+}
+.feedback-banner.bad{
+  background:linear-gradient(180deg,#e17055,#c0392b);
+  box-shadow:0 0 50px rgba(225,112,85,0.5);
+}
+.feedback-banner.hint{
+  background:linear-gradient(180deg,#fdcb6e,#e67e22);
+  box-shadow:0 0 50px rgba(253,203,110,0.6);
+}
+@keyframes fb{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.4) rotate(-8deg)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(3deg)}
+  30%{transform:translate(-50%,-50%) scale(1)}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}
+}
+
+.confetti{
+  position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px;
+}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+// === SOUND ===
+let audioCtx, soundOn=true;
+function beep(f,d,t='square',v=0.06){
+  if(!soundOn||!audioCtx) return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=t; o.frequency.value=f;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+d);
+}
+function tapSnd(){beep(880,0.04,'sine',0.04)}
+function correctSnd(){[523,659,784,1047].forEach((n,i)=>setTimeout(()=>beep(n,0.12,'square',0.08),i*70))}
+function wrongSnd(){beep(220,0.25,'sawtooth',0.07)}
+function winSnd(){[523,659,784,1047,1319,1568,2093].forEach((n,i)=>setTimeout(()=>beep(n,0.22,'square',0.1),i*120))}
+function toggleSound(btn){soundOn=!soundOn; btn.textContent=soundOn?'🔊':'🔇'}
+
+// === CONSTANTS ===
+const TOTAL_ROUNDS=7;
+const MAX_TOKENS=7;  // ~4 numbers, 3 operators
+const NUMBER_POOLS={
+  easy:[2,3,4,5,6,7,8,10],
+  med: [2,3,4,5,6,7,8,9,10,12],
+  hard:[2,3,4,5,6,7,8,9,10,12,15]
+};
+
+// === UTILS ===
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}
+  return r;
+}
+
+// === STATE ===
+let state={phase:'start'};
+
+function newGame(){
+  if(!audioCtx) try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  state={
+    phase:'playing',
+    roundNum:1, score:0, combo:0, maxCombo:0,
+    perfectRounds:0, mistakes:0,
+    target:0, cards:[], expression:[],
+    answered:false
+  };
+  startRound();
+  render();
+}
+
+function startRound(){
+  const lvl=state.roundNum;
+  let target, pool, count;
+  if(lvl<=2){
+    target=randInt(10,20);
+    pool=NUMBER_POOLS.easy;
+    count=6;
+  } else if(lvl<=4){
+    target=randInt(15,30);
+    pool=NUMBER_POOLS.med;
+    count=6;
+  } else {
+    target=randInt(20,45);
+    pool=NUMBER_POOLS.hard;
+    count=7;
+  }
+  state.cards=shuffle(pool).slice(0,count).sort((a,b)=>a-b);
+  state.target=target;
+  state.expression=[];
+  state.mistakes=0;
+  state.answered=false;
+}
+
+function getAvailableOps(){
+  return state.roundNum<=2 ? ['+','−'] : ['+','−','×'];
+}
+
+// === EVALUATION (× before + and −, then + and − left-to-right) ===
+function evaluate(expr){
+  if(!expr || expr.length===0) return null;
+  if(expr[0].type!=='num') return null;
+  if(expr[expr.length-1].type!=='num') return null;
+  // Validate alternation num,op,num,op,...,num
+  for(let i=1;i<expr.length;i+=2){
+    if(!expr[i] || expr[i].type!=='op') return null;
+    if(!expr[i+1] || expr[i+1].type!=='num') return null;
+  }
+  // Pass 1: collapse all × pairs first
+  const tokens=expr.map(t=>({...t}));
+  let i=1;
+  while(i<tokens.length){
+    if(tokens[i].type==='op' && tokens[i].value==='×'){
+      const product=tokens[i-1].value*tokens[i+1].value;
+      tokens.splice(i-1,3,{type:'num',value:product});
+      // keep i pointing at next op (which is now at i, since we replaced 3 with 1)
+    } else {
+      i+=2;
+    }
+  }
+  // Pass 2: + and − left-to-right
+  let result=tokens[0].value;
+  for(let j=1;j<tokens.length;j+=2){
+    const op=tokens[j].value, n=tokens[j+1].value;
+    if(op==='+') result+=n;
+    else if(op==='−') result-=n;
+  }
+  return result;
+}
+
+// === HANDLERS ===
+function tapNumber(n){
+  if(state.answered) return;
+  if(state.expression.length>=MAX_TOKENS) return;
+  const last=state.expression[state.expression.length-1];
+  if(last && last.type==='num') return; // need operator first
+  state.expression.push({type:'num', value:n});
+  tapSnd();
+  render();
+}
+
+function tapOperator(op){
+  if(state.answered) return;
+  if(state.expression.length>=MAX_TOKENS) return;
+  const last=state.expression[state.expression.length-1];
+  if(!last || last.type!=='num') return; // need a number first
+  state.expression.push({type:'op', value:op});
+  tapSnd();
+  render();
+}
+
+function removeFromIndex(i){
+  if(state.answered) return;
+  state.expression=state.expression.slice(0,i);
+  tapSnd();
+  render();
+}
+
+function clearExpression(){
+  if(state.answered) return;
+  state.expression=[];
+  render();
+}
+
+function submitExpression(){
+  if(state.answered) return;
+  if(state.expression.length===0){
+    showFeedback('🤔 Build an equation first!','hint');
+    return;
+  }
+  const last=state.expression[state.expression.length-1];
+  if(last.type!=='num'){
+    showFeedback('🤔 Equation ends with an operator. Add a number!','hint');
+    return;
+  }
+  
+  const result=evaluate(state.expression);
+  if(result===null){
+    showFeedback('🤔 Not a complete equation!','hint');
+    return;
+  }
+  
+  state.answered=true;
+  
+  if(result===state.target){
+    state.combo++;
+    state.maxCombo=Math.max(state.maxCombo,state.combo);
+    const numOps=state.expression.filter(t=>t.type==='op').length;
+    const opBonus=numOps*2;
+    let pts=10+(state.combo-1)*2+opBonus;
+    state.score+=pts;
+    if(state.mistakes===0) state.perfectRounds++;
+    correctSnd();
+    const exprText=state.expression.map(t=>t.value).join(' ');
+    showFeedback(`✨ ${exprText} = ${result}! +${pts}`,'good');
+    setTimeout(advance,1900);
+  } else {
+    state.combo=0;
+    state.mistakes++;
+    state.score=Math.max(0,state.score-3);
+    wrongSnd();
+    showFeedback(`That equals ${result}, not ${state.target}. Try again! −3`,'bad');
+    setTimeout(()=>{
+      state.answered=false;
+      render();
+    },2000);
+  }
+  renderStats();
+}
+
+function advance(){
+  if(state.roundNum>=TOTAL_ROUNDS){
+    state.phase='gameEnd';
+    winSnd();
+    confetti();
+    setTimeout(confetti,800);
+    render();
+    return;
+  }
+  state.roundNum++;
+  startRound();
+  render();
+}
+
+// === RENDER ===
+function render(){
+  const g=document.getElementById('game');
+  if(state.phase==='start') g.innerHTML=renderStart();
+  else if(state.phase==='gameEnd') g.innerHTML=renderEnd();
+  else g.innerHTML=renderPlay();
+}
+
+function renderHeader(){
+  return `<header>
+    <h1>🏗️ Equation Builder</h1>
+    <p>Build expressions that match the target number!</p>
+    <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+  </header>`;
+}
+
+function renderStart(){
+  return `${renderHeader()}
+  <div class="start-screen">
+    <div class="big-icon">🏗️</div>
+    <h2 style="font-size:26px;color:#b06010;margin:0.5rem 0">Welcome, Builder!</h2>
+    <p style="font-size:15px;color:#555;margin-top:1rem">
+      Build an expression that <strong>equals the target</strong>.
+    </p>
+    <div class="demo-row">
+      <div class="demo-token target">12</div>
+      <span style="color:#888">made by</span>
+      <div class="demo-token num">3</div>
+      <div class="demo-token op">×</div>
+      <div class="demo-token num">4</div>
+    </div>
+    <p style="font-size:14px;color:#555;line-height:1.7;margin:1rem auto;text-align:left;max-width:380px">
+      🔨 <strong>Tap cards</strong> to add them to your equation<br>
+      ↩️ <strong>Tap a built card</strong> to remove it (and any after)<br>
+      ✖️ <strong>Multiplication</strong> happens before + and −<br>
+      💡 Numbers can be <strong>reused</strong> as much as you like<br>
+      🔓 <strong>×</strong> unlocks at Round 3<br>
+      🌟 <strong>Bonus points</strong> for using more operations<br>
+      🏆 ${TOTAL_ROUNDS} rounds with combos & perfect bonuses
+    </p>
+    <button class="btn" onclick="newGame()">🔨 Start Building!</button>
+  </div>`;
+}
+
+function renderPlay(){
+  return `${renderHeader()}
+  <div id="stats-area">${statsHtml()}</div>
+  <div class="target-display">
+    <div class="target-label">BUILD TO MAKE</div>
+    <div class="target-value">${state.target}</div>
+  </div>
+  ${renderExpression()}
+  <div class="section-label">NUMBERS</div>
+  <div class="card-grid">
+    ${state.cards.map(n=>`<button class="card-btn num" onclick="tapNumber(${n})">${n}</button>`).join('')}
+  </div>
+  <div class="section-label">OPERATORS</div>
+  <div class="card-grid">
+    ${getAvailableOps().map(op=>`<button class="card-btn op" onclick="tapOperator('${op}')">${op}</button>`).join('')}
+  </div>
+  <div class="action-row">
+    ${state.expression.length>0?'<button class="action-btn clear" onclick="clearExpression()">Clear</button>':''}
+    <button class="action-btn submit" onclick="submitExpression()">✓ Check My Equation</button>
+  </div>`;
+}
+
+function renderExpression(){
+  if(state.expression.length===0){
+    return `<div class="expression-area">
+      <span class="expression-empty">Tap cards below to build your equation...</span>
+    </div>
+    <div class="hint-text">&nbsp;</div>`;
+  }
+  return `<div class="expression-area">
+    ${state.expression.map((t,i)=>`<div class="token ${t.type}" onclick="removeFromIndex(${i})">${t.value}</div>`).join('')}
+  </div>
+  <div class="hint-text">tap a card to remove it (and any after)</div>`;
+}
+
+function renderEnd(){
+  let medal='🥉', msg='Nice building!';
+  if(state.perfectRounds===TOTAL_ROUNDS){medal='🏆'; msg='PERFECT! Master Builder!'}
+  else if(state.perfectRounds>=TOTAL_ROUNDS-2){medal='🥇'; msg='Excellent work!'}
+  else if(state.perfectRounds>=3){medal='🥈'; msg='Good job!'}
+  return `${renderHeader()}
+  <div class="end-screen">
+    <div style="font-size:90px">${medal}</div>
+    <h2 style="font-size:26px;color:#b06010;margin:0.5rem 0">${msg}</h2>
+    <div style="background:#fff8dc;border:2px solid #f39c12;border-radius:12px;padding:1rem;margin:1rem 0;font-size:16px;line-height:1.8">
+      💰 Final score: <strong>${state.score}</strong><br>
+      ⭐ Perfect rounds: <strong>${state.perfectRounds}/${TOTAL_ROUNDS}</strong><br>
+      🔥 Best combo: <strong>×${state.maxCombo}</strong>
+    </div>
+    <button class="btn" onclick="newGame()">🔨 Build Again!</button>
+  </div>`;
+}
+
+function statsHtml(){
+  return `<div id="stats-area"><div class="stats">
+    <div class="stat">
+      <span class="stat-label">🏗️ ROUND</span>
+      <span class="stat-value">${state.roundNum}/${TOTAL_ROUNDS}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">💰 SCORE</span>
+      <span class="stat-value">${state.score}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">🔥 COMBO</span>
+      <span class="stat-value">×${state.combo}</span>
+    </div>
+  </div></div>`;
+}
+
+function renderStats(){
+  const el=document.getElementById('stats-area');
+  if(el) el.outerHTML=statsHtml();
+}
+
+// === EFFECTS ===
+function showFeedback(text, kind){
+  const el=document.createElement('div');
+  el.className='feedback-banner '+kind;
+  el.innerHTML=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2000);
+}
+
+function confetti(){
+  const emojis=['🎉','🌟','🏗️','🔨','✨','📐','🧮'];
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=pick(emojis);
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDelay=Math.random()*0.8+'s';
+    c.style.animationDuration=(1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
