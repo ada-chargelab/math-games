@@ -219,57 +219,65 @@ const GRID_ROWS=5, GRID_COLS=6, CELL_SIZE=55;
 const GRID_W=GRID_COLS*CELL_SIZE, GRID_H=GRID_ROWS*CELL_SIZE;
 const STEP_MS=450;  // per step animation
 const MAX_PROGRAM=25;
+const START_POS={row:4, col:0};
+const GOAL_POS={row:0, col:5};
 
+// Per-level difficulty tiers. Each game generates 7 fresh puzzles from these.
+const LEVEL_TIERS=[
+  { numCoins:2, numBombs:0, valRange:[2,5], mustChoose:false },  // 1
+  { numCoins:3, numBombs:0, valRange:[2,5], mustChoose:false },  // 2
+  { numCoins:3, numBombs:1, valRange:[2,5], mustChoose:false },  // 3
+  { numCoins:4, numBombs:0, valRange:[2,6], mustChoose:true  },  // 4
+  { numCoins:4, numBombs:1, valRange:[2,6], mustChoose:true  },  // 5
+  { numCoins:5, numBombs:2, valRange:[2,7], mustChoose:true  },  // 6
+  { numCoins:5, numBombs:3, valRange:[3,8], mustChoose:true  }   // 7
+];
+const TOTAL_ROUNDS=LEVEL_TIERS.length;
+
+// Hand-crafted safety fallbacks (used only if generation fails 300× in a row)
 // Legend: '.' empty, 'S' start, 'G' goal, 'B' bomb, digit=coin value
-const RAW_ROUNDS=[
+const FALLBACK_RAW=[
   { map:`.....G
          ....3.
          ......
          ..2...
-         S.....`,
-    target:5, desc:"Reach ⭐ and collect ALL coins!" },
+         S.....`, target:5 },
   { map:`.....G
          ...4..
          .2....
          ....3.
-         S.....`,
-    target:9, desc:"Collect all 3 coins on your way!" },
+         S.....`, target:9 },
   { map:`.....G
          ..B...
          .3..4.
          ...2..
-         S.....`,
-    target:9, desc:"Grab all coins — AVOID the bomb!" },
+         S.....`, target:9 },
   { map:`.....G
          .5....
          ...4..
          ..3...
-         S2....`,
-    target:7, desc:"Collect EXACTLY $7 — skip the wrong coins!" },
+         S2....`, target:7 },
   { map:`.....G
          .3..4.
          ..B...
          .2..5.
-         S.....`,
-    target:7, desc:"EXACTLY $7 — and dodge the 💣!" },
+         S.....`, target:7 },
   { map:`.....G
          .5.3..
          B.2.B.
          .4..6.
-         S.....`,
-    target:10, desc:"EXACTLY $10 — two bombs to dodge!" },
+         S.....`, target:10 },
   { map:`..3..G
          .5.B4.
          B.B..6
          .7.8..
-         S...B.`,
-    target:15, desc:"GRAND FINALE — EXACTLY $15!" }
+         S...B.`, target:15 }
 ];
 
 function parseLevel(raw){
   const rows=raw.map.trim().split('\n').map(l=>l.trim());
   const coins=[], bombs=[];
-  let start={row:4,col:0}, goal={row:0,col:5};
+  let start={...START_POS}, goal={...GOAL_POS};
   for(let r=0;r<rows.length;r++){
     for(let c=0;c<rows[r].length;c++){
       const ch=rows[r][c];
@@ -279,11 +287,108 @@ function parseLevel(raw){
       else if(ch>='2'&&ch<='9') coins.push({row:r,col:c,val:parseInt(ch),id:`${r}-${c}`});
     }
   }
-  return {start, goal, coins, bombs, target:raw.target, desc:raw.desc};
+  return {start, goal, coins, bombs, target:raw.target, desc:describePuzzle(coins, bombs, raw.target)};
 }
 
-const ROUNDS=RAW_ROUNDS.map(parseLevel);
-const TOTAL_ROUNDS=ROUNDS.length;
+// Build a friendly description from puzzle attributes
+function describePuzzle(coins, bombs, target){
+  const totalSum=coins.reduce((s,c)=>s+c.val,0);
+  const mustChoose=totalSum!==target;
+  const hasBombs=bombs.length>0;
+  if(mustChoose && hasBombs) return `Reach ⭐ with EXACTLY $${target} — dodge the 💣!`;
+  if(mustChoose) return `Reach ⭐ with EXACTLY $${target} — skip the wrong coins!`;
+  if(hasBombs) return `Grab all coins and reach ⭐ — avoid the 💣!`;
+  return `Collect all coins and reach ⭐!`;
+}
+
+// BFS over (position, coins-collected-bitmap) → set of sums achievable at goal
+function findAchievableGoalSums(coins, bombs){
+  const bombSet=new Set(bombs.map(b=>`${b.row}-${b.col}`));
+  const coinByPos={};
+  coins.forEach((c,i)=>coinByPos[`${c.row}-${c.col}`]=i);
+  const vals=coins.map(c=>c.val);
+  const startKey=`${START_POS.row}-${START_POS.col}-0`;
+  const visited=new Set([startKey]);
+  const queue=[{row:START_POS.row, col:START_POS.col, bitmap:0}];
+  const sumsAtGoal=new Set();
+  while(queue.length>0){
+    const {row, col, bitmap}=queue.shift();
+    if(row===GOAL_POS.row && col===GOAL_POS.col){
+      let s=0;
+      for(let i=0;i<vals.length;i++) if(bitmap & (1<<i)) s+=vals[i];
+      sumsAtGoal.add(s);
+    }
+    for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
+      const nr=row+dr, nc=col+dc;
+      if(nr<0||nr>=GRID_ROWS||nc<0||nc>=GRID_COLS) continue;
+      if(bombSet.has(`${nr}-${nc}`)) continue;
+      let nb=bitmap;
+      const ci=coinByPos[`${nr}-${nc}`];
+      if(ci!==undefined && !(bitmap & (1<<ci))) nb=bitmap | (1<<ci);
+      const key=`${nr}-${nc}-${nb}`;
+      if(!visited.has(key)){
+        visited.add(key);
+        queue.push({row:nr, col:nc, bitmap:nb});
+      }
+    }
+  }
+  return sumsAtGoal;
+}
+
+function generateRandomPuzzle(tier){
+  // Available cells excluding start and goal
+  const cells=[];
+  for(let r=0;r<GRID_ROWS;r++){
+    for(let c=0;c<GRID_COLS;c++){
+      if(r===START_POS.row && c===START_POS.col) continue;
+      if(r===GOAL_POS.row && c===GOAL_POS.col) continue;
+      cells.push({row:r, col:c});
+    }
+  }
+  const shuffled=shuffle(cells);
+  const coinCells=shuffled.slice(0, tier.numCoins);
+  const bombs=shuffled.slice(tier.numCoins, tier.numCoins+tier.numBombs);
+  const coins=coinCells.map(p=>({
+    row:p.row, col:p.col,
+    val:randInt(tier.valRange[0], tier.valRange[1]),
+    id:`${p.row}-${p.col}`
+  }));
+  const totalSum=coins.reduce((s,c)=>s+c.val,0);
+  const achievable=findAchievableGoalSums(coins, bombs);
+  let target;
+  if(tier.mustChoose){
+    // Need a target that requires skipping some coins AND is achievable
+    const options=[...achievable].filter(s => s>0 && s<totalSum);
+    if(options.length===0) return null;
+    target=pick(options);
+  } else {
+    target=totalSum;
+    if(!achievable.has(target)) return null;
+  }
+  return {
+    start:{...START_POS}, goal:{...GOAL_POS},
+    coins, bombs, target,
+    desc:describePuzzle(coins, bombs, target)
+  };
+}
+
+function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}
+  return r;
+}
+
+function generateLevel(levelNum){
+  const tier=LEVEL_TIERS[levelNum-1];
+  for(let attempt=0;attempt<300;attempt++){
+    const puzzle=generateRandomPuzzle(tier);
+    if(puzzle) return puzzle;
+  }
+  // Fallback to hand-crafted puzzle if generation failed
+  return parseLevel(FALLBACK_RAW[levelNum-1]);
+}
 
 // === STATE ===
 let state={phase:'start'};
@@ -302,7 +407,7 @@ function newGame(){
 }
 
 function loadRound(){
-  state.round=ROUNDS[state.roundNum-1];
+  state.round=generateLevel(state.roundNum);
   state.robotPos={...state.round.start};
   state.program=[];
   state.collectedIds=[];
@@ -533,7 +638,8 @@ function renderStart(){
       🪙 <strong>Coin values</strong> shown on each coin — collect to hit the target<br>
       💣 <strong>Watch for bombs</strong> (mid to late levels)<br>
       🎯 <strong>Reach the star</strong> AND hit the target exactly<br>
-      ⭐ <strong>First-try bonus</strong>: +10 extra points<br><br>
+      ⭐ <strong>First-try bonus</strong>: +10 extra points<br>
+      🎲 <strong>Every game has fresh puzzles</strong> — coin & bomb positions change each time!<br><br>
       ${TOTAL_ROUNDS} levels, difficulty ramps up. Loops NOT required — but planning helps!
     </p>
     <button class="btn" onclick="newGame()">🤖 Start Coding!</button>

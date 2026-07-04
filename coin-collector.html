@@ -482,6 +482,23 @@ function centsToWords(c) {
   return r===0 ? `${d} dollar${d>1?'s':''}` : `${d} dollar${d>1?'s':''} and ${r} cent${r>1?'s':''}`;
 }
 
+// Greedy decomposition using coins ≤ 25¢ (the make/change working set).
+// Greedy is optimal for US denominations {1,5,10,25}, so this always yields
+// the minimum coin count — a good "try this" example on wrong feedback.
+function decomposeTarget(cents) {
+  const denoms = [25, 10, 5, 1];
+  const parts = [];
+  let rem = cents;
+  for (const d of denoms) {
+    while (rem >= d) { parts.push(`${d}¢`); rem -= d; }
+  }
+  return parts.join(' + ');
+}
+
+function fmtCents(c) {
+  return c < 100 ? `${c}¢` : `$${(c/100).toFixed(2)}`;
+}
+
 function makeCoinCombo(targetCents, perCoinMax = 10) {
   const coins = [];
   let rem = targetCents;
@@ -784,6 +801,7 @@ function renderQuestion() {
   document.getElementById('feedbackBanner').className = 'feedback-banner';
   document.getElementById('checkBtn').disabled = false;
   document.getElementById('checkBtn').style.display = '';
+  document.querySelector('.clear-btn').style.display = '';
   document.getElementById('nextBtn').classList.remove('show');
 
   const pct = Math.round((currentIndex/ROUNDS)*100);
@@ -872,8 +890,9 @@ function showCountChoices(q) {
     box.appendChild(btn);
   });
 
-  // Disable check button — choices handle it
+  // Disable check and clear buttons — choices handle the answer directly
   document.getElementById('checkBtn').style.display = 'none';
+  document.querySelector('.clear-btn').style.display = 'none';
 }
 
 function handleCountChoice(val, btn, q) {
@@ -900,12 +919,8 @@ function checkAnswer() {
   const q = currentQ;
   const total = purse.reduce((s,c)=>s+c.value,0);
   const isCorrect = total === q.answer;
-  answered = isCorrect; // only lock if correct
-  if (isCorrect) {
-    document.getElementById('checkBtn').style.display = 'none';
-  }
+  answered = true;  // Every mode is one-shot — lock the answer
   showFeedback(isCorrect, q, total);
-  if (!isCorrect) answered = false;
 }
 
 function showFeedback(isCorrect, q, playerVal) {
@@ -928,11 +943,32 @@ function showFeedback(isCorrect, q, playerVal) {
     document.getElementById('nextBtn').classList.add('show');
     const cb = document.getElementById('checkBtn');
     if (cb) cb.style.display = 'none';
+    const clr = document.querySelector('.clear-btn');
+    if (clr) clr.style.display = 'none';
   } else {
     const diff = playerVal - q.answer;
     main.textContent = diff > 0 ? `😬 ${Math.abs(diff)}¢ too much!` :
                        diff < 0 ? `🤔 ${Math.abs(diff)}¢ short!` : '';
-    sub.textContent  = `Need exactly ${q.answer < 100 ? q.answer+'¢' : '$'+(q.answer/100).toFixed(2)}. Try again!`;
+    // Every mode is one-shot: hide Check + Clear, reveal Next. Answer is locked
+    // (answered=true in checkAnswer / handleCountChoice). The sub-message is
+    // mode-specific because each mode makes different info visible in the question:
+    //   count  — kid was adding a visible pile, so just state the total
+    //   make   — target is already in the question ("Make 47¢"), so a valid coin
+    //            breakdown is more useful than restating the number
+    //   change — answer isn't visible (it's paid − cost), so give both the answer
+    //            and one valid way to hand it back
+    if (q.mode === 'count') {
+      sub.textContent = `The correct total was ${fmtCents(q.answer)}.`;
+    } else if (q.mode === 'make') {
+      sub.textContent = `Try: ${decomposeTarget(q.answer)}`;
+    } else { // change
+      sub.textContent = `Change is ${fmtCents(q.answer)} — try ${decomposeTarget(q.answer)}`;
+    }
+    document.getElementById('nextBtn').classList.add('show');
+    const cb = document.getElementById('checkBtn');
+    if (cb) cb.style.display = 'none';
+    const clr = document.querySelector('.clear-btn');
+    if (clr) clr.style.display = 'none';
     banner.className = 'feedback-banner wrong show';
   }
 }
