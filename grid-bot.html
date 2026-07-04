@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 Grid Bot</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;
+  padding:1rem;padding-bottom:3rem;min-height:100vh;
+}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#4ecdc4,#1a535c);color:#fff;text-align:center;
+  padding:16px 18px;border-radius:18px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:22px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.sound-btn{
+  position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:14px;
+}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:80px;background:#fff;border:2px solid #4ecdc4;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#1a535c;font-weight:800;display:block;margin-top:2px}
+
+.task-banner{
+  background:linear-gradient(180deg,#e0f7f5,#fff);
+  border:3px solid #4ecdc4;border-radius:14px;
+  padding:12px 16px;text-align:center;font-size:15px;font-weight:700;
+  color:#1a535c;margin-bottom:1rem;
+}
+.task-banner .target-tag{
+  display:inline-block;background:#f1c40f;color:#5a4300;
+  padding:3px 12px;border-radius:20px;font-size:14px;
+  margin-left:6px;border:2px solid #c99902;
+}
+
+.grid-wrap{
+  background:#fff;border:3px solid #1a535c;border-radius:16px;
+  padding:12px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 14px rgba(26,83,92,0.15);
+}
+.grid-container{
+  display:flex;justify-content:center;
+}
+.grid-svg{display:block;max-width:100%;height:auto;width:360px}
+.coin-hud{
+  position:absolute;top:14px;right:14px;
+  background:#1a535c;color:#fff;font-weight:800;font-size:14px;
+  padding:6px 12px;border-radius:20px;border:3px solid #f1c40f;
+  z-index:2;
+}
+.coin-hud.match{background:#00b894;border-color:#00e676}
+.coin-hud.over{background:#c0392b;border-color:#e74c3c}
+
+.section-label{
+  font-size:11px;font-weight:800;color:#888;
+  margin-bottom:6px;letter-spacing:1.5px;
+}
+
+.program-area{
+  background:#fff;border:2px dashed #4ecdc4;border-radius:12px;
+  padding:12px;margin-bottom:1rem;min-height:60px;
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start;
+}
+.program-empty{color:#aaa;font-style:italic;font-size:14px;margin:auto;text-align:center;width:100%}
+.cmd-token{
+  min-width:40px;height:40px;border-radius:8px;
+  background:#4ecdc4;color:#fff;border:3px solid #1a535c;
+  font-size:22px;font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;user-select:none;
+  transition:transform 0.15s;
+  animation:cmdIn 0.2s ease-out;
+}
+@keyframes cmdIn{
+  0%{transform:scale(0);opacity:0}
+  60%{transform:scale(1.15)}
+  100%{transform:scale(1);opacity:1}
+}
+.cmd-token:hover{transform:translateY(-2px)}
+.cmd-token:active{transform:scale(0.9)}
+.cmd-token.current{
+  background:#f1c40f;border-color:#c99902;color:#5a4300;
+  animation:pulse 0.4s ease-in-out;
+}
+@keyframes pulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.2)}
+}
+
+.dpad{
+  display:grid;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;
+  gap:6px;justify-content:center;margin-bottom:1rem;
+}
+.dpad-cell{background:transparent}
+.dpad-btn{
+  background:#fff;border:3px solid #1a535c;border-radius:12px;
+  color:#1a535c;font-size:28px;font-weight:800;cursor:pointer;
+  font-family:inherit;box-shadow:0 4px 0 #1a535c;
+  transition:all 0.1s;
+}
+.dpad-btn:hover{background:#e0f7f5}
+.dpad-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1a535c}
+.dpad-btn.up{grid-column:2;grid-row:1}
+.dpad-btn.left{grid-column:1;grid-row:2}
+.dpad-btn.right{grid-column:3;grid-row:2}
+.dpad-btn.down{grid-column:2;grid-row:3}
+.dpad-center{
+  grid-column:2;grid-row:2;
+  display:flex;align-items:center;justify-content:center;
+  color:#888;font-size:11px;font-weight:800;text-align:center;
+}
+
+.action-row{display:flex;gap:8px;margin-bottom:1rem}
+.action-btn{
+  border:3px solid #fff;border-radius:12px;padding:14px;
+  font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;
+}
+.action-btn.run{
+  flex:1;background:linear-gradient(180deg,#00b894,#00997a);
+  box-shadow:0 5px 0 #00997a;font-size:18px;
+}
+.action-btn.clear{
+  background:linear-gradient(180deg,#bbb,#999);
+  box-shadow:0 5px 0 #777;flex:0 0 auto;padding:14px 20px;
+}
+.action-btn:active{transform:translateY(3px)}
+.action-btn.run:active{box-shadow:0 2px 0 #00997a}
+.action-btn.clear:active{box-shadow:0 2px 0 #777}
+.action-btn.disabled{opacity:0.5;cursor:not-allowed}
+
+.start-screen,.end-screen{
+  background:#fff;border:3px solid #4ecdc4;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-bot{font-size:80px;display:inline-block;animation:hop 1.5s ease-in-out infinite}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+.btn{
+  display:block;width:100%;max-width:300px;margin:1rem auto;padding:14px;
+  font-size:17px;background:linear-gradient(180deg,#4ecdc4,#1a535c);
+  color:#fff;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:800;font-family:inherit;box-shadow:0 5px 0 #1a535c;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #1a535c}
+
+.feedback-banner{
+  position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);
+  padding:1.2rem 2rem;border:4px solid #fff;border-radius:20px;
+  font-size:20px;font-weight:800;z-index:99;text-align:center;
+  pointer-events:none;animation:fb 2.2s forwards;color:#fff;max-width:90%;
+}
+.feedback-banner.good{
+  background:linear-gradient(180deg,#00b894,#00997a);
+  box-shadow:0 0 50px rgba(0,184,148,0.6);
+}
+.feedback-banner.bad{
+  background:linear-gradient(180deg,#e17055,#c0392b);
+  box-shadow:0 0 50px rgba(225,112,85,0.5);
+}
+.feedback-banner.hint{
+  background:linear-gradient(180deg,#fdcb6e,#e67e22);
+  box-shadow:0 0 50px rgba(253,203,110,0.6);
+}
+@keyframes fb{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.4)}
+  10%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+  22%{transform:translate(-50%,-50%) scale(1)}
+  80%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}
+}
+
+.confetti{
+  position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px;
+}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+// === SOUND ===
+let audioCtx, soundOn=true;
+function beep(f,d,t='square',v=0.06){
+  if(!soundOn||!audioCtx) return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=t; o.frequency.value=f;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+d);
+}
+function tapSnd(){beep(660,0.04,'sine',0.04)}
+function stepSnd(){beep(440,0.05,'sine',0.04)}
+function coinSnd(){beep(1319,0.08); setTimeout(()=>beep(1760,0.12),60)}
+function correctSnd(){[523,659,784,1047].forEach((n,i)=>setTimeout(()=>beep(n,0.12),i*70))}
+function wrongSnd(){beep(220,0.25,'sawtooth',0.07)}
+function boomSnd(){beep(80,0.4,'sawtooth',0.15); setTimeout(()=>beep(60,0.3,'sawtooth',0.12),100)}
+function winSnd(){[523,659,784,1047,1319,1568,2093].forEach((n,i)=>setTimeout(()=>beep(n,0.22,'square',0.1),i*120))}
+function toggleSound(btn){soundOn=!soundOn; btn.textContent=soundOn?'🔊':'🔇'}
+
+// === CONSTANTS ===
+const GRID_ROWS=5, GRID_COLS=6, CELL_SIZE=55;
+const GRID_W=GRID_COLS*CELL_SIZE, GRID_H=GRID_ROWS*CELL_SIZE;
+const STEP_MS=450;  // per step animation
+const MAX_PROGRAM=25;
+
+// Legend: '.' empty, 'S' start, 'G' goal, 'B' bomb, digit=coin value
+const RAW_ROUNDS=[
+  { map:`.....G
+         ....3.
+         ......
+         ..2...
+         S.....`,
+    target:5, desc:"Reach ⭐ and collect ALL coins!" },
+  { map:`.....G
+         ...4..
+         .2....
+         ....3.
+         S.....`,
+    target:9, desc:"Collect all 3 coins on your way!" },
+  { map:`.....G
+         ..B...
+         .3..4.
+         ...2..
+         S.....`,
+    target:9, desc:"Grab all coins — AVOID the bomb!" },
+  { map:`.....G
+         .5....
+         ...4..
+         ..3...
+         S2....`,
+    target:7, desc:"Collect EXACTLY $7 — skip the wrong coins!" },
+  { map:`.....G
+         .3..4.
+         ..B...
+         .2..5.
+         S.....`,
+    target:7, desc:"EXACTLY $7 — and dodge the 💣!" },
+  { map:`.....G
+         .5.3..
+         B.2.B.
+         .4..6.
+         S.....`,
+    target:10, desc:"EXACTLY $10 — two bombs to dodge!" },
+  { map:`..3..G
+         .5.B4.
+         B.B..6
+         .7.8..
+         S...B.`,
+    target:15, desc:"GRAND FINALE — EXACTLY $15!" }
+];
+
+function parseLevel(raw){
+  const rows=raw.map.trim().split('\n').map(l=>l.trim());
+  const coins=[], bombs=[];
+  let start={row:4,col:0}, goal={row:0,col:5};
+  for(let r=0;r<rows.length;r++){
+    for(let c=0;c<rows[r].length;c++){
+      const ch=rows[r][c];
+      if(ch==='S') start={row:r,col:c};
+      else if(ch==='G') goal={row:r,col:c};
+      else if(ch==='B') bombs.push({row:r,col:c});
+      else if(ch>='2'&&ch<='9') coins.push({row:r,col:c,val:parseInt(ch),id:`${r}-${c}`});
+    }
+  }
+  return {start, goal, coins, bombs, target:raw.target, desc:raw.desc};
+}
+
+const ROUNDS=RAW_ROUNDS.map(parseLevel);
+const TOTAL_ROUNDS=ROUNDS.length;
+
+// === STATE ===
+let state={phase:'start'};
+
+function newGame(){
+  if(!audioCtx) try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  state={
+    phase:'playing', roundNum:1, score:0, combo:0, maxCombo:0,
+    perfectRounds:0,
+    program:[], running:false, attempts:0,
+    round:null, robotPos:null, collectedIds:[], collectedSum:0,
+    currentStepIndex:-1
+  };
+  loadRound();
+  render();
+}
+
+function loadRound(){
+  state.round=ROUNDS[state.roundNum-1];
+  state.robotPos={...state.round.start};
+  state.program=[];
+  state.collectedIds=[];
+  state.collectedSum=0;
+  state.running=false;
+  state.attempts=0;
+  state.currentStepIndex=-1;
+}
+
+// === UTILS ===
+function cellCenter(row,col){
+  return {x:col*CELL_SIZE+CELL_SIZE/2, y:row*CELL_SIZE+CELL_SIZE/2};
+}
+
+// === HANDLERS ===
+function addCmd(dir){
+  if(state.running) return;
+  if(state.program.length>=MAX_PROGRAM) return;
+  state.program.push(dir);
+  tapSnd();
+  render();
+}
+
+function removeCmd(i){
+  if(state.running) return;
+  state.program.splice(i,1);
+  tapSnd();
+  render();
+}
+
+function clearProgram(){
+  if(state.running) return;
+  state.program=[];
+  render();
+}
+
+function runProgram(){
+  if(state.running) return;
+  if(state.program.length===0){
+    showFeedback('🤔 Add some commands first!','hint');
+    return;
+  }
+  state.running=true;
+  state.attempts++;
+  // Reset execution state
+  state.robotPos={...state.round.start};
+  state.collectedIds=[];
+  state.collectedSum=0;
+  state.currentStepIndex=-1;
+  render();
+  // Start execution after a beat
+  setTimeout(()=>executeStep(0), 300);
+}
+
+function executeStep(i){
+  state.currentStepIndex=i;
+  highlightCurrentCmd(i);
+  if(i>=state.program.length){
+    finishExecution(null);
+    return;
+  }
+  const cmd=state.program[i];
+  const from=state.robotPos;
+  let nr=from.row, nc=from.col;
+  if(cmd==='up') nr--;
+  else if(cmd==='down') nr++;
+  else if(cmd==='left') nc--;
+  else if(cmd==='right') nc++;
+  
+  // Off-grid check
+  if(nr<0||nr>=GRID_ROWS||nc<0||nc>=GRID_COLS){
+    finishExecution('off_grid');
+    return;
+  }
+  
+  state.robotPos={row:nr, col:nc};
+  animateRobotTo(nr, nc, ()=>{
+    stepSnd();
+    // Bomb?
+    if(state.round.bombs.some(b=>b.row===nr&&b.col===nc)){
+      finishExecution('bomb');
+      return;
+    }
+    // Coin?
+    const coin=state.round.coins.find(c=>c.row===nr&&c.col===nc);
+    if(coin && !state.collectedIds.includes(coin.id)){
+      state.collectedIds.push(coin.id);
+      state.collectedSum+=coin.val;
+      // Fade the coin
+      const el=document.getElementById(`coin-${coin.id}`);
+      if(el) el.style.opacity='0';
+      updateCoinHud();
+      coinSnd();
+    }
+    // Small pause before next step
+    setTimeout(()=>executeStep(i+1), 80);
+  });
+}
+
+function animateRobotTo(row, col, done){
+  const robot=document.getElementById('robot');
+  if(!robot){done(); return}
+  const from=robot._pos || cellCenter(state.round.start.row, state.round.start.col);
+  const to=cellCenter(row, col);
+  const start=performance.now();
+  const duration=STEP_MS-100;
+  function tick(now){
+    const t=Math.min(1,(now-start)/duration);
+    const eased=1-Math.pow(1-t, 3);
+    const x=from.x + (to.x-from.x)*eased;
+    const y=from.y + (to.y-from.y)*eased;
+    robot.setAttribute('transform', `translate(${x} ${y})`);
+    robot._pos={x, y};
+    if(t<1) requestAnimationFrame(tick);
+    else done();
+  }
+  requestAnimationFrame(tick);
+}
+
+function updateCoinHud(){
+  const el=document.getElementById('coin-hud');
+  if(!el) return;
+  el.textContent=`$${state.collectedSum} / $${state.round.target}`;
+  el.className='coin-hud';
+  if(state.collectedSum===state.round.target) el.classList.add('match');
+  else if(state.collectedSum>state.round.target) el.classList.add('over');
+}
+
+function highlightCurrentCmd(i){
+  document.querySelectorAll('.cmd-token').forEach((el,idx)=>{
+    el.classList.toggle('current', idx===i);
+  });
+}
+
+function finishExecution(error){
+  state.running=false;
+  const r=state.round;
+  const atGoal=state.robotPos.row===r.goal.row && state.robotPos.col===r.goal.col;
+  const sumMatch=state.collectedSum===r.target;
+  let success=false, msg='';
+  
+  if(error==='off_grid'){
+    msg='🚫 The robot went off the grid! Try again.';
+    wrongSnd();
+  } else if(error==='bomb'){
+    msg='💥 BOOM! Robot hit a bomb!';
+    boomSnd();
+  } else if(!atGoal){
+    msg=`🎯 Didn't reach ⭐! Robot ended at row ${state.robotPos.row+1}, col ${state.robotPos.col+1}.`;
+    wrongSnd();
+  } else if(!sumMatch){
+    if(state.collectedSum<r.target){
+      msg=`🪙 Only got $${state.collectedSum}, needed $${r.target}. Grab more coins!`;
+    } else {
+      msg=`🪙 Got $${state.collectedSum} — too many! Needed EXACTLY $${r.target}.`;
+    }
+    wrongSnd();
+  } else {
+    success=true;
+  }
+  
+  if(success){
+    state.combo++;
+    state.maxCombo=Math.max(state.maxCombo,state.combo);
+    let pts=10+(state.combo-1)*2;
+    if(state.attempts===1){
+      pts+=10; // first-try bonus
+      state.perfectRounds++;
+    }
+    state.score+=pts;
+    correctSnd();
+    showFeedback(`⭐ ${state.attempts===1?'FIRST TRY! ':'Perfect! '}+${pts}`,'good');
+    setTimeout(nextRound, 2200);
+  } else {
+    state.combo=0;
+    showFeedback(msg,'bad');
+    // Reset for retry after banner
+    setTimeout(()=>{
+      state.robotPos={...state.round.start};
+      state.collectedIds=[];
+      state.collectedSum=0;
+      state.currentStepIndex=-1;
+      render();
+    }, 2400);
+  }
+  renderStats();
+}
+
+function nextRound(){
+  if(state.roundNum>=TOTAL_ROUNDS){
+    state.phase='gameEnd';
+    winSnd();
+    confetti();
+    setTimeout(confetti, 800);
+    render();
+    return;
+  }
+  state.roundNum++;
+  loadRound();
+  render();
+}
+
+// === RENDER ===
+function render(){
+  const g=document.getElementById('game');
+  if(state.phase==='start') g.innerHTML=renderStart();
+  else if(state.phase==='gameEnd') g.innerHTML=renderEnd();
+  else g.innerHTML=renderPlay();
+}
+
+function renderHeader(){
+  return `<header>
+    <h1>🤖 Grid Bot</h1>
+    <p>Program the robot to reach the star!</p>
+    <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+  </header>`;
+}
+
+function renderStart(){
+  return `${renderHeader()}
+  <div class="start-screen">
+    <div class="big-bot">🤖</div>
+    <h2 style="font-size:26px;color:#1a535c;margin:0.5rem 0">Ready to code?</h2>
+    <p style="font-size:15px;color:#555;line-height:1.7;margin:1rem auto;text-align:left;max-width:380px">
+      Your job: <strong>write a program</strong> that moves the robot to the ⭐, collecting the right coins along the way.<br><br>
+      🎮 <strong>Tap arrows</strong> to build your program<br>
+      ▶️ <strong>Hit RUN</strong> to watch it play out<br>
+      🪙 <strong>Coin values</strong> shown on each coin — collect to hit the target<br>
+      💣 <strong>Watch for bombs</strong> (mid to late levels)<br>
+      🎯 <strong>Reach the star</strong> AND hit the target exactly<br>
+      ⭐ <strong>First-try bonus</strong>: +10 extra points<br><br>
+      ${TOTAL_ROUNDS} levels, difficulty ramps up. Loops NOT required — but planning helps!
+    </p>
+    <button class="btn" onclick="newGame()">🤖 Start Coding!</button>
+  </div>`;
+}
+
+function renderPlay(){
+  const r=state.round;
+  return `${renderHeader()}
+  ${statsHtml()}
+  <div class="task-banner">${r.desc} <span class="target-tag">🎯 $${r.target}</span></div>
+  ${renderGrid()}
+  <div class="section-label">YOUR PROGRAM (${state.program.length}/${MAX_PROGRAM})</div>
+  ${renderProgram()}
+  <div class="section-label">COMMANDS</div>
+  ${renderDpad()}
+  <div class="action-row">
+    ${state.program.length>0 && !state.running ? '<button class="action-btn clear" onclick="clearProgram()">Clear</button>' : ''}
+    <button class="action-btn run ${state.running?'disabled':''}" onclick="runProgram()">${state.running?'⏳ Running...':'▶️ RUN'}</button>
+  </div>`;
+}
+
+function renderGrid(){
+  const r=state.round;
+  const svg=[];
+  svg.push(`<svg class="grid-svg" viewBox="0 0 ${GRID_W} ${GRID_H}" preserveAspectRatio="xMidYMid meet">`);
+  // Checkerboard
+  for(let row=0;row<GRID_ROWS;row++){
+    for(let col=0;col<GRID_COLS;col++){
+      const fill=(row+col)%2===0?'#eff6f5':'#dcefeb';
+      svg.push(`<rect x="${col*CELL_SIZE}" y="${row*CELL_SIZE}" width="${CELL_SIZE}" height="${CELL_SIZE}" fill="${fill}" stroke="#a8c5c1" stroke-width="0.6"/>`);
+    }
+  }
+  // Goal
+  const gp=cellCenter(r.goal.row, r.goal.col);
+  svg.push(drawStar(gp.x, gp.y, 18));
+  // Coins
+  r.coins.forEach(c=>{
+    const p=cellCenter(c.row, c.col);
+    const collected=state.collectedIds.includes(c.id);
+    svg.push(`<g id="coin-${c.id}" style="transition:opacity 0.3s;opacity:${collected?0:1}">
+      <circle cx="${p.x}" cy="${p.y}" r="17" fill="#fbbf24" stroke="#c99902" stroke-width="2"/>
+      <circle cx="${p.x-4}" cy="${p.y-4}" r="4" fill="#fef3c7" opacity="0.7"/>
+      <text x="${p.x}" y="${p.y+5}" text-anchor="middle" font-size="14" font-weight="900" fill="#7c5d00">$${c.val}</text>
+    </g>`);
+  });
+  // Bombs
+  r.bombs.forEach(b=>{
+    const p=cellCenter(b.row, b.col);
+    svg.push(`<g>
+      <circle cx="${p.x}" cy="${p.y}" r="16" fill="#1a1a1a" stroke="#000" stroke-width="2"/>
+      <circle cx="${p.x-5}" cy="${p.y-5}" r="4" fill="rgba(255,255,255,0.35)"/>
+      <line x1="${p.x}" y1="${p.y-16}" x2="${p.x+4}" y2="${p.y-22}" stroke="#e74c3c" stroke-width="2.5"/>
+      <circle cx="${p.x+5}" cy="${p.y-23}" r="3" fill="#f1c40f"/>
+    </g>`);
+  });
+  // Robot
+  const rp=cellCenter(state.robotPos.row, state.robotPos.col);
+  svg.push(`<g id="robot" transform="translate(${rp.x} ${rp.y})">
+    <rect x="-17" y="-15" width="34" height="30" rx="6" fill="#4ecdc4" stroke="#1a535c" stroke-width="2.5"/>
+    <circle cx="-7" cy="-3" r="4" fill="#fff"/>
+    <circle cx="-7" cy="-3" r="2" fill="#1a535c"/>
+    <circle cx="7" cy="-3" r="4" fill="#fff"/>
+    <circle cx="7" cy="-3" r="2" fill="#1a535c"/>
+    <rect x="-6" y="6" width="12" height="3" rx="1" fill="#1a535c"/>
+    <line x1="0" y1="-15" x2="0" y2="-21" stroke="#1a535c" stroke-width="2"/>
+    <circle cx="0" cy="-23" r="3" fill="#e74c3c"/>
+  </g>`);
+  svg.push('</svg>');
+  
+  // HUD overlay
+  const hudClass=state.collectedSum===r.target?'coin-hud match':(state.collectedSum>r.target?'coin-hud over':'coin-hud');
+  
+  return `<div class="grid-wrap">
+    <div class="coin-hud ${hudClass}" id="coin-hud">$${state.collectedSum} / $${r.target}</div>
+    <div class="grid-container">${svg.join('')}</div>
+  </div>`;
+}
+
+function drawStar(cx, cy, r){
+  const pts=[];
+  for(let i=0;i<10;i++){
+    const angle=(i*36-90)*Math.PI/180;
+    const rr=i%2===0?r:r*0.45;
+    pts.push(`${cx+rr*Math.cos(angle)},${cy+rr*Math.sin(angle)}`);
+  }
+  return `<polygon points="${pts.join(' ')}" fill="#fbbf24" stroke="#c99902" stroke-width="2"/>`;
+}
+
+function renderProgram(){
+  if(state.program.length===0){
+    return '<div class="program-area"><span class="program-empty">Tap arrows below to build your program...</span></div>';
+  }
+  const arrowMap={up:'↑', down:'↓', left:'←', right:'→'};
+  const tokens=state.program.map((cmd,i)=>
+    `<div class="cmd-token" onclick="removeCmd(${i})">${arrowMap[cmd]}</div>`
+  );
+  return `<div class="program-area">${tokens.join('')}</div>`;
+}
+
+function renderDpad(){
+  return `<div class="dpad">
+    <button class="dpad-btn up" onclick="addCmd('up')">↑</button>
+    <button class="dpad-btn left" onclick="addCmd('left')">←</button>
+    <div class="dpad-cell dpad-center">MOVE</div>
+    <button class="dpad-btn right" onclick="addCmd('right')">→</button>
+    <button class="dpad-btn down" onclick="addCmd('down')">↓</button>
+  </div>`;
+}
+
+function renderEnd(){
+  let medal='🥉', msg='Nice coding!';
+  if(state.perfectRounds===TOTAL_ROUNDS){medal='🏆'; msg='PERFECT! Master Coder!'}
+  else if(state.perfectRounds>=TOTAL_ROUNDS-2){medal='🥇'; msg='Excellent programming!'}
+  else if(state.perfectRounds>=3){medal='🥈'; msg='Good job!'}
+  return `${renderHeader()}
+  <div class="end-screen">
+    <div style="font-size:90px">${medal}</div>
+    <h2 style="font-size:26px;color:#1a535c;margin:0.5rem 0">${msg}</h2>
+    <div style="background:#e0f7f5;border:2px solid #4ecdc4;border-radius:12px;padding:1rem;margin:1rem 0;font-size:16px;line-height:1.8">
+      🏆 Total score: <strong>${state.score}</strong><br>
+      ⭐ First-try levels: <strong>${state.perfectRounds}/${TOTAL_ROUNDS}</strong><br>
+      🔥 Best combo: <strong>×${state.maxCombo}</strong>
+    </div>
+    <button class="btn" onclick="newGame()">🤖 Code Again!</button>
+  </div>`;
+}
+
+function statsHtml(){
+  return `<div id="stats-area"><div class="stats">
+    <div class="stat">
+      <span class="stat-label">🎮 LEVEL</span>
+      <span class="stat-value">${state.roundNum}/${TOTAL_ROUNDS}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">🏆 SCORE</span>
+      <span class="stat-value">${state.score}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">🔥 COMBO</span>
+      <span class="stat-value">×${state.combo}</span>
+    </div>
+  </div></div>`;
+}
+
+function renderStats(){
+  const el=document.getElementById('stats-area');
+  if(el) el.outerHTML=statsHtml();
+}
+
+// === EFFECTS ===
+function showFeedback(text, kind){
+  const el=document.createElement('div');
+  el.className='feedback-banner '+kind;
+  el.innerHTML=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2200);
+}
+
+function confetti(){
+  const emojis=['🎉','🤖','⭐','🪙','✨','🎮','💾','⌨️'];
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDelay=Math.random()*0.8+'s';
+    c.style.animationDuration=(1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
