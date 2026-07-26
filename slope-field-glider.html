@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slope Field Glider</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #FFF8F0;
+    margin: 0; padding: 20px;
+    color: #2d3436;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; position: relative; }
+
+  /* same shape/placement as the other games; violet instead of white-on-header
+     because this game's cards are light rather than a coloured banner */
+  .sound-btn {
+    position: absolute; top: 16px; right: 16px; z-index: 5;
+    background: #f3f0ff; border: 2px solid #6741d9; color: #4c3399;
+    width: 34px; height: 34px; border-radius: 50%;
+    cursor: pointer; font-size: 15px; line-height: 1; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .sound-btn:hover { background: #e6e1f7; }
+  .sound-btn:focus-visible { outline: 3px solid #a99bec; outline-offset: 2px; }
+
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    border-top: 6px solid #6741d9;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08);
+    padding: 22px 24px;
+    margin-bottom: 18px;
+  }
+
+  h1 { margin: 0 0 6px; font-size: 30px; color: #6741d9; letter-spacing: -.5px; }
+  h2 { margin: 0 0 10px; font-size: 21px; color: #4c3399; }
+  .sub { color: #636e72; font-size: 15px; margin: 0 0 16px; }
+
+  /* ── HUD ───────────────────────────────────── */
+  .hud {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center; margin-bottom: 14px;
+  }
+  .chip {
+    background: #f3f0ff; color: #4c3399;
+    border-radius: 20px; padding: 6px 14px;
+    font-size: 14px; font-weight: 600;
+  }
+  .chip.bc { background: #ffeaa7; color: #8a6d00; }
+  .chip.score { background: #d3f9d8; color: #237032; }
+
+  .eq {
+    font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 25px; color: #2d3436;
+    background: #f8f7ff;
+    border-left: 4px solid #6741d9;
+    padding: 10px 16px; border-radius: 0 8px 8px 0;
+    margin-bottom: 14px;
+  }
+
+  /* ── Plot ──────────────────────────────────── */
+  .plot-holder {
+    background: linear-gradient(#eef4ff, #f9fbff);
+    border-radius: 12px; overflow: hidden;
+    border: 1px solid #dfe6f5;
+  }
+  svg.plot { display: block; width: 100%; height: auto; touch-action: none; }
+
+  .axis      { stroke: #b0bcd4; stroke-width: 1.5; }
+  .gridline  { stroke: #e3e9f5; stroke-width: 1; }
+  .tick      { fill: #94a3bd; font-size: 11px; font-family: "Segoe UI", sans-serif; }
+  /* stroke colour is set per-segment from the slope — see slopeColor() */
+  .fieldseg  { stroke-width: 2.1; stroke-linecap: round; opacity: .85; }
+  .fieldseg.eqm { stroke-width: 3; opacity: 1; }
+
+  .callout-plate { fill: #fffdf5; stroke: #f0b429; stroke-width: 1.5; }
+  .callout-text  { fill: #7a5c00; font-size: 13px; font-weight: 600;
+                   font-family: "Segoe UI", sans-serif; }
+  .callout-lead  { stroke: #f0b429; stroke-width: 1.6; fill: none; }
+  .callout-dot   { fill: none; stroke: #f0b429; stroke-width: 2; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+    margin-top: 9px; font-size: 13px; color: #7d8896;
+  }
+  .legend b { color: #4a5560; font-weight: 600; margin-right: 3px; }
+  .legend .sw {
+    display: inline-block; width: 20px; height: 4px;
+    border-radius: 2px; vertical-align: middle;
+  }
+  .legend .gap { width: 9px; display: inline-block; }
+  .ghost     { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ghost-label { font-family: "Cambria Math", Cambria, Georgia, serif;
+                 font-size: 11.5px; font-weight: 600; fill: #47505c; }
+  .trail     { fill: none; stroke: #6741d9; stroke-width: 3.5; stroke-linecap: round;
+               stroke-linejoin: round; }
+  .startmark { fill: #6741d9; }
+  .startarrow{ stroke: #6741d9; stroke-width: 2.5; stroke-linecap: round; }
+
+  .eqline    { stroke: #e17055; stroke-width: 2; stroke-dasharray: 7 5; opacity: .8; }
+  .eqlabel   { fill: #c0562f; font-size: 12px; font-weight: 600;
+               font-family: "Segoe UI", sans-serif; }
+  .coordlabel { font-family: "Cambria Math", Cambria, Georgia, serif;
+                font-size: 13px; font-weight: 600; fill: #7a5c00; }
+  .coordlabel.goal { fill: #14663a; }
+  .coordplate { fill: #ffffff; opacity: .82; }
+
+  /* ── Controls ──────────────────────────────── */
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center;
+    gap: 14px; margin-top: 16px;
+  }
+  .slider-box { flex: 1 1 300px; min-width: 240px; }
+  .slider-label {
+    font-size: 14px; color: #636e72; margin-bottom: 6px;
+    display: flex; justify-content: space-between;
+  }
+  .slider-label b {
+    font-family: "Cambria Math", Cambria, Georgia, serif;
+    font-size: 17px; color: #6741d9;
+  }
+  input[type=range] {
+    width: 100%; height: 28px; -webkit-appearance: none;
+    background: transparent; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 7px; border-radius: 4px; background: #e6e1f7;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px;
+    border-radius: 50%; background: #6741d9; border: 3px solid #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,.25); margin-top: -9px;
+  }
+  input[type=range]::-moz-range-track {
+    height: 7px; border-radius: 4px; background: #e6e1f7;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #6741d9; border: 3px solid #fff;
+  }
+  input[type=range]:disabled::-webkit-slider-thumb { background: #b2bec3; }
+  input[type=range]:focus-visible { outline: 3px solid #a99bec; outline-offset: 3px; }
+
+  button {
+    font-family: inherit; font-size: 16px; font-weight: 600;
+    border: none; border-radius: 10px; padding: 13px 26px;
+    cursor: pointer; transition: transform .12s, box-shadow .12s, background .15s;
+  }
+  button:focus-visible { outline: 3px solid #a99bec; outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-go     { background: #6741d9; color: #fff; box-shadow: 0 3px 0 #4c3399; }
+  .btn-go:hover:not(:disabled)  { background: #7a56e0; }
+  .btn-go:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+  .btn-ghost  { background: #f1eefc; color: #4c3399; }
+  .btn-ghost:hover:not(:disabled) { background: #e6e1f7; }
+  .btn-next   { background: #20bf6b; color: #fff; box-shadow: 0 3px 0 #14904d; }
+  .btn-next:hover:not(:disabled)  { background: #26d97a; }
+  .btn-next:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+
+  /* ── Feedback ──────────────────────────────── */
+  .banner {
+    margin-top: 15px; padding: 14px 18px; border-radius: 10px;
+    font-size: 16px; display: none;
+  }
+  .banner.show { display: block; animation: pop .3s ease; }
+  .banner.win  { background: #d3f9d8; border-left: 5px solid #20bf6b; color: #14663a; }
+  .banner.miss { background: #ffe8e0; border-left: 5px solid #e17055; color: #a83e1c; }
+  .banner b { display: block; font-size: 18px; margin-bottom: 3px; }
+  @keyframes pop { from { opacity:0; transform: translateY(-6px);} to {opacity:1;transform:none;} }
+
+  .hintbox {
+    margin-top: 14px; padding: 13px 17px; border-radius: 10px;
+    background: #fff9e6; border-left: 5px solid #fdcb6e;
+    font-size: 15px; color: #7a5c00; display: none;
+  }
+  .hintbox.show { display: block; }
+
+  /* ── Euler bonus ───────────────────────────── */
+  .euler { margin-top: 16px; padding: 16px 18px; border-radius: 10px;
+           background: #f3f0ff; border-left: 5px solid #6741d9; display: none; }
+  .euler.show { display: block; }
+  .euler p { margin: 0 0 12px; font-size: 15px; }
+  .euler .q { font-family: "Cambria Math", Cambria, Georgia, serif; font-size: 17px; }
+  .opts { display: flex; flex-wrap: wrap; gap: 9px; }
+  .opt {
+    background: #fff; border: 2px solid #d5ccf5; color: #4c3399;
+    border-radius: 9px; padding: 11px 20px; font-size: 16px;
+    font-family: "Cambria Math", Cambria, Georgia, serif; cursor: pointer;
+  }
+  .opt:hover:not(:disabled) { border-color: #6741d9; background: #faf8ff; }
+  .opt.right { background: #d3f9d8; border-color: #20bf6b; color: #14663a; }
+  .opt.wrong { background: #ffe8e0; border-color: #e17055; color: #a83e1c; }
+
+  /* ── Start / end screens ───────────────────── */
+  .center { text-align: center; }
+  .lead { font-size: 17px; line-height: 1.6; color: #4a5560; }
+  .howto { text-align: left; max-width: 560px; margin: 18px auto;
+           font-size: 15px; line-height: 1.75; color: #4a5560; }
+  .howto li { margin-bottom: 6px; }
+  .big-score { font-size: 52px; font-weight: 700; color: #6741d9; margin: 8px 0; }
+  .hidden { display: none !important; }
+
+  @media (max-width: 560px) {
+    body { padding: 12px; }
+    .card { padding: 16px; padding-top: 46px; }  /* clear the sound button */
+    .sound-btn { top: 10px; right: 10px; }
+    h1 { font-size: 24px; }
+    .eq { font-size: 20px; }
+    .controls { flex-direction: column; align-items: stretch; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- one button for all three screens: cards swap underneath it -->
+  <button class="sound-btn" id="soundBtn" onclick="toggleSound(this)"
+          aria-label="Sound on" title="Turn sound off">🔊</button>
+
+  <!-- ══ START ══════════════════════════════ -->
+  <div id="startScreen" class="card center">
+    <h1>🛩️ Slope Field Glider</h1>
+    <p class="sub">AP Calculus AB &amp; BC · Differential Equations</p>
+    <p class="lead">
+      A slope field shows you the derivative at every point.<br>
+      Your glider has no engine — it just <b>follows the slope</b>.<br>
+      Choose where to release it.
+    </p>
+    <ul class="howto">
+      <li>📐 The short coloured dashes <b>are</b> the equation — each one shows the slope at that point. Blue falls, rose rises, amber is flat.</li>
+      <li>🎚️ Slide to set your <b>initial condition</b> — the height where you launch.</li>
+      <li>🛩️ The glider follows the solution curve through that point.</li>
+      <li>⭐ Collect every star, then land in the 🏁 goal ring — each one is labelled with its coordinates, so you can work out the release height instead of guessing.</li>
+      <li>👻 Missed attempts stay on screen as ghost trails, each tagged with the height it launched from, so you can see which way to adjust.</li>
+      <li>🟠 Dashed orange lines are <b>equilibrium solutions</b> — nothing can cross them.</li>
+    </ul>
+    <p class="lead" style="font-size:15px;color:#636e72">
+      8 levels · the last two are BC territory
+    </p>
+    <button class="btn-go" onclick="startGame()">Start flying</button>
+  </div>
+
+  <!-- ══ GAME ═══════════════════════════════ -->
+  <div id="gameScreen" class="card hidden">
+    <div class="hud">
+      <span class="chip" id="levelChip">Level 1 / 8</span>
+      <span class="chip" id="tagChip">AB</span>
+      <span class="chip score" id="scoreChip">0 pts</span>
+      <span class="chip" id="attemptChip">Attempt 1</span>
+    </div>
+
+    <h2 id="levelName">First Flight</h2>
+    <div class="eq" id="eqText">dy/dx = 0.4</div>
+
+    <div class="plot-holder">
+      <svg class="plot" id="plot" viewBox="0 0 720 470"
+           xmlns="http://www.w3.org/2000/svg" role="img"
+           aria-label="Slope field with glider trajectory"></svg>
+    </div>
+
+    <div class="legend" aria-hidden="true">
+      <b>Each dash is the slope at that point:</b>
+      <span class="sw" id="swNeg"></span> falling
+      <span class="gap"></span>
+      <span class="sw" id="swZero"></span> flat
+      <span class="gap"></span>
+      <span class="sw" id="swPos"></span> rising
+      <span class="gap"></span>
+      <span style="color:#a3adb9">— darker means steeper</span>
+    </div>
+
+    <div class="controls">
+      <div class="slider-box">
+        <div class="slider-label">
+          <span>Release height</span>
+          <b id="y0Label">y₀ = 0.00</b>
+        </div>
+        <input type="range" id="y0Slider" min="-4" max="4" step="0.05" value="0"
+               aria-label="Initial y value">
+      </div>
+      <button class="btn-go"    id="launchBtn" onclick="launch()">Launch 🛩️</button>
+      <button class="btn-ghost" id="hintBtn"   onclick="toggleHint()">Hint</button>
+      <button class="btn-next"  id="nextBtn"   onclick="nextLevel()" style="display:none">
+        Next level →
+      </button>
+    </div>
+
+    <div class="hintbox" id="hintBox"></div>
+    <div class="banner"  id="banner"></div>
+
+    <div class="euler" id="eulerBox">
+      <p><b>BC bonus — Euler's method</b></p>
+      <p class="q" id="eulerQ"></p>
+      <div class="opts" id="eulerOpts"></div>
+    </div>
+  </div>
+
+  <!-- ══ END ════════════════════════════════ -->
+  <div id="endScreen" class="card center hidden">
+    <h1>🏆 All eight cleared</h1>
+    <div class="big-score" id="finalScore">0</div>
+    <p class="lead" id="finalMsg"></p>
+    <p class="sub" id="finalBreak" style="margin-top:14px"></p>
+    <button class="btn-go" onclick="location.reload()">Fly again</button>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   SLOPE FIELD GLIDER
+   Solution curves of dy/dx = f(x,y), flown by choosing y₀.
+
+   Star + goal positions are NOT hand-authored. Each level names
+   an intended y₀; at load time we integrate that trajectory and
+   drop the targets onto it at chosen x-values. Every level is
+   therefore solvable by construction.
+   ═══════════════════════════════════════════════════════════ */
+
+// ── Geometry of the SVG canvas ───────────────────────────
+const VB_W = 720, VB_H = 470;
+const PAD  = { l: 46, r: 22, t: 20, b: 38 };
+const PLOT_W = VB_W - PAD.l - PAD.r;
+const PLOT_H = VB_H - PAD.t - PAD.b;
+
+const SLOPE_CAP  = 60;    // treat steeper than this as vertical / undefined
+const STEP       = 0.012; // RK4 step in x
+const MAX_STEPS  = 4000;
+const STAR_R_PX  = 17;    // hit radius, in SVG px (visually fair on both axes)
+const GOAL_R_PX  = 21;
+
+// ── Level families ───────────────────────────────────────
+// Each family fixes a CONCEPT and randomises only its parameters. The teaching
+// order — constant slope → depends on x → depends on y → separable/implicit →
+// asymptotic → forced+damped → logistic → harvested — is deliberate and never
+// shuffles. Randomising which equation appears would randomise what's being
+// taught; randomising the numbers inside it just stops you memorising answers.
+//
+// make() returns a candidate, or null for a parameter draw that doesn't fit its
+// window. Every candidate is then verified (see buildLevel) before it is used.
+
+const FAMILY_TRIES = 90;
+const BAND_TARGET  = 14;   // aim for ~14 winning slider positions per level
+const BAND_MIN     = 7;
+const BAND_MAX     = 34;
+
+function pick(a)          { return a[Math.floor(Math.random() * a.length)]; }
+function randInt(lo, hi)  { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+function snap(v, s)       { return Math.round(v / s) * s; }
+function fmtNum(v) {
+  const r = Math.round(v * 1000) / 1000;
+  return Number.isInteger(r) ? String(r) : String(r);
+}
+
+const STEP_LADDER = [0.01, 0.02, 0.025, 0.05, 0.1, 0.2, 0.25, 0.5, 1];
+function niceStepFrom(raw) {
+  return STEP_LADDER.find(s => s >= raw) || 1;
+}
+
+// x-values where the flown curve crosses a readable y — a multiple of gy.
+// This is how levels 1, 2 and 4 keep landing on clean lattice points no matter
+// which parameters were drawn. gy = 1 wants whole numbers; gy = 0.5 accepts
+// halves, which is still perfectly readable on a label and finds far more
+// points (demanding integers everywhere rejects most parameter draws).
+function latticeXs(f, dom, y0, gy, tol) {
+  gy  = gy  || 1;
+  tol = tol || 0.02;
+  const path = integrate(f, dom.xMin, y0, dom);
+  const out = [];
+  for (let x = Math.ceil(dom.xMin + 0.5); x <= Math.floor(dom.xMax - 0.001); x++) {
+    const p = pointAtX(path, x);
+    if (Math.abs(p.x - x) > 1e-6) continue;              // curve exited early
+    if (Math.abs(p.y / gy - Math.round(p.y / gy)) * gy < tol) out.push(x);
+  }
+  return out;
+}
+
+// Choose nStars + a goal from a list of candidate x-values, spread out and
+// separated enough that their coordinate labels won't collide.
+function chooseTargets(xs, nStars, minGap) {
+  minGap = minGap || 1;
+  if (xs.length < nStars + 1) return null;
+  const goal = xs[xs.length - 1];
+  const pool = xs.slice(0, -1).filter(x => goal - x >= minGap);
+  if (pool.length < nStars) return null;
+
+  const stars = [], seg = pool.length / nStars;
+  for (let i = 0; i < nStars; i++) {
+    const lo = Math.floor(i * seg), hi = Math.min(pool.length - 1, Math.floor((i + 1) * seg) - 1);
+    stars.push(pool[randInt(lo, Math.max(lo, hi))]);
+  }
+  const uniq = [...new Set(stars)].sort((a, b) => a - b);
+  if (uniq.length < nStars) return null;
+  for (let i = 1; i < uniq.length; i++) if (uniq[i] - uniq[i-1] < minGap) return null;
+  return { stars: uniq, goal };
+}
+
+const FAMILIES = [
+  // ── 1. Constant slope ──────────────────────────────────
+  {
+    name: "First Flight", tag: "AB", wantsCallout: true,
+    make() {
+      const m = pick([0.5, 0.25, -0.5, -0.25]);
+      const dom = { xMin: -6, xMax: 6, yMin: -4, yMax: 4 };
+      const span = m * (dom.xMax - dom.xMin);
+      const g = 0.5;
+      const lo = Math.ceil ((dom.yMin + 0.5 - Math.min(0, span)) / g) * g;
+      const hi = Math.floor((dom.yMax - 0.5 - Math.max(0, span)) / g) * g;
+      if (hi < lo) return null;
+      const y0 = lo + g * randInt(0, Math.round((hi - lo) / g));
+      const f = () => m;
+      const t = chooseTargets(latticeXs(f, dom, y0, g), 2, 2);
+      if (!t) return null;
+      const dir = m > 0 ? "climb" : "descend";
+      return {
+        eqText: `dy/dx = ${fmtNum(m)}`, f, dom, solveY0: y0,
+        starXs: t.stars, goalX: t.goal,
+        hint: `The slope is ${fmtNum(m)} everywhere, so every solution is a straight line of ` +
+              `slope ${fmtNum(m)} — they all ${dir} at the same rate and only the height differs. ` +
+              `Read a star's coordinates off its label, then walk back to the left edge at ` +
+              `x = ${dom.xMin}: each step left changes y by ${fmtNum(-m)}.`
+      };
+    }
+  },
+
+  // ── 2. Slope depends on x ──────────────────────────────
+  {
+    name: "Parabola Pass", tag: "AB",
+    make() {
+      // dip = xMin²/(2k) must be a whole number, so the vertex lands on a
+      // lattice point and the curve crosses readable y-values on the way
+      const combo = pick([
+        { xMin: -4, k: 2 }, { xMin: -4, k: 4 },
+        { xMin: -6, k: 3 }, { xMin: -6, k: 6 }
+      ]);
+      const up = Math.random() < 0.5;         // opens upward, or peaks at x = 0
+      const { xMin, k } = combo;
+      const dip = (xMin * xMin) / (2 * k);
+      if (!Number.isInteger(dip)) return null;
+      const f = up ? (x => x / k) : (x => -x / k);
+      const dom = up
+        ? { xMin, xMax: -xMin + 0.5, yMin: -1,        yMax: dip + 2.6 }
+        : { xMin, xMax: -xMin + 0.5, yMin: -2.6,      yMax: dip + 1 };
+      const y0 = up ? dip : 0;                // vertex sits exactly on y = 0
+      const t = chooseTargets(latticeXs(f, dom, y0, 0.5), 3, 1);
+      if (!t) return null;
+      return {
+        eqText: `dy/dx = ${up ? "" : "−"}x / ${k}`, f, dom, solveY0: y0,
+        starXs: t.stars, goalX: t.goal,
+        hint: `Slope depends only on x — it is ${up ? "negative on the left and positive on the right"
+              : "positive on the left and negative on the right"}, and zero at the origin. Every ` +
+              `solution is the same parabola shifted vertically: y = ${up ? "" : "−"}x²/${2*k} + C. ` +
+              `The turning point is at x = 0, which is where the field is flat.`
+      };
+    }
+  },
+
+  // ── 3. Slope depends on y ──────────────────────────────
+  {
+    name: "Exponential Escape", tag: "AB",
+    make() {
+      const k = pick([3, 4, 5, 6]);
+      const dom = { xMin: -5, xMax: 5, yMin: -1, yMax: pick([5, 6, 7]) };
+      const growth = Math.exp((dom.xMax - dom.xMin) / k);
+      const y0 = (dom.yMax - 0.7) / growth;
+      if (y0 < 0.08 || y0 > 2.5) return null;
+      const f = (x, y) => y / k;
+      return {
+        eqText: `dy/dx = y / ${k}`, f, dom, solveY0: y0,
+        starXs: [pick([-2, -1.5, -1]), pick([1, 1.5, 2])],
+        goalX: dom.xMax - 0.6,
+        hint: `Here the slope depends on y, not x — the higher you are, the faster you climb. ` +
+              `That's exponential growth, y = Ce^(x/${k}). Growth multiplies your starting error ` +
+              `by about ${Math.round(growth)}× across this window, so two releases a hair apart ` +
+              `end up far apart and this level rewards small adjustments. That sensitivity is ` +
+              `exactly what makes exponential growth exponential.`
+      };
+    }
+  },
+
+  // ── 4. Separable / implicit ────────────────────────────
+  {
+    name: "Circle Runner", tag: "AB",
+    make() {
+      // Pythagorean triples give circles that pass through lattice points, so
+      // every target reads as whole numbers and the radius is deducible
+      const [a, b, c] = pick([[3,4,5], [6,8,10], [5,12,13], [9,12,15], [8,15,17]]);
+      const lo = Math.min(a, b), hi = Math.max(a, b);
+      const dom = { xMin: -hi, xMax: hi, yMin: 0, yMax: c + 0.5 };
+      const f = (x, y) => (Math.abs(y) < 0.04 ? (x > 0 ? -1e6 : 1e6) : -x / y);
+      return {
+        eqText: "dy/dx = −x / y", f, dom, solveY0: lo,
+        starXs: [-lo, 0, lo], goalX: hi,
+        hint: `Separating gives y dy = −x dx, so x² + y² = C — the solutions are circles centred ` +
+              `on the origin. Read a star and you know the radius: from (0, ${c}) the circle is ` +
+              `x² + y² = ${c*c}, so at the left edge x = ${-hi} you need ` +
+              `y = √(${c*c} − ${hi*hi}) = ${lo}. Watch out — the field goes vertical at y = 0.`
+      };
+    }
+  },
+
+  // ── 5. Asymptotic convergence ──────────────────────────
+  {
+    name: "Chasing the Line", tag: "AB",
+    make() {
+      const c = randInt(-2, 2);
+      const dom = { xMin: -4, xMax: 5, yMin: -5, yMax: 6 };
+      const y0 = pick([-4.6, -4.2, -3.8, -3.4, -3.0, -2.6]);
+      const f = (x, y) => x - y + c;
+      // Targets must sit LEFT of where solutions merge — past x ≈ -1 every
+      // curve has collapsed onto the asymptote and any release would hit them.
+      // But they also need screen separation for their labels, so they're
+      // spread across the widest usable slice rather than bunched at the edge.
+      const j = () => (Math.random() - 0.5) * 0.22;
+      return {
+        eqText: c === 0 ? "dy/dx = x − y"
+              : `dy/dx = x − y ${c > 0 ? "+" : "−"} ${Math.abs(c)}`,
+        f, dom, solveY0: y0,
+        starXs: [-3.6 + j(), -2.6 + j(), -1.6 + j()], goalX: 4.5,
+        hint: `y = x ${c - 1 === 0 ? "" : (c - 1 > 0 ? "+ " + (c-1) : "− " + (1-c))} is itself a ` +
+              `solution, and every other curve bends toward it. No matter where you release, you ` +
+              `end up running parallel to that line — so the stars sit early, before the curves ` +
+              `have merged.`
+      };
+    }
+  },
+
+  // ── 6. Forcing plus damping ────────────────────────────
+  {
+    name: "Wave Rider", tag: "AB",
+    make() {
+      const A = pick([0.8, 1, 1.2]), w = pick([0.7, 1, 1.3]), d = pick([0.2, 0.3, 0.4]);
+      const dom = { xMin: -6, xMax: 6, yMin: -3.5, yMax: 3.5 };
+      const y0 = pick([0.8, 1.1, 1.5, 1.8, 2.1]);
+      const f = (x, y) => A * Math.sin(w * x) - d * y;
+      const j = () => (Math.random() - 0.5) * 0.5;
+      return {
+        eqText: `dy/dx = ${A === 1 ? "" : A}sin(${w === 1 ? "x" : w + "x"}) − ${d}y`,
+        f, dom, solveY0: y0,
+        starXs: [-3 + j(), 0 + j(), 3 + j()], goalX: 5.5,
+        hint: `The sine term pumps the slope up and down; the −${d}y term drags you back toward ` +
+              `the middle. After a while the curve forgets where it started and just oscillates, ` +
+              `so the early stars are the ones that pin down your release height.`
+      };
+    }
+  },
+
+  // ── 7. Logistic growth (BC) ────────────────────────────
+  {
+    name: "Logistic Lagoon", tag: "BC",
+    make() {
+      const r = pick([0.7, 0.9, 1.1]), K = pick([1, 1.5, 2]);
+      const dom = { xMin: -5, xMax: 5, yMin: -0.35 * K, yMax: 1.75 * K };
+      const f = (x, y) => r * y * (1 - y / K);
+      return {
+        eqText: `dy/dx = ${r} y (1 − y/${K})`.replace("/1)", ")"),
+        f, dom, solveY0: 0.35 * K,
+        starXs: [-2, 0, 2], goalX: 4.6,
+        equilibria: [
+          { y: K, label: `y = ${K}  (carrying capacity)` },
+          { y: 0, label: "y = 0" }
+        ],
+        euler: { x0: 0, y0: K / 2, h: pick([0.3, 0.4, 0.5]) },
+        hint: `This is logistic growth with rate ${r} and carrying capacity ${K}. y = 0 and ` +
+              `y = ${K} are equilibrium solutions — constant answers. Solution curves can never ` +
+              `cross them, so releasing anywhere between them means you rise toward ${K} and ` +
+              `flatten out. The steepest climb is at y = ${K/2}.`
+      };
+    }
+  },
+
+  // ── 8. Logistic with harvesting (BC) ───────────────────
+  {
+    name: "Harvest Bay", tag: "BC",
+    make() {
+      const r = pick([0.8, 0.9, 1.0]), K = pick([1, 1.5]);
+      // h < rK/4 keeps two distinct real equilibria; the fraction sets how
+      // close together the stable point and the tipping point sit
+      const frac = pick([0.5, 0.6, 0.7]);
+      const h = Math.round(frac * r * K / 4 * 1000) / 1000;
+      const disc = K*K/4 - h*K/r;
+      if (disc <= 0.01) return null;
+      const root = Math.sqrt(disc);
+      const upper = K/2 + root, lower = K/2 - root;
+      const dom = { xMin: -5, xMax: 5, yMin: -0.4 * K, yMax: 1.6 * K };
+      const f = (x, y) => r * y * (1 - y / K) - h;
+      const y0 = lower + (upper - lower) * 0.55;
+      return {
+        eqText: `dy/dx = ${r} y (1 − y/${K}) − ${h}`.replace("/1)", ")"),
+        f, dom, solveY0: y0,
+        starXs: [-2, 0, 2], goalX: 4.6,
+        equilibria: [
+          { y: upper, label: `stable  (y ≈ ${upper.toFixed(2)})` },
+          { y: lower, label: `threshold  (y ≈ ${lower.toFixed(2)})` }
+        ],
+        euler: { x0: 0, y0: Math.round(y0 * 20) / 20, h: pick([0.4, 0.5]) },
+        hint: `Same logistic population, but ${h} is now removed at a constant rate. Setting the ` +
+              `right side to zero gives two equilibria, y ≈ ${lower.toFixed(2)} and ` +
+              `y ≈ ${upper.toFixed(2)}. Above the lower one you climb to the upper one; below it ` +
+              `the population collapses. That lower root is a tipping point, not a target.`
+      };
+    }
+  }
+];
+
+const LEVEL_COUNT = FAMILIES.length;
+const LEVELS = [];   // filled lazily by buildLevel as each level is reached
+
+// ── State ────────────────────────────────────────────────
+let state = {
+  level: 0, score: 0, attempts: 0,
+  y0: 0, ghosts: [], flying: false,
+  levelDone: false, eulerAnswered: false,
+  perfects: 0, hintsUsed: 0
+};
+let animHandle = null;
+
+// ── Coordinate transforms ────────────────────────────────
+function sx(x, d) { return PAD.l + (x - d.xMin) / (d.xMax - d.xMin) * PLOT_W; }
+function sy(y, d) { return PAD.t + (d.yMax - y) / (d.yMax - d.yMin) * PLOT_H; }
+
+// ── RK4 integration ──────────────────────────────────────
+// Marches forward in x from the left edge until it exits the window.
+function integrate(f, x0, y0, d) {
+  const pts = [{ x: x0, y: y0 }];
+  let x = x0, y = y0;
+  const yLo = d.yMin - 0.25, yHi = d.yMax + 0.25;
+
+  for (let i = 0; i < MAX_STEPS; i++) {
+    const k1 = f(x, y);
+    if (!isFinite(k1) || Math.abs(k1) > SLOPE_CAP) break;
+    const k2 = f(x + STEP / 2, y + STEP * k1 / 2);
+    const k3 = f(x + STEP / 2, y + STEP * k2 / 2);
+    const k4 = f(x + STEP,     y + STEP * k3);
+    if (!isFinite(k2) || !isFinite(k3) || !isFinite(k4)) break;
+
+    y += (STEP / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
+    x += STEP;
+    if (!isFinite(y)) break;
+    pts.push({ x, y });
+    if (y > yHi || y < yLo || x > d.xMax) break;
+  }
+  return pts;
+}
+
+// Point on a trajectory at exactly targetX, linearly interpolated between the
+// two bracketing RK4 samples. Without this, targets land on whatever sample is
+// nearest (steps are 0.012 apart), so an intended (4, 4) renders as (4.01, 4.01).
+function pointAtX(pts, targetX) {
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i-1], b = pts[i];
+    if ((a.x <= targetX && targetX <= b.x) || (b.x <= targetX && targetX <= a.x)) {
+      const span = b.x - a.x;
+      const t = Math.abs(span) < 1e-12 ? 0 : (targetX - a.x) / span;
+      return { x: targetX, y: a.y + t * (b.y - a.y) };
+    }
+  }
+  // targetX lies outside the flown range (curve exited the window early)
+  let best = pts[0], bestD = Infinity;
+  for (const p of pts) {
+    const dd = Math.abs(p.x - targetX);
+    if (dd < bestD) { bestD = dd; best = p; }
+  }
+  return best;
+}
+
+// ── Candidate verification ───────────────────────────────
+// A generated candidate is only usable if the targets sit on the flown curve,
+// don't overlap each other on screen, and the set of winning release heights is
+// neither so wide the level plays itself nor so narrow it becomes pixel-hunting.
+// This is the same generate-then-verify approach the puzzle levels need: it is
+// much easier to check a candidate than to construct a guaranteed-good one.
+
+// Place targets on the trajectory flown from solveY0. Returns false if the
+// curve never reaches them or if two markers would collide on screen.
+function placeTargets(L) {
+  const path = integrate(L.f, L.dom.xMin, L.solveY0, L.dom);
+  if (path.length < 30) return false;
+
+  L.stars = L.starXs.map(tx => {
+    const p = pointAtX(path, tx);
+    return { x: p.x, y: p.y, got: false };
+  });
+  const g = pointAtX(path, L.goalX);
+  L.goal = { x: g.x, y: g.y, got: false };
+
+  const all = [...L.stars, L.goal];
+  const d = L.dom, yr = d.yMax - d.yMin;
+  // every marker must sit inside the plot with room for its coordinate label
+  for (const t of all) {
+    if (t.y > d.yMax - 0.02 * yr || t.y < d.yMin + 0.02 * yr) return false;
+  }
+  // the curve must actually reach each target's x — if it left the window
+  // early, pointAtX falls back to the nearest sample and the x won't match
+  for (const tx of [...L.starXs, L.goalX]) {
+    if (Math.abs(pointAtX(path, tx).x - tx) > 1e-6) return false;
+  }
+
+  // pairwise screen separation so coordinate labels stay readable
+  for (let i = 0; i < all.length; i++) {
+    for (let j = i + 1; j < all.length; j++) {
+      const dx = sx(all[i].x, d) - sx(all[j].x, d);
+      const dy = sy(all[i].y, d) - sy(all[j].y, d);
+      if (Math.hypot(dx, dy) < 62) return false;
+    }
+  }
+  return true;
+}
+
+// Does releasing at y0 collect everything?
+function winsAt(L, y0) {
+  const d = L.dom;
+  const path = integrate(L.f, d.xMin, y0, d);
+  const hit = (t, r) => {
+    for (const p of path) {
+      if (Math.hypot(sx(p.x, d) - sx(t.x, d), sy(p.y, d) - sy(t.y, d)) < r) return true;
+    }
+    return false;
+  };
+  for (const s of L.stars) if (!hit(s, STAR_R_PX)) return false;
+  return hit(L.goal, GOAL_R_PX);
+}
+
+// Width, in y-units, of the contiguous band of winning release heights
+// around solveY0. Capped so a runaway band (every release wins) is rejected
+// rather than scanned to death.
+function measureBand(L) {
+  const d = L.dom;
+  const fine = (d.yMax - d.yMin) / 400;
+  const CAP = 120;
+  let lo = L.solveY0, hi = L.solveY0, loCapped = false, hiCapped = false;
+
+  for (let i = 1; i <= CAP; i++) {
+    const v = L.solveY0 - i * fine;
+    if (v < d.yMin || !winsAt(L, v)) break;
+    lo = v;
+    if (i === CAP) loCapped = true;
+  }
+  for (let i = 1; i <= CAP; i++) {
+    const v = L.solveY0 + i * fine;
+    if (v > d.yMax || !winsAt(L, v)) break;
+    hi = v;
+    if (i === CAP) hiCapped = true;
+  }
+  return { lo, hi, width: hi - lo, capped: loCapped || hiCapped };
+}
+
+// Full check. On success, attaches the chosen sliderStep and returns the level.
+function qualify(L) {
+  if (!placeTargets(L)) return null;
+  if (!winsAt(L, L.solveY0)) return null;
+
+  // Cheap rejection of levels that play themselves, before the fine scan.
+  // The threshold has to be generous: a healthy band is a few percent of the
+  // window, so testing too close to y0 rejects perfectly good candidates. This
+  // only catches the pathological case where a third of the slider wins.
+  const coarse = (L.dom.yMax - L.dom.yMin) / 8;
+  if (winsAt(L, L.solveY0 - coarse) && winsAt(L, L.solveY0 + coarse)) return null;
+
+  const band = measureBand(L);
+  if (band.capped || band.width <= 0) return null;
+
+  // Pick the slider granularity from the band itself, so every level offers a
+  // comparable number of winning positions regardless of its vertical scale.
+  const yRange = L.dom.yMax - L.dom.yMin;
+  let step = niceStepFrom(band.width / BAND_TARGET);
+  step = Math.min(step, niceStepFrom(yRange / 60));
+  step = Math.max(step, yRange / 900);
+
+  // The intended release height must land on a value the slider can actually
+  // reach. A range input's valid values are min + n·step — NOT multiples of
+  // step — so snapping to multiples of step can produce a height the browser
+  // will refuse to select, making a verified level unwinnable in practice.
+  const grid = v => L.dom.yMin + Math.round((v - L.dom.yMin) / step) * step;
+  let y0 = grid(L.solveY0);
+  if (!winsAt(L, y0)) {
+    const alt = [y0 - step, y0 + step, y0 - 2*step, y0 + 2*step].find(v => winsAt(L, v));
+    if (alt === undefined) return null;
+    y0 = alt;
+  }
+  L.solveY0 = y0;
+  L.sliderStep = step;
+
+  // count the winning positions the player can actually land on
+  let steps = 0;
+  for (let v = grid(band.lo); v <= band.hi + 1e-9; v += step) if (winsAt(L, v)) steps++;
+  if (steps < BAND_MIN || steps > BAND_MAX) return null;
+  L._band = steps;
+  return L;
+}
+
+// Build one level from its family: draw parameters, verify, retry. Falls back
+// to the loosest acceptable candidate seen rather than shipping nothing.
+function buildLevel(idx) {
+  if (LEVELS[idx]) return LEVELS[idx];
+  const fam = FAMILIES[idx];
+
+  const tidy = c => {
+    // trim float noise from computed bounds (0.35*1.5 = 0.5249999...) so the
+    // slider grid and the axis ticks land on clean values
+    const r = v => Math.round(v * 1e6) / 1e6;
+    c.dom.yMin = r(c.dom.yMin); c.dom.yMax = r(c.dom.yMax);
+    c.dom.xMin = r(c.dom.xMin); c.dom.xMax = r(c.dom.xMax);
+    c.solveY0  = r(c.solveY0);
+    return c;
+  };
+
+  for (let t = 0; t < FAMILY_TRIES; t++) {
+    const cand = fam.make();
+    if (!cand) continue;
+    Object.assign(cand, { name: fam.name, tag: fam.tag, wantsCallout: fam.wantsCallout });
+    tidy(cand);
+
+    const ok = qualify(cand);
+    if (ok) { ok.solveY0 = Math.round(ok.solveY0 * 1e6) / 1e6;
+              LEVELS[idx] = ok; placeCallout(ok); return ok; }
+  }
+
+  // Emergency path: relax the band requirement rather than fail to produce a
+  // level. A level must always exist even if no draw hit the target window.
+  for (let t = 0; t < FAMILY_TRIES; t++) {
+    const cand = fam.make();
+    if (!cand) continue;
+    Object.assign(cand, { name: fam.name, tag: fam.tag, wantsCallout: fam.wantsCallout });
+    tidy(cand);
+    if (!placeTargets(cand) || !winsAt(cand, cand.solveY0)) continue;
+    cand.sliderStep = niceStepFrom((cand.dom.yMax - cand.dom.yMin) / 140);
+    const g = v => cand.dom.yMin + Math.round((v - cand.dom.yMin) / cand.sliderStep) * cand.sliderStep;
+    cand.solveY0 = Math.round(g(cand.solveY0) * 1e6) / 1e6;
+    if (!winsAt(cand, cand.solveY0)) continue;
+    cand._band = 0;
+    LEVELS[idx] = cand;
+    placeCallout(cand);
+    return cand;
+  }
+  return null;
+}
+
+// The level-1 annotation has to dodge whatever targets were generated, so its
+// position is chosen after the fact from a few candidate corners.
+function placeCallout(L) {
+  if (!L.wantsCallout) return;
+  const d = L.dom, w = d.xMax - d.xMin, h = d.yMax - d.yMin;
+  const spots = [
+    { label: [d.xMin + 0.34*w, d.yMin + 0.88*h], point: [d.xMin + 0.19*w, d.yMin + 0.76*h] },
+    { label: [d.xMin + 0.66*w, d.yMin + 0.88*h], point: [d.xMin + 0.81*w, d.yMin + 0.76*h] },
+    { label: [d.xMin + 0.34*w, d.yMin + 0.13*h], point: [d.xMin + 0.19*w, d.yMin + 0.25*h] },
+    { label: [d.xMin + 0.66*w, d.yMin + 0.13*h], point: [d.xMin + 0.81*w, d.yMin + 0.25*h] }
+  ];
+  const targets = [...L.stars, L.goal];
+  const clear = s => targets.every(t =>
+    Math.hypot(sx(s.label[0], d) - sx(t.x, d), sy(s.label[1], d) - sy(t.y, d)) > 74 &&
+    Math.hypot(sx(s.point[0], d) - sx(t.x, d), sy(s.point[1], d) - sy(t.y, d)) > 46);
+
+  const chosen = spots.find(clear) || spots[0];
+  L.fieldCallout = {
+    labelAt: chosen.label,
+    pointAt: chosen.point,
+    text: "each dash = the slope at that point"
+  };
+}
+
+// ── Slope field rendering ────────────────────────────────
+// ── Slope → colour ───────────────────────────────────────
+// A diverging scale: blue where solutions fall, rose where they rise, amber
+// where the slope is ~0. Darkness tracks steepness. This is deliberately
+// redundant with the segment's own tilt — the point is to make the field read
+// as information at a glance instead of as background hatching.
+function hsl2rgb(h, s, l) {
+  h = ((h % 360) + 360) % 360 / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const hk = t => {
+    t = (t + 1) % 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  return [hk(h + 1/3), hk(h), hk(h - 1/3)].map(v => Math.round(v * 255));
+}
+
+const AMBER = hsl2rgb(38, 0.88, 0.50);
+
+// Characteristic slope magnitude for a level, used to normalise the colour
+// ramp. Without this a fixed scale washes out whole levels: logistic growth
+// never exceeds |dy/dx| = 0.225, so every segment would land in the same
+// narrow amber band. Uses the 85th percentile rather than the max so a few
+// near-vertical outliers (e.g. -x/y approaching y=0) don't flatten everything
+// else to one colour.
+function fieldScale(L) {
+  if (L._scale) return L._scale;
+  const d = L.dom, vals = [];
+  for (let i = 0; i <= 21; i++) {
+    for (let j = 0; j <= 14; j++) {
+      const m = L.f(d.xMin + (d.xMax - d.xMin) * i / 21,
+                    d.yMin + (d.yMax - d.yMin) * j / 14);
+      if (isFinite(m) && Math.abs(m) <= SLOPE_CAP) vals.push(Math.abs(m));
+    }
+  }
+  vals.sort((a, b) => a - b);
+  const p85 = vals[Math.floor(vals.length * 0.85)] || 1;
+  const p15 = vals[Math.floor(vals.length * 0.15)] || 0;
+  // A field with no variation (constant slope) carries no information in its
+  // colour, so saturating it to "maximally steep" would be both misleading and
+  // visually heavy — it would out-darken the ghost trails drawn over it.
+  L._uniform = (p85 - p15) / Math.max(p85, 1e-9) < 0.06;
+  L._scale = Math.max(p85, 1e-6);
+  return L._scale;
+}
+
+function slopeColor(m, scale, uniform) {
+  scale = scale || 1;
+  if (!isFinite(m) || Math.abs(m) > SLOPE_CAP) return "rgb(150,158,168)"; // undefined
+  const rel = Math.abs(m) / scale;
+  const steep = uniform ? 0.42 : Math.min(1, rel);
+  const hue = m >= 0 ? 348 : 206;
+  // Ceiling on how dark the field can get. The field is context; the ghost
+  // trails (L≈114) and the live trail (L≈84) are the subject, so saturated
+  // segments must stay lighter than both or the hierarchy inverts.
+  let c = hsl2rgb(hue, 0.46 + 0.30 * steep, 0.70 - 0.17 * steep);
+  // fade toward amber as the slope approaches zero, so equilibria stand out.
+  // Squared falloff keeps amber tight around m=0 — a linear blend spends too
+  // long in the muddy olive midpoint between amber and blue.
+  const flat = Math.max(0, 1 - rel / 0.22);
+  const w = flat * flat;
+  if (w > 0) c = c.map((v, i) => Math.round(v + (AMBER[i] - v) * w));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function fieldSegments(L) {
+  const d = L.dom, out = [];
+  const COLS = 21, ROWS = 14, LEN = 17;
+  const scale = fieldScale(L);
+
+  for (let i = 0; i <= COLS; i++) {
+    for (let j = 0; j <= ROWS; j++) {
+      const x = d.xMin + (d.xMax - d.xMin) * i / COLS;
+      const y = d.yMin + (d.yMax - d.yMin) * j / ROWS;
+      const m = L.f(x, y);
+      const px = sx(x, d), py = sy(y, d);
+
+      let ux, uy;
+      if (!isFinite(m) || Math.abs(m) > SLOPE_CAP) {
+        ux = 0; uy = 1;                       // vertical where undefined
+      } else {
+        // tangent (1, m) in math space → SVG space (y flips)
+        const vx = PLOT_W / (d.xMax - d.xMin);
+        const vy = -m * PLOT_H / (d.yMax - d.yMin);
+        const n = Math.hypot(vx, vy);
+        ux = vx / n; uy = vy / n;
+      }
+      const isEq = isFinite(m) && Math.abs(m) < 0.04 * scale;
+      out.push(
+        `<line class="fieldseg${isEq ? ' eqm' : ''}" stroke="${slopeColor(m, scale, L._uniform)}" ` +
+        `x1="${(px - ux*LEN/2).toFixed(1)}" y1="${(py - uy*LEN/2).toFixed(1)}" ` +
+        `x2="${(px + ux*LEN/2).toFixed(1)}" y2="${(py + uy*LEN/2).toFixed(1)}"/>`
+      );
+    }
+  }
+  return out.join("");
+}
+
+function axesAndGrid(L) {
+  const d = L.dom, out = [];
+  const xStep = niceStep(d.xMax - d.xMin);
+  const yStep = niceStep(d.yMax - d.yMin);
+
+  for (let x = Math.ceil(d.xMin / xStep) * xStep; x <= d.xMax + 1e-9; x += xStep) {
+    const px = sx(x, d);
+    out.push(`<line class="gridline" x1="${px}" y1="${PAD.t}" x2="${px}" y2="${PAD.t+PLOT_H}"/>`);
+    out.push(`<text class="tick" x="${px}" y="${PAD.t+PLOT_H+16}" text-anchor="middle">${fmt(x)}</text>`);
+  }
+  for (let y = Math.ceil(d.yMin / yStep) * yStep; y <= d.yMax + 1e-9; y += yStep) {
+    const py = sy(y, d);
+    out.push(`<line class="gridline" x1="${PAD.l}" y1="${py}" x2="${PAD.l+PLOT_W}" y2="${py}"/>`);
+    out.push(`<text class="tick" x="${PAD.l-8}" y="${py+4}" text-anchor="end">${fmt(y)}</text>`);
+  }
+  if (d.yMin < 0 && d.yMax > 0) {
+    const py = sy(0, d);
+    out.push(`<line class="axis" x1="${PAD.l}" y1="${py}" x2="${PAD.l+PLOT_W}" y2="${py}"/>`);
+  }
+  if (d.xMin < 0 && d.xMax > 0) {
+    const px = sx(0, d);
+    out.push(`<line class="axis" x1="${px}" y1="${PAD.t}" x2="${px}" y2="${PAD.t+PLOT_H}"/>`);
+  }
+  return out.join("");
+}
+
+function niceStep(range) {
+  const raw = range / 8;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / pow;
+  return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * pow;
+}
+function fmt(v) {
+  const r = Math.round(v * 100) / 100;
+  return Math.abs(r) < 1e-9 ? "0" : String(r);
+}
+
+function equilibriaMarks(L) {
+  if (!L.equilibria) return "";
+  return L.equilibria.map(e => {
+    const py = sy(e.y, L.dom);
+    return `<line class="eqline" x1="${PAD.l}" y1="${py}" x2="${PAD.l+PLOT_W}" y2="${py}"/>` +
+           `<text class="eqlabel" x="${PAD.l+7}" y="${py-6}">${e.label}</text>`;
+  }).join("");
+}
+
+// Coordinate caption for a target, e.g. "(-4, -1)". Trailing zeros trimmed so
+// whole-number lattice points read cleanly.
+function coordText(x, y) {
+  const t = v => {
+    const r = Math.round(v * 100) / 100;
+    return (Math.abs(r) < 1e-9 ? 0 : r).toString();
+  };
+  return `(${t(x)}, ${t(y)})`;
+}
+
+// Caption placed under the marker, flipped above when it would fall off the
+// bottom of the plot. A translucent plate keeps it legible over the slope field.
+function coordCaption(px, py, x, y, isGoal, r) {
+  const label = coordText(x, y);
+  const below = py + r + 17 < PAD.t + PLOT_H - 4;
+  const ly = below ? py + r + 17 : py - r - 8;
+  const w = label.length * 7.2 + 8;
+  return `<rect class="coordplate" x="${(px - w/2).toFixed(1)}" y="${(ly - 12).toFixed(1)}" ` +
+         `width="${w.toFixed(1)}" height="16" rx="4"/>` +
+         `<text class="coordlabel${isGoal ? ' goal' : ''}" x="${px.toFixed(1)}" y="${ly.toFixed(1)}" ` +
+         `text-anchor="middle">${label}</text>`;
+}
+
+function targetMarks(L) {
+  const d = L.dom, out = [];
+  L.stars.forEach((s, i) => {
+    const px = sx(s.x, d), py = sy(s.y, d);
+    out.push(
+      `<g id="star${i}" opacity="${s.got ? 0.28 : 1}">` +
+      `<circle cx="${px}" cy="${py}" r="${STAR_R_PX}" fill="#fff5cc" ` +
+      `stroke="#f5b301" stroke-width="2"/>` +
+      `<text x="${px}" y="${py+6}" text-anchor="middle" font-size="17">⭐</text>` +
+      coordCaption(px, py, s.x, s.y, false, STAR_R_PX) +
+      `</g>`
+    );
+  });
+  const gx = sx(L.goal.x, d), gy = sy(L.goal.y, d);
+  out.push(
+    `<g id="goalRing" opacity="${L.goal.got ? 0.35 : 1}">` +
+    `<circle cx="${gx}" cy="${gy}" r="${GOAL_R_PX}" fill="none" ` +
+    `stroke="#20bf6b" stroke-width="3.5"/>` +
+    `<circle cx="${gx}" cy="${gy}" r="${GOAL_R_PX-7}" fill="#20bf6b" opacity=".16"/>` +
+    `<text x="${gx}" y="${gy+6}" text-anchor="middle" font-size="16">🏁</text>` +
+    coordCaption(gx, gy, L.goal.x, L.goal.y, true, GOAL_R_PX) +
+    `</g>`
+  );
+  return out.join("");
+}
+
+// A one-time annotation on level 1 naming what a field dash actually is.
+// Level 1 has constant slope, so every segment is parallel — the field looks
+// exactly like decorative hatching until you're told otherwise. Disappears
+// after the first launch.
+function fieldCallout(L) {
+  if (!L.fieldCallout || state.attempts > 0) return "";
+  const d = L.dom;
+  const t = L.fieldCallout;
+  const tx = sx(t.pointAt[0], d), ty = sy(t.pointAt[1], d);
+  const lx = sx(t.labelAt[0], d), ly = sy(t.labelAt[1], d);
+  const w = t.text.length * 6.9 + 20;
+
+  return `<g class="callout">` +
+    `<path class="callout-lead" d="M ${lx.toFixed(1)} ${(ly+9).toFixed(1)} ` +
+      `Q ${((lx+tx)/2).toFixed(1)} ${((ly+ty)/2+16).toFixed(1)} ` +
+      `${(tx+13).toFixed(1)} ${(ty-3).toFixed(1)}"/>` +
+    `<circle class="callout-dot" cx="${tx.toFixed(1)}" cy="${ty.toFixed(1)}" r="12"/>` +
+    `<rect class="callout-plate" x="${(lx-w/2).toFixed(1)}" y="${(ly-15).toFixed(1)}" ` +
+      `width="${w.toFixed(1)}" height="24" rx="7"/>` +
+    `<text class="callout-text" x="${lx.toFixed(1)}" y="${(ly+1).toFixed(1)}" ` +
+      `text-anchor="middle">${t.text}</text>` +
+    `</g>`;
+}
+
+// Past attempts, drawn graded by age: the most recent is the one you're
+// adjusting away from, so it reads strongest and older ones recede. A neutral
+// graphite reads over the coloured field without competing with the live
+// violet trail. Each is tagged with the release height that produced it, which
+// turns guess-and-check into something you can actually reason from.
+function ghostPaths(L) {
+  const d = L.dom, n = state.ghosts.length;
+  if (!n) return "";
+  const out = [], placed = [];
+
+  state.ghosts.forEach((g, i) => {
+    const age = n === 1 ? 1 : i / (n - 1);        // 0 = oldest, 1 = newest
+    const dpath = toPath(g.path, d);
+    const w = 1.9 + 1.2 * age;
+    const dash = age > 0.99 ? "8 4" : "4 5";
+    // A white halo under each dash lifts the trail off the coloured field.
+    // Without it the ghost competes with saturated slope segments and loses on
+    // the levels whose fields run dark.
+    out.push(
+      `<path class="ghost" d="${dpath}" stroke="#ffffff" ` +
+      `stroke-width="${(w + 3.2).toFixed(1)}" opacity="${(0.25 + 0.45 * age).toFixed(2)}" ` +
+      `stroke-dasharray="${dash}"/>`
+    );
+    out.push(
+      `<path class="ghost" d="${dpath}" stroke="#333c4a" ` +
+      `stroke-width="${w.toFixed(1)}" opacity="${(0.36 + 0.52 * age).toFixed(2)}" ` +
+      `stroke-dasharray="${dash}"/>`
+    );
+  });
+
+  // Release-height tags, newest first so it wins any collision. Skipped when
+  // two attempts were close enough that their labels would overlap.
+  for (let i = n - 1; i >= 0 && placed.length < 4; i--) {
+    const g = state.ghosts[i];
+    const px = sx(d.xMin, d), py = sy(g.y0, d);
+    if (placed.some(p => Math.abs(p - py) < 14)) continue;
+    placed.push(py);
+    const age = n === 1 ? 1 : i / (n - 1);
+    const txt = g.y0.toFixed(2);
+    const w = txt.length * 6.6 + 9;
+    out.push(
+      `<g opacity="${(0.5 + 0.5 * age).toFixed(2)}">` +
+      `<rect x="${(px + 8).toFixed(1)}" y="${(py - 8.5).toFixed(1)}" ` +
+      `width="${w.toFixed(1)}" height="17" rx="4" fill="#fff" opacity=".85"/>` +
+      `<text class="ghost-label" x="${(px + 12).toFixed(1)}" y="${(py + 4).toFixed(1)}">${txt}</text>` +
+      `</g>`
+    );
+  }
+  return out.join("");
+}
+
+function toPath(pts, d) {
+  if (!pts.length) return "";
+  let s = `M ${sx(pts[0].x, d).toFixed(1)} ${sy(pts[0].y, d).toFixed(1)}`;
+  const stride = Math.max(1, Math.floor(pts.length / 400));
+  for (let i = stride; i < pts.length; i += stride) {
+    s += ` L ${sx(pts[i].x, d).toFixed(1)} ${sy(pts[i].y, d).toFixed(1)}`;
+  }
+  const last = pts[pts.length - 1];
+  s += ` L ${sx(last.x, d).toFixed(1)} ${sy(last.y, d).toFixed(1)}`;
+  return s;
+}
+
+// Small glider triangle, rotated to the tangent direction.
+function gliderMark(px, py, angleDeg) {
+  return `<g id="glider" transform="translate(${px.toFixed(1)},${py.toFixed(1)}) ` +
+         `rotate(${angleDeg.toFixed(1)})">` +
+         `<path d="M -11 -7 L 13 0 L -11 7 L -6 0 Z" fill="#6741d9" ` +
+         `stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></g>`;
+}
+
+// ── Full redraw ──────────────────────────────────────────
+function render() {
+  const L = LEVELS[state.level], d = L.dom;
+  const px = sx(d.xMin, d), py = sy(state.y0, d);
+
+  // initial-slope tick at the release point (shows the first instant only —
+  // the rest of the curve is for the player to work out)
+  const m0 = L.f(d.xMin, state.y0);
+  let arrow = "";
+  if (isFinite(m0) && Math.abs(m0) <= SLOPE_CAP) {
+    const vx = PLOT_W / (d.xMax - d.xMin);
+    const vy = -m0 * PLOT_H / (d.yMax - d.yMin);
+    const n = Math.hypot(vx, vy), LEN = 30;
+    arrow = `<line class="startarrow" x1="${px}" y1="${py}" ` +
+            `x2="${(px + vx/n*LEN).toFixed(1)}" y2="${(py + vy/n*LEN).toFixed(1)}"/>`;
+  }
+
+  document.getElementById("plot").innerHTML =
+    axesAndGrid(L) +
+    fieldSegments(L) +
+    equilibriaMarks(L) +
+    ghostPaths(L) +
+    `<path class="trail" id="trail" d=""/>` +
+    targetMarks(L) +
+    fieldCallout(L) +
+    arrow +
+    `<circle class="startmark" cx="${px}" cy="${py}" r="6"/>` +
+    gliderMark(px, py, 0);
+
+  document.getElementById("levelChip").textContent  = `Level ${state.level+1} / ${LEVEL_COUNT}`;
+  document.getElementById("tagChip").textContent    = L.tag;
+  document.getElementById("tagChip").className      = "chip" + (L.tag === "BC" ? " bc" : "");
+  document.getElementById("scoreChip").textContent  = `${state.score} pts`;
+  document.getElementById("attemptChip").textContent= `Attempt ${state.attempts + 1}`;
+  document.getElementById("levelName").textContent  = L.name;
+  document.getElementById("eqText").textContent     = L.eqText;
+  document.getElementById("y0Label").textContent    = `y₀ = ${state.y0.toFixed(2)}`;
+}
+
+// ── Launch + animation ───────────────────────────────────
+function launch() {
+  if (state.flying || state.levelDone) return;
+  const L = LEVELS[state.level], d = L.dom;
+
+  state.flying = true;
+  state.attempts++;
+  setControlsEnabled(false);
+  hideBanner();
+
+  L.stars.forEach(s => s.got = false);
+  L.goal.got = false;
+  render();
+
+  const path = integrate(L.f, d.xMin, state.y0, d);
+  const trailEl  = document.getElementById("trail");
+  const gliderEl = document.getElementById("glider");
+
+  let i = 0;
+  const FRAME_STEP = Math.max(1, Math.round(path.length / 150)); // ~2.5 s flight
+
+  function step() {
+    i = Math.min(i + FRAME_STEP, path.length - 1);
+    const seg = path.slice(0, i + 1);
+    trailEl.setAttribute("d", toPath(seg, d));
+
+    const p  = path[i];
+    const pp = path[Math.max(0, i - 2)];
+    const cx = sx(p.x, d), cy = sy(p.y, d);
+    const ang = Math.atan2(cy - sy(pp.y, d), cx - sx(pp.x, d)) * 180 / Math.PI;
+    gliderEl.setAttribute("transform", `translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${ang.toFixed(1)})`);
+
+    // pickups
+    L.stars.forEach((s, k) => {
+      if (s.got) return;
+      if (Math.hypot(cx - sx(s.x, d), cy - sy(s.y, d)) < STAR_R_PX) {
+        s.got = true;
+        const el = document.getElementById("star" + k);
+        if (el) el.setAttribute("opacity", "0.28");
+        beep(880, 0.07);
+      }
+    });
+    if (!L.goal.got &&
+        Math.hypot(cx - sx(L.goal.x, d), cy - sy(L.goal.y, d)) < GOAL_R_PX) {
+      L.goal.got = true;
+      const el = document.getElementById("goalRing");
+      if (el) el.setAttribute("opacity", "0.35");
+      beep(1320, 0.1);
+    }
+
+    if (i < path.length - 1) {
+      animHandle = requestAnimationFrame(step);
+    } else {
+      finishFlight(path);
+    }
+  }
+  animHandle = requestAnimationFrame(step);
+}
+
+function finishFlight(path) {
+  state.flying = false;
+  const L = LEVELS[state.level];
+  const starsGot = L.stars.filter(s => s.got).length;
+  const won = starsGot === L.stars.length && L.goal.got;
+
+  if (won) {
+    const penalty = Math.min(60, (state.attempts - 1) * 15);
+    const pts = Math.max(40, 100 - penalty);
+    state.score += pts;
+    if (state.attempts === 1) state.perfects++;
+    state.levelDone = true;
+
+    showBanner("win",
+      state.attempts === 1 ? "Nailed it, first try!" : "Clean flight!",
+      `+${pts} points${state.attempts === 1 ? " · first-attempt bonus kept" : ""}. ` +
+      `You found the initial condition whose solution curve passes through every target.`);
+
+    document.getElementById("launchBtn").style.display = "none";
+
+    if (L.euler && !state.eulerAnswered) showEuler(L);
+    else document.getElementById("nextBtn").style.display = "";
+    beep(1046, 0.16);
+  } else {
+    state.ghosts.push({ path, y0: state.y0 });
+    if (state.ghosts.length > 6) state.ghosts.shift();
+
+    const last = path[path.length - 1];
+    let why;
+    if (last.x < L.dom.xMax - 0.15) {
+      why = last.y > (L.dom.yMin + L.dom.yMax) / 2
+        ? "You flew off the top of the window — try releasing lower."
+        : "You dropped out of the bottom — try releasing higher.";
+    } else if (!L.goal.got) {
+      why = "You reached the right edge but missed the goal ring.";
+    } else {
+      why = `You hit the goal but only collected ${starsGot} of ${L.stars.length} stars.`;
+    }
+    showBanner("miss", `${starsGot} / ${L.stars.length} stars`,
+      `${why} That path is now a ghost trail, tagged with the height you released from — ` +
+      `adjust y₀ and launch again.`);
+
+    setControlsEnabled(true);
+    beep(220, 0.14);
+  }
+  document.getElementById("attemptChip").textContent = `Attempt ${state.attempts + 1}`;
+  document.getElementById("scoreChip").textContent   = `${state.score} pts`;
+}
+
+// ── Euler's method bonus (BC levels) ─────────────────────
+function showEuler(L) {
+  const { x0, y0, h } = L.euler;
+  const slope = L.f(x0, y0);
+  const correct = y0 + h * slope;
+
+  const distractors = [
+    y0 + slope,            // forgot to multiply by h
+    y0 - h * slope,        // sign slip
+    y0 + h                 // used h as the increment
+  ];
+  const opts = [correct, ...distractors]
+    .map(v => Math.round(v * 1000) / 1000)
+    .filter((v, i, a) => a.indexOf(v) === i);
+  while (opts.length < 4) {
+    const extra = Math.round((correct + (opts.length * 0.13 + 0.07)) * 1000) / 1000;
+    if (!opts.includes(extra)) opts.push(extra);
+  }
+  shuffle(opts);
+
+  document.getElementById("eulerQ").innerHTML =
+    `Starting from (${x0}, ${y0}) on this differential equation, take <b>one</b> Euler step ` +
+    `with h = ${h}. What is the approximate value of y?`;
+
+  const box = document.getElementById("eulerOpts");
+  box.innerHTML = "";
+  opts.forEach(v => {
+    const b = document.createElement("button");
+    b.className = "opt";
+    b.textContent = v.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+    b.onclick = () => answerEuler(b, v, Math.round(correct * 1000) / 1000, slope, x0, y0, h);
+    box.appendChild(b);
+  });
+  document.getElementById("eulerBox").classList.add("show");
+}
+
+function answerEuler(btn, chosen, correct, slope, x0, y0, h) {
+  if (state.eulerAnswered) return;
+  state.eulerAnswered = true;
+  const right = Math.abs(chosen - correct) < 1e-9;
+
+  document.querySelectorAll("#eulerOpts .opt").forEach(b => {
+    b.disabled = true;
+    const v = parseFloat(b.textContent);
+    if (Math.abs(v - correct) < 1e-9) b.classList.add("right");
+  });
+  if (!right) btn.classList.add("wrong");
+  if (right) { state.score += 30; beep(1174, 0.13); }
+
+  const work = `y₁ = y₀ + h · f(x₀, y₀) = ${y0} + ${h}(${round3(slope)}) = ${round3(correct)}`;
+  document.getElementById("eulerQ").innerHTML +=
+    `<br><br><span style="color:${right ? '#14663a' : '#a83e1c'};font-weight:600">` +
+    `${right ? "Correct — +30 points." : "Not quite."}</span> ` +
+    `<span style="font-size:15px">${work}</span>`;
+
+  document.getElementById("scoreChip").textContent = `${state.score} pts`;
+  document.getElementById("nextBtn").style.display = "";
+}
+
+function round3(v) { return Math.round(v * 1000) / 1000; }
+
+// ── Flow control ─────────────────────────────────────────
+function startGame() {
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("gameScreen").classList.remove("hidden");
+  loadLevel(0);
+}
+
+function loadLevel(idx) {
+  if (animHandle) cancelAnimationFrame(animHandle);
+  state.level = idx;
+  state.attempts = 0;
+  state.ghosts = [];
+  state.flying = false;
+  state.levelDone = false;
+  state.eulerAnswered = false;
+
+  const L = buildLevel(idx), d = L.dom;
+  L.stars.forEach(s => s.got = false);
+  L.goal.got = false;
+
+  const sl = document.getElementById("y0Slider");
+  const stepSize = L.sliderStep || 0.05;
+  sl.min = d.yMin;
+  sl.max = d.yMax;
+  sl.step = String(stepSize);
+  // snap the default release height onto the slider's own grid, which is
+  // anchored at min rather than at zero
+  state.y0 = d.yMin + Math.round(((d.yMax - d.yMin) / 2) / stepSize) * stepSize;
+  sl.value = state.y0;
+
+  document.getElementById("launchBtn").style.display = "";
+  document.getElementById("nextBtn").style.display = "none";
+  document.getElementById("eulerBox").classList.remove("show");
+  document.getElementById("hintBox").classList.remove("show");
+  document.getElementById("hintBox").textContent = L.hint;
+  hideBanner();
+  setControlsEnabled(true);
+  render();
+}
+
+function nextLevel() {
+  if (state.level + 1 >= LEVEL_COUNT) return endGame();
+  loadLevel(state.level + 1);
+}
+
+function endGame() {
+  document.getElementById("gameScreen").classList.add("hidden");
+  const end = document.getElementById("endScreen");
+  end.classList.remove("hidden");
+  document.getElementById("finalScore").textContent = state.score + " pts";
+
+  const msg = state.perfects >= 7 ? "Outstanding — you're reading slope fields at a glance."
+            : state.perfects >= 4 ? "Strong work. You've got the feel for how initial conditions steer a solution."
+            : "Solid finish. Try again and see how many you can take first try.";
+  document.getElementById("finalMsg").textContent = msg;
+  document.getElementById("finalBreak").textContent =
+    `${state.perfects} of ${LEVEL_COUNT} levels cleared on the first attempt.`;
+}
+
+function setControlsEnabled(on) {
+  document.getElementById("y0Slider").disabled = !on;
+  document.getElementById("launchBtn").disabled = !on;
+}
+
+function showBanner(kind, title, body) {
+  const b = document.getElementById("banner");
+  b.className = `banner ${kind} show`;
+  b.innerHTML = `<b>${title}</b>${body}`;
+}
+function hideBanner() {
+  document.getElementById("banner").className = "banner";
+}
+
+function toggleHint() {
+  const h = document.getElementById("hintBox");
+  h.classList.toggle("show");
+  if (h.classList.contains("show")) state.hintsUsed++;
+}
+
+// ── Utilities ────────────────────────────────────────────
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let audioCtx = null, soundOn = true;
+
+function toggleSound(btn) {
+  soundOn = !soundOn;
+  btn.textContent = soundOn ? "🔊" : "🔇";
+  btn.setAttribute("aria-label", soundOn ? "Sound on" : "Sound off");
+  btn.setAttribute("title", soundOn ? "Turn sound off" : "Turn sound on");
+}
+
+function beep(freq, dur) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = freq;
+    o.type = "sine";
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.09, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) { /* audio is optional */ }
+}
+
+// ── Wiring ───────────────────────────────────────────────
+// legend swatches are painted from slopeColor() itself, so they can never
+// drift out of sync with what the field actually draws
+document.getElementById("swNeg").style.background  = slopeColor(-1, 1);
+document.getElementById("swZero").style.background = slopeColor(0, 1);
+document.getElementById("swPos").style.background  = slopeColor(1, 1);
+
+document.getElementById("y0Slider").addEventListener("input", e => {
+  if (state.flying || state.levelDone) return;
+  state.y0 = parseFloat(e.target.value);
+  render();
+});
+
+document.addEventListener("keydown", e => {
+  if (document.getElementById("gameScreen").classList.contains("hidden")) return;
+  // don't double-fire when a button or the slider already has focus — the
+  // element handles the key itself
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "button" || tag === "input") return;
+  if (e.key === "Enter" || e.key === " ") {
+    const nb = document.getElementById("nextBtn");
+    if (nb.style.display !== "none") { e.preventDefault(); nextLevel(); }
+    else if (!state.flying && !state.levelDone) { e.preventDefault(); launch(); }
+  }
+});
+</script>
+</body>
+</html>
