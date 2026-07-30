@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taylor Sculptor</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #FFF8F0; margin: 0; padding: 20px; color: #2d3436;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; position: relative; }
+
+  .card {
+    background: #fff; border-radius: 14px; border-top: 6px solid #0c8599;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08); padding: 22px 24px; margin-bottom: 18px;
+  }
+  h1 { margin: 0 0 6px; font-size: 30px; color: #0c8599; letter-spacing: -.5px; }
+  h2 { margin: 0 0 10px; font-size: 21px; color: #095c69; }
+  .sub { color: #636e72; font-size: 15px; margin: 0 0 16px; }
+
+  .sound-btn {
+    position: absolute; top: 16px; right: 16px; z-index: 5;
+    background: #e6f7fa; border: 2px solid #0c8599; color: #095c69;
+    width: 34px; height: 34px; border-radius: 50%;
+    cursor: pointer; font-size: 15px; line-height: 1; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .sound-btn:hover { background: #cdeef4; }
+  .sound-btn:focus-visible { outline: 3px solid #7fd4e3; outline-offset: 2px; }
+
+  .hud { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .chip { background: #e6f7fa; color: #095c69; border-radius: 20px;
+          padding: 6px 14px; font-size: 14px; font-weight: 600; }
+  .chip.score { background: #d3f9d8; color: #237032; }
+  .chip.par   { background: #fff3bf; color: #8a6d00; }
+
+  .task {
+    font-family: "Cambria Math", Cambria, Georgia, serif; font-size: 20px;
+    background: #f5fcfd; border-left: 4px solid #0c8599;
+    padding: 11px 16px; border-radius: 0 8px 8px 0; margin-bottom: 14px;
+  }
+  .task b { color: #0c8599; }
+
+  .plot-holder { background: linear-gradient(#f7fdfe, #fbfeff);
+                 border-radius: 12px; overflow: hidden; border: 1px solid #d8ecf0; }
+  svg.plot { display: block; width: 100%; height: auto; }
+
+  .gridline { stroke: #e6eef1; stroke-width: 1; }
+  .axis     { stroke: #a9bcc2; stroke-width: 1.5; }
+  .tick     { fill: #8fa3aa; font-size: 11px; font-family: "Segoe UI", sans-serif; }
+  .band     { fill: #0c8599; opacity: .06; }
+  .ribbon   { fill: #37b24d; opacity: .17; }
+  .target      { fill: none; stroke: #495057; stroke-width: 2.4; opacity: .55; }
+  .target-lit  { fill: none; stroke: #212529; stroke-width: 3.4; }
+  .poly        { fill: none; stroke: #0c8599; stroke-width: 3.2;
+                 stroke-linecap: round; stroke-linejoin: round; }
+  .poly.good   { stroke: #2f9e44; }
+  .centerline  { stroke: #e8590c; stroke-width: 2; stroke-dasharray: 6 4; }
+  .centerlabel { fill: #d9480f; font-size: 12px; font-weight: 600;
+                 font-family: "Segoe UI", sans-serif; }
+  .edgelabel   { fill: #0c8599; font-size: 12px; font-weight: 600;
+                 font-family: "Segoe UI", sans-serif; }
+
+  .gauge-row { display: flex; align-items: center; gap: 12px; margin-top: 13px; flex-wrap: wrap; }
+  .gauge { flex: 1 1 240px; min-width: 200px; height: 15px;
+           background: #eef2f4; border-radius: 8px; overflow: hidden; }
+  .gauge-fill { height: 100%; width: 0%; border-radius: 8px;
+                background: linear-gradient(90deg, #f59f00, #37b24d); transition: width .3s; }
+  .gauge-fill.over { background: linear-gradient(90deg, #ff8787, #f59f00); }
+  .err-read { font-family: "Cambria Math", Cambria, Georgia, serif;
+              font-size: 15px; color: #495057; white-space: nowrap; }
+  .err-read b { color: #0c8599; font-size: 17px; }
+  .err-read.ok b { color: #2f9e44; }
+
+  .poly-box {
+    margin-top: 13px; padding: 12px 15px; border-radius: 9px;
+    background: #f8fafb; border: 1px solid #e3ebee;
+    font-family: "Cambria Math", Cambria, Georgia, serif; font-size: 16px;
+    line-height: 1.75; color: #343a40; word-break: break-word; min-height: 46px;
+  }
+  .poly-box .lead { color: #0c8599; font-weight: 600; }
+  .poly-box .muted { color: #adb5bd; }
+
+  .tries { margin-top: 10px; font-size: 13.5px; color: #6b7780;
+           display: flex; flex-wrap: wrap; gap: 8px; }
+  .tries .t {
+    background: #f1f4f6; border-radius: 6px; padding: 4px 9px;
+    font-family: "Cambria Math", Cambria, Georgia, serif;
+  }
+  .tries .t.short { color: #a8501f; background: #fff1e6; }
+  .tries .t.over  { color: #7a5c00; background: #fff8e1; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+  .slider-box { flex: 1 1 280px; min-width: 230px; }
+  .slider-label { font-size: 14px; color: #636e72; margin-bottom: 6px;
+                  display: flex; justify-content: space-between; }
+  .slider-label b { font-family: "Cambria Math", Cambria, Georgia, serif;
+                    font-size: 17px; color: #e8590c; }
+  input[type=range] { width: 100%; height: 28px; -webkit-appearance: none;
+                      background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 7px; border-radius: 4px; background: #ffe3d0; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%;
+    background: #e8590c; border: 3px solid #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,.25); margin-top: -9px; }
+  input[type=range]::-moz-range-track { height: 7px; border-radius: 4px; background: #ffe3d0; }
+  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%;
+    background: #e8590c; border: 3px solid #fff; }
+  input[type=range]:disabled::-webkit-slider-thumb { background: #b2bec3; }
+  input[type=range]:focus-visible { outline: 3px solid #ffc9a3; outline-offset: 3px; }
+
+  button { font-family: inherit; font-size: 16px; font-weight: 600; border: none;
+           border-radius: 10px; padding: 13px 22px; cursor: pointer;
+           transition: transform .12s, box-shadow .12s, background .15s; }
+  button:focus-visible { outline: 3px solid #7fd4e3; outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-add   { background: #0c8599; color: #fff; box-shadow: 0 3px 0 #095c69; }
+  .btn-add:hover:not(:disabled)  { background: #1098ad; }
+  .btn-add:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+  .btn-ghost { background: #eef6f8; color: #095c69; }
+  .btn-ghost:hover:not(:disabled) { background: #ddeef2; }
+  .btn-next  { background: #20bf6b; color: #fff; box-shadow: 0 3px 0 #14904d; }
+  .btn-next:hover:not(:disabled)  { background: #26d97a; }
+  .btn-next:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+
+  .banner { margin-top: 15px; padding: 14px 18px; border-radius: 10px;
+            font-size: 16px; display: none; }
+  .banner.show { display: block; animation: pop .3s ease; }
+  .banner.win  { background: #d3f9d8; border-left: 5px solid #20bf6b; color: #14663a; }
+  .banner.warn { background: #fff4e6; border-left: 5px solid #e8590c; color: #9c3d05; }
+  .banner b { display: block; font-size: 18px; margin-bottom: 3px; }
+  @keyframes pop { from { opacity:0; transform: translateY(-6px);} to {opacity:1;transform:none;} }
+
+  .hintbox { margin-top: 14px; padding: 13px 17px; border-radius: 10px;
+             background: #fff9e6; border-left: 5px solid #fdcb6e;
+             font-size: 15px; color: #7a5c00; display: none; line-height: 1.6; }
+  .hintbox.show { display: block; }
+
+  .center { text-align: center; }
+  .lead { font-size: 17px; line-height: 1.6; color: #4a5560; }
+  .howto { text-align: left; max-width: 590px; margin: 18px auto;
+           font-size: 15px; line-height: 1.75; color: #4a5560; }
+  .howto li { margin-bottom: 6px; }
+  .big-score { font-size: 52px; font-weight: 700; color: #0c8599; margin: 8px 0; }
+  .hidden { display: none !important; }
+
+  @media (max-width: 560px) {
+    body { padding: 12px; }
+    .card { padding: 16px; padding-top: 46px; }
+    .sound-btn { top: 10px; right: 10px; }
+    h1 { font-size: 24px; }
+    .task { font-size: 17px; }
+    .controls { flex-direction: column; align-items: stretch; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <button class="sound-btn" id="soundBtn" onclick="toggleSound(this)"
+          aria-label="Sound on" title="Turn sound off">🔊</button>
+
+  <!-- ══ START ══════════════════════════════ -->
+  <div id="startScreen" class="card center">
+    <h1>🏺 Taylor Sculptor</h1>
+    <p class="sub">AP Calculus BC · Taylor &amp; Maclaurin Series</p>
+    <p class="lead">
+      A Taylor polynomial is built one term at a time.<br>
+      Each term you add wraps it tighter around the real curve —<br>
+      but only <i>near the centre</i>, and sometimes not far at all.
+    </p>
+    <ul class="howto">
+      <li>🎯 Match the target curve across the shaded interval, staying inside the green tolerance ribbon.</li>
+      <li>🔢 Decide <b>how many terms</b> it will take — then commit. The polynomial only appears once you sculpt.</li>
+      <li>🎖️ You must find the <b>smallest</b> N that fits. Too few won't reach; too many isn't an answer either.</li>
+      <li>📍 On later levels you choose the <b>centre</b> — where the polynomial is anchored. Choosing well can cut a dozen terms down to three.</li>
+      <li>⚠️ Some series simply refuse to converge where you want them. Adding terms won't save a badly placed centre.</li>
+      <li>🏅 Land it first try for a bonus. Misses stay on screen as ghost curves.</li>
+    </ul>
+    <button class="btn-add" onclick="startGame()">Start sculpting</button>
+  </div>
+
+  <!-- ══ GAME ═══════════════════════════════ -->
+  <div id="gameScreen" class="card hidden">
+    <div class="hud">
+      <span class="chip" id="levelChip">Level 1 / 8</span>
+      <span class="chip" id="termChip">not sculpted</span>
+      <span class="chip par"   id="attemptChip">attempt 1</span>
+      <span class="chip score" id="scoreChip">0 pts</span>
+    </div>
+
+    <h2 id="levelName">Wrapping Up</h2>
+    <div class="task" id="taskText"></div>
+
+    <div class="plot-holder">
+      <svg class="plot" id="plot" viewBox="0 0 780 430" xmlns="http://www.w3.org/2000/svg"
+           role="img" aria-label="Target curve and Taylor polynomial"></svg>
+    </div>
+
+    <div class="gauge-row">
+      <span class="err-read" id="errRead">largest gap: <b>—</b></span>
+      <div class="gauge"><div class="gauge-fill" id="gaugeFill"></div></div>
+    </div>
+
+    <div class="tries" id="triesBox"></div>
+
+    <div class="poly-box" id="polyBox"></div>
+
+    <div class="controls">
+      <div class="slider-box" id="centerBox">
+        <div class="slider-label">
+          <span>Centre of expansion</span><b id="centerLabel">a = 0</b>
+        </div>
+        <input type="range" id="centerSlider" min="-2" max="2" step="0.1" value="0"
+               aria-label="Centre of expansion">
+      </div>
+      <div class="slider-box">
+        <div class="slider-label">
+          <span>Terms to use</span><b id="termLabel">N = 1</b>
+        </div>
+        <input type="range" id="termSlider" min="1" max="20" step="1" value="1"
+               aria-label="Number of terms">
+      </div>
+      <button class="btn-add"   id="sculptBtn" onclick="sculpt()">Sculpt ▶</button>
+      <button class="btn-ghost" id="hintBtn"   onclick="toggleHint()">Hint</button>
+      <button class="btn-next"  id="nextBtn"   onclick="nextLevel()" style="display:none">
+        Next level →
+      </button>
+    </div>
+
+    <div class="hintbox" id="hintBox"></div>
+    <div class="banner"  id="banner"></div>
+  </div>
+
+  <!-- ══ END ════════════════════════════════ -->
+  <div id="endScreen" class="card center hidden">
+    <h1>🏆 Every curve sculpted</h1>
+    <div class="big-score" id="finalScore">0</div>
+    <p class="lead" id="finalMsg"></p>
+    <p class="sub" id="finalBreak" style="margin-top:14px"></p>
+    <button class="btn-add" onclick="location.reload()">Sculpt again</button>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   TAYLOR SCULPTOR
+   Build P_N(x) = Σ cₙ(x − a)ⁿ term by term until it stays inside
+   a tolerance ribbon around f across a required interval.
+
+   Coefficients are exact closed forms, not numerical derivatives:
+   high-order finite differences are hopelessly unstable and would
+   have made the later levels lie about convergence.
+   ═══════════════════════════════════════════════════════════ */
+
+const VB_W = 780, VB_H = 430;
+const PAD = { l: 52, r: 20, t: 18, b: 34 };
+const PW = VB_W - PAD.l - PAD.r, PH = VB_H - PAD.t - PAD.b;
+
+const MAX_TERMS   = 26;    // beyond this, a series that hasn't converged won't
+const DRAW_PTS    = 300;   // samples across the plot for curve drawing
+const CHECK_PTS   = 160;   // samples across the required interval for error
+
+// ── Factorials and generalised binomial ──────────────────
+const FACT = [1];
+for (let i = 1; i <= 40; i++) FACT[i] = FACT[i-1] * i;
+function binom(p, n) {           // C(p, n) for real p — used by √x
+  let r = 1;
+  for (let k = 0; k < n; k++) r *= (p - k) / (k + 1);
+  return r;
+}
+
+// ── Functions, with exact nth Taylor coefficients about a ─
+// coeff(n, a) returns f⁽ⁿ⁾(a)/n!  ·  valid(a) guards singularities.
+const FNS = {
+  exp: {
+    label: "eˣ", f: x => Math.exp(x),
+    coeff: (n, a) => Math.exp(a) / FACT[n],
+    valid: () => true
+  },
+  sin: {
+    label: "sin x", f: x => Math.sin(x),
+    coeff: (n, a) => Math.sin(a + n * Math.PI / 2) / FACT[n],
+    valid: () => true
+  },
+  cos: {
+    label: "cos x", f: x => Math.cos(x),
+    coeff: (n, a) => Math.cos(a + n * Math.PI / 2) / FACT[n],
+    valid: () => true
+  },
+  geo: {
+    // 1/(1−x): f⁽ⁿ⁾(a) = n!/(1−a)^(n+1), so cₙ = (1−a)^−(n+1).
+    // Radius of convergence from a is |1 − a| — the distance to the pole.
+    label: "1/(1 − x)", f: x => 1 / (1 - x),
+    coeff: (n, a) => Math.pow(1 - a, -(n + 1)),
+    valid: a => Math.abs(1 - a) > 0.2,
+    pole: 1, radius: a => Math.abs(1 - a)
+  },
+  log: {
+    // ln(1+x): cₙ = (−1)^(n−1)/(n(1+a)ⁿ) for n ≥ 1. Radius is |1 + a|.
+    label: "ln(1 + x)", f: x => Math.log(1 + x),
+    coeff: (n, a) => n === 0 ? Math.log(1 + a)
+                             : Math.pow(-1, n - 1) / (n * Math.pow(1 + a, n)),
+    valid: a => a > -0.8,
+    pole: -1, radius: a => Math.abs(1 + a)
+  },
+  sqrt: {
+    // √x has no Maclaurin series at all — every derivative blows up at 0,
+    // so this one forces a genuine Taylor expansion about a > 0.
+    label: "√x", f: x => Math.sqrt(x),
+    coeff: (n, a) => binom(0.5, n) * Math.pow(a, 0.5 - n),
+    valid: a => a > 0.3,
+    pole: 0, radius: a => Math.abs(a)
+  }
+};
+
+// ── Levels ───────────────────────────────────────────────
+const LEVELS = [
+  {
+    name: "Wrapping Up", fn: "exp",
+    dom: { xMin: -2.6, xMax: 2.6, yMin: -1, yMax: 8 },
+    interval: [-1.5, 1.5], tol: 0.08, center: 0,
+    hint: "Every term you add is one more power of x. Because eˣ's derivatives are all eˣ, " +
+          "the coefficients are 1/n! — they shrink fast, so this one converges quickly. " +
+          "Watch the polynomial peel away from the curve at the edges first: that's always " +
+          "where a Taylor polynomial fails soonest, because (x − a)ⁿ is largest there.",
+    estimate: "Every derivative of eˣ is eˣ, so on this interval |f⁽ⁿ⁾| ≤ e^1.5 ≈ 4.48 and the Lagrange bound is 4.48·1.5ⁿ/n!. Find the first n putting that under the tolerance."
+  },
+  {
+    name: "Odd One Out", fn: "sin",
+    dom: { xMin: -6.5, xMax: 6.5, yMin: -2.2, yMax: 2.2 },
+    interval: [-4, 4], tol: 0.08, center: 0,
+    hint: "sin x is an odd function, so every even-power coefficient is exactly zero — " +
+          "adding those terms changes nothing at all. You'll see the curve sit still on " +
+          "half your clicks. The useful terms are x, −x³/6, x⁵/120, …",
+    estimate: "Every derivative of sine is bounded by 1, so the bound is just 4ⁿ/n! with d = 4. Mind the wasted even terms — the true minimum can sit a step below what the bound suggests."
+  },
+  {
+    name: "The Long Reach", fn: "cos",
+    dom: { xMin: -8, xMax: 8, yMin: -2.4, yMax: 2.4 },
+    interval: [-5, 5], tol: 0.1, center: 0,
+    hint: "cos x converges everywhere, but 'everywhere' isn't the same as 'quickly'. " +
+          "To reach x = 5 you need (x − 0)ⁿ to be beaten by n!, and 5ⁿ stays ahead " +
+          "for a good while. Expect to spend a lot of terms buying that last bit of reach.",
+    estimate: "Same bound as sine but with d = 5: the error after n terms is at most 5ⁿ/n!. That ratio only starts collapsing once n passes 5, which is exactly why this level is expensive."
+  },
+  {
+    name: "Geometric Creep", fn: "geo",
+    dom: { xMin: -1.3, xMax: 0.97, yMin: -0.5, yMax: 8 },
+    interval: [-0.7, 0.7], tol: 0.08, center: 0,
+    hint: "Centred at 0 this is the geometric series 1 + x + x² + x³ + … Its radius of " +
+          "convergence is 1, the distance from 0 to the pole at x = 1. Inside that radius " +
+          "it does converge — but at x = 0.7 each term is only 30% smaller than the last, " +
+          "so convergence is a crawl. Compare how few terms the same tolerance needed for eˣ.",
+    estimate: "Lagrange is the wrong tool here — this is literally a geometric series. At the worst point x = 0.7 the ratio is 0.7, so everything you leave off sums to 0.7ⁿ/(1 − 0.7). Put that below the tolerance and solve for n."
+  },
+  {
+    name: "Out of Range", fn: "geo", freeCenter: true, centerRange: [-1, 3.4],
+    dom: { xMin: -1.2, xMax: 3.6, yMin: -3.2, yMax: 3.2 },
+    interval: [1.7, 2.5], tol: 0.06, center: 0,
+    hint: "Try centring at 0 and adding every term you like — the error will not come down. " +
+          "The series about 0 has radius 1, so it says nothing whatsoever about x = 2; the " +
+          "pole at x = 1 sits in the way. Move the centre to the far side of the pole. From " +
+          "a = 2 the radius is |1 − 2| = 1, which covers 1 < x < 3, and your interval fits inside.",
+    estimate: "Once the centre is right, the ratio at the far edge is |x − a|/|1 − a|. The terms alternate, so the error is smaller than the first one you omit — that estimate lands you within a term."
+  },
+  {
+    name: "Past the Edge", fn: "log", freeCenter: true, centerRange: [-0.6, 3],
+    dom: { xMin: -1.05, xMax: 3.2, yMin: -2.6, yMax: 1.8 },
+    interval: [0.3, 2.6], tol: 0.03, center: 0,
+    hint: "ln(1 + x) about 0 has radius 1 — it dies at x = 1, and your interval runs past that. " +
+          "The pole is at x = −1, so centring at a gives radius |1 + a|. Put the centre in the " +
+          "middle of your interval, near a = 1.2, and the radius becomes 2.2 — comfortably enough.",
+    estimate: "The series for ln alternates, so the error is under the first omitted term, dⁿ/(n(1 + a)ⁿ). Centre in the middle of the interval and d is just half its width."
+  },
+  {
+    name: "No Home at Zero", fn: "sqrt", freeCenter: true, centerRange: [0.2, 6],
+    dom: { xMin: 0, xMax: 6.4, yMin: 0, yMax: 2.8 },
+    interval: [1, 6], tol: 0.03, center: 0.5,
+    hint: "√x has no Maclaurin series — its derivatives are all undefined at 0, so there is " +
+          "no polynomial anchored there. Every expansion must be a genuine Taylor series about " +
+          "some a > 0. Centre inside your interval and the radius |a| easily covers it; the " +
+          "real question is which a keeps (x − a)ⁿ smallest across the whole span.",
+    estimate: "The binomial series for √x alternates after the first term, so again the error is under the first term you omit. Centring mid-interval keeps d smallest."
+  },
+  {
+    name: "Sculptor's Choice", fn: "exp", freeCenter: true, centerRange: [-0.5, 5],
+    dom: { xMin: -0.6, xMax: 5.4, yMin: -4, yMax: 95 },
+    interval: [3.2, 4.4], tol: 0.8, center: 0,
+    hint: "eˣ converges for every x from every centre, so nothing here is impossible — this " +
+          "level is purely about efficiency. From a = 0 you must climb all the way out to " +
+          "x = 4.4 and it takes a dozen-plus terms. Centre in the middle of the interval and " +
+          "(x − a) never exceeds 0.6, so a handful of terms will do. Same series, same maths, " +
+          "wildly different cost.",
+    estimate: "With the centre inside the interval d is only about 0.6, and the bound is e^4.4·dⁿ/n!. Small d does all the work — from a = 0 you would face d = 4.4."
+  }
+];
+
+// ── State ────────────────────────────────────────────────
+// The player commits to (centre, N) and only then sees the result. Showing the
+// polynomial and the error live — as an earlier version did — let you click
+// "add term" until the bar turned green, which required no understanding at all.
+let state = {
+  level: 0, score: 0, center: 0, N: 1,
+  built: 0,          // terms currently drawn (0 = nothing sculpted yet)
+  attempts: 0, tries: [], ghosts: [], won: false, conceded: false, firstTry: 0
+};
+let anim = { handle: null, showing: 0, running: false };
+
+const UI_MAX_N = 20;   // same for every level, so it can't leak the answer
+
+// Four probes. Enough to estimate with the error bound and correct once, far
+// too few to scan 1,2,3,… up to thirteen. Without this cap, brute force still
+// beats every level — slowly, but it beats them, and that was the whole
+// complaint about the first version.
+const ATTEMPT_ALLOWANCE = 4;
+
+// ── Coordinate transforms ────────────────────────────────
+const sx = (x, d) => PAD.l + (x - d.xMin) / (d.xMax - d.xMin) * PW;
+const sy = (y, d) => PAD.t + (d.yMax - y) / (d.yMax - d.yMin) * PH;
+
+// ── Taylor evaluation ────────────────────────────────────
+// P_N(x) = Σ_{n=0}^{N-1} cₙ (x−a)ⁿ  ·  N = number of terms taken
+function taylorAt(fn, a, N, x) {
+  let sum = 0, pow = 1, dx = x - a;
+  for (let n = 0; n < N; n++) {
+    const c = fn.coeff(n, a);
+    if (!isFinite(c)) break;
+    sum += c * pow;
+    pow *= dx;
+    if (!isFinite(sum) || Math.abs(sum) > 1e12) return sum;
+  }
+  return sum;
+}
+
+// Largest |P_N − f| across the required interval.
+function maxError(L, a, N) {
+  const fn = FNS[L.fn];
+  const [lo, hi] = L.interval;
+  let worst = 0;
+  for (let i = 0; i <= CHECK_PTS; i++) {
+    const x = lo + (hi - lo) * i / CHECK_PTS;
+    const e = Math.abs(taylorAt(fn, a, N, x) - fn.f(x));
+    if (!isFinite(e)) return Infinity;
+    if (e > worst) worst = e;
+  }
+  return worst;
+}
+
+// Fewest terms that meet the tolerance from centre a (MAX_TERMS+1 = never).
+function termsNeeded(L, a) {
+  const fn = FNS[L.fn];
+  if (!fn.valid(a)) return MAX_TERMS + 1;
+  for (let N = 1; N <= MAX_TERMS; N++) if (maxError(L, a, N) <= L.tol) return N;
+  return MAX_TERMS + 1;
+}
+
+// Par: the fewest terms achievable from the best centre on the slider grid.
+function computePar(L) {
+  if (L._par) return L._par;
+  if (!L.freeCenter) { L._par = termsNeeded(L, L.center); L._bestCenter = L.center; return L._par; }
+  const [lo, hi] = L.centerRange;
+  const step = centerStep(L);
+  let best = MAX_TERMS + 1, bestA = L.center;
+  for (let a = lo; a <= hi + 1e-9; a += step) {
+    const v = Math.round(a * 1e6) / 1e6;
+    const n = termsNeeded(L, v);
+    if (n < best) { best = n; bestA = v; }
+  }
+  L._par = best; L._bestCenter = bestA;
+  return best;
+}
+function centerStep(L) {
+  return L.freeCenter ? 0.1 : 0.1;
+}
+
+// ── Drawing helpers ──────────────────────────────────────
+// Builds a path, breaking it wherever the curve leaves the visible box so
+// asymptotes (1/(1−x), and diverging polynomials) don't draw as vertical bars.
+function curvePath(g, d, xLo, xHi, pts) {
+  const lo = d.yMin - (d.yMax - d.yMin) * 0.6;
+  const hi = d.yMax + (d.yMax - d.yMin) * 0.6;
+  let out = "", pen = false;
+  for (let i = 0; i <= pts; i++) {
+    const x = xLo + (xHi - xLo) * i / pts;
+    const y = g(x);
+    if (!isFinite(y) || y < lo || y > hi) { pen = false; continue; }
+    const px = sx(x, d).toFixed(1), py = sy(y, d).toFixed(1);
+    out += (pen ? " L " : " M ") + px + " " + py;
+    pen = true;
+  }
+  return out.trim();
+}
+
+function axes(L) {
+  const d = L.dom, out = [];
+  const xs = niceStep(d.xMax - d.xMin), ys = niceStep(d.yMax - d.yMin);
+  for (let x = Math.ceil(d.xMin / xs) * xs; x <= d.xMax + 1e-9; x += xs) {
+    const px = sx(x, d);
+    out.push(`<line class="gridline" x1="${px}" y1="${PAD.t}" x2="${px}" y2="${PAD.t+PH}"/>`);
+    out.push(`<text class="tick" x="${px}" y="${PAD.t+PH+15}" text-anchor="middle">${fmt(x)}</text>`);
+  }
+  for (let y = Math.ceil(d.yMin / ys) * ys; y <= d.yMax + 1e-9; y += ys) {
+    const py = sy(y, d);
+    out.push(`<line class="gridline" x1="${PAD.l}" y1="${py}" x2="${PAD.l+PW}" y2="${py}"/>`);
+    out.push(`<text class="tick" x="${PAD.l-8}" y="${py+4}" text-anchor="end">${fmt(y)}</text>`);
+  }
+  if (d.yMin < 0 && d.yMax > 0)
+    out.push(`<line class="axis" x1="${PAD.l}" y1="${sy(0,d)}" x2="${PAD.l+PW}" y2="${sy(0,d)}"/>`);
+  if (d.xMin < 0 && d.xMax > 0)
+    out.push(`<line class="axis" x1="${sx(0,d)}" y1="${PAD.t}" x2="${sx(0,d)}" y2="${PAD.t+PH}"/>`);
+  return out.join("");
+}
+function niceStep(range) {
+  const raw = range / 8, pow = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / pow;
+  return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * pow;
+}
+function fmt(v) {
+  const r = Math.round(v * 100) / 100;
+  return Math.abs(r) < 1e-9 ? "0" : String(r);
+}
+
+// The tolerance ribbon: the band you must stay inside, drawn as a filled
+// region between f+tol and f−tol across the required interval. Making the
+// win condition visible is most of what makes it feel like a target.
+function ribbon(L) {
+  const d = L.dom, fn = FNS[L.fn], [lo, hi] = L.interval, N = 90;
+  const up = [], dn = [];
+  for (let i = 0; i <= N; i++) {
+    const x = lo + (hi - lo) * i / N, y = fn.f(x);
+    if (!isFinite(y)) continue;
+    up.push(`${sx(x,d).toFixed(1)},${sy(Math.min(y + L.tol, d.yMax + 2),d).toFixed(1)}`);
+    dn.push(`${sx(x,d).toFixed(1)},${sy(Math.max(y - L.tol, d.yMin - 2),d).toFixed(1)}`);
+  }
+  if (!up.length) return "";
+  return `<polygon class="ribbon" points="${up.concat(dn.reverse()).join(" ")}"/>`;
+}
+
+// ── Render ───────────────────────────────────────────────
+function render() {
+  const L = LEVELS[state.level], d = L.dom, fn = FNS[L.fn];
+  const [lo, hi] = L.interval;
+  const a = state.center;
+  const shown = anim.running ? anim.showing : state.built;
+
+  const bandX = sx(lo, d), bandW = sx(hi, d) - sx(lo, d);
+  const cx = sx(a, d);
+
+  // failed attempts stay on screen, graded by age, so you can see how each
+  // guess fell short rather than just being told a number
+  const gh = state.ghosts;
+  const ghostSvg = gh.map((g, i) => {
+    const age = gh.length === 1 ? 1 : i / (gh.length - 1);
+    const gfn = x => taylorAt(FNS[L.fn], g.a, g.N, x);
+    const path = curvePath(gfn, d, d.xMin, d.xMax, 200);
+    return `<path class="ghost" d="${path}" stroke="#ffffff" ` +
+           `stroke-width="${(4.6 + age).toFixed(1)}" opacity="${(0.22 + 0.4 * age).toFixed(2)}"/>` +
+           `<path class="ghost" d="${path}" stroke="#42505e" ` +
+           `stroke-width="${(1.7 + 0.9 * age).toFixed(1)}" ` +
+           `opacity="${(0.3 + 0.45 * age).toFixed(2)}" stroke-dasharray="5 4"/>`;
+  }).join("");
+
+  const err = shown > 0 ? maxError(L, a, shown) : Infinity;
+  const good = err <= L.tol;
+
+  document.getElementById("plot").innerHTML =
+    axes(L) +
+    `<rect class="band" x="${bandX}" y="${PAD.t}" width="${bandW}" height="${PH}"/>` +
+    ribbon(L) +
+    `<path class="target" d="${curvePath(fn.f, d, d.xMin, d.xMax, DRAW_PTS)}"/>` +
+    `<path class="target-lit" d="${curvePath(fn.f, d, lo, hi, 140)}"/>` +
+    ghostSvg +
+    (shown > 0
+      ? `<path class="poly${good ? " good" : ""}" d="${curvePath(
+           x => taylorAt(fn, a, shown, x), d, d.xMin, d.xMax, DRAW_PTS)}"/>`
+      : "") +
+    `<line class="centerline" x1="${cx}" y1="${PAD.t}" x2="${cx}" y2="${PAD.t+PH}"/>` +
+    `<text class="centerlabel" x="${(cx+6).toFixed(1)}" y="${PAD.t+14}">a = ${fmt(a)}</text>` +
+    `<text class="edgelabel" x="${bandX+4}" y="${PAD.t+PH-8}">${fmt(lo)}</text>` +
+    `<text class="edgelabel" x="${bandX+bandW-4}" y="${PAD.t+PH-8}" text-anchor="end">${fmt(hi)}</text>`;
+
+  document.getElementById("levelChip").textContent   = `Level ${state.level+1} / ${LEVELS.length}`;
+  document.getElementById("termChip").textContent    =
+    shown > 0 ? `${shown} term${shown===1?"":"s"} drawn` : "not sculpted";
+  document.getElementById("attemptChip").textContent = state.won || state.conceded
+    ? `${state.attempts} attempt${state.attempts===1?"":"s"}`
+    : `attempt ${state.attempts + 1} of ${ATTEMPT_ALLOWANCE}`;
+  document.getElementById("scoreChip").textContent   = `${state.score} pts`;
+  document.getElementById("centerLabel").textContent = `a = ${fmt(a)}`;
+  document.getElementById("termLabel").textContent   = `N = ${state.N}`;
+
+  const read = document.getElementById("errRead"), fill = document.getElementById("gaugeFill");
+  if (shown === 0) {
+    read.className = "err-read";
+    read.innerHTML = `largest gap: <b>—</b> &nbsp;<span style="color:#8fa3aa">need ≤ ${L.tol}</span>`;
+    fill.style.width = "0%"; fill.className = "gauge-fill";
+  } else {
+    read.className = "err-read" + (good ? " ok" : "");
+    const t = !isFinite(err) ? "∞" : err < 1e-4 ? err.toExponential(1) : err.toFixed(4);
+    read.innerHTML = `largest gap: <b>${t}</b> &nbsp;<span style="color:#8fa3aa">need ≤ ${L.tol}</span>`;
+    const frac = !isFinite(err) ? 0 : Math.max(0.02, Math.min(1, L.tol / err));
+    fill.style.width = (frac * 100).toFixed(1) + "%";
+    fill.className = "gauge-fill" + (good ? "" : " over");
+  }
+
+  renderTries();
+  renderPolyBox(L, a, shown);
+}
+
+function renderTries() {
+  const box = document.getElementById("triesBox");
+  if (!state.tries.length) { box.innerHTML = ""; return; }
+  box.innerHTML = state.tries.map(t =>
+    `<span class="t ${t.kind}">N=${t.N}${t.freeCentre ? ` @ a=${fmt(t.a)}` : ""} · ` +
+    `${t.kind === "over" ? "works but not minimal" : `gap ${t.err > 999 ? "∞" : t.err.toFixed(3)}`}</span>`
+  ).join("");
+}
+
+function renderPolyBox(L, a, N) {
+  const box = document.getElementById("polyBox"), fn = FNS[L.fn];
+  if (N === 0) {
+    box.innerHTML = `<span class="muted">Choose a centre and a term count, then press ` +
+                    `“Sculpt” to build the polynomial and see how close it lands.</span>`;
+    return;
+  }
+  const parts = [];
+  const SHOW = 7;
+  for (let n = 0; n < Math.min(N, SHOW); n++) {
+    const c = fn.coeff(n, a);
+    if (!isFinite(c)) break;
+    if (Math.abs(c) < 1e-12) { parts.push({ zero: true, n }); continue; }
+    parts.push({ c, n });
+  }
+  const body = parts.map((p, i) => {
+    if (p.zero) return i === 0 ? "0" : "";
+    const mag = Math.abs(p.c), sign = p.c < 0 ? "−" : "+";
+    const num = mag >= 1e4 || (mag < 1e-3 && mag > 0) ? mag.toExponential(2) : trimNum(mag);
+    const varPart = p.n === 0 ? "" :
+      (a === 0 ? (p.n === 1 ? "x" : `x<sup>${p.n}</sup>`)
+               : (p.n === 1 ? `(x ${a > 0 ? "−" : "+"} ${fmt(Math.abs(a))})`
+                            : `(x ${a > 0 ? "−" : "+"} ${fmt(Math.abs(a))})<sup>${p.n}</sup>`));
+    const coefTxt = (p.n > 0 && Math.abs(mag - 1) < 1e-12) ? "" : num;
+    return (i === 0 ? (p.c < 0 ? "−" : "") : ` ${sign} `) + coefTxt + varPart;
+  }).filter(Boolean).join("");
+  const more = N > SHOW ? ` <span class="muted">+ ${N - SHOW} more term${N-SHOW===1?"":"s"}…</span>` : "";
+  box.innerHTML = `<span class="lead">P<sub>${N-1}</sub>(x) =</span> ${body}${more}`;
+}
+function trimNum(v) { return String(Math.round(v * 10000) / 10000); }
+
+// ── Sculpt: the commit ───────────────────────────────────
+// Winning requires the MINIMUM N, not merely a sufficient one. That is the
+// actual exam question ("least number of terms guaranteeing this accuracy"),
+// and it means dialling the slider to maximum is useless — overshooting fails
+// just as surely as undershooting.
+function sculpt() {
+  const L = LEVELS[state.level];
+  if (state.won || state.conceded || anim.running) return;
+  const a = state.center, N = state.N;
+
+  anim.running = true;
+  anim.showing = 0;
+  state.built = 0;
+  document.getElementById("sculptBtn").disabled = true;
+  document.getElementById("termSlider").disabled = true;
+  document.getElementById("centerSlider").disabled = true;
+  hideBanner();
+
+  // build it term by term so you still see where it peels away from the curve
+  const per = Math.max(55, Math.min(150, 1500 / N));
+  const t0 = performance.now();
+  const step = now => {
+    const k = Math.min(N, Math.floor((now - t0) / per) + 1);
+    if (k !== anim.showing) { anim.showing = k; render(); beep(480 + k * 26, 0.035); }
+    if (k < N) anim.handle = requestAnimationFrame(step);
+    else { anim.running = false; state.built = N; render(); judge(L, a, N); }
+  };
+  anim.handle = requestAnimationFrame(step);
+}
+
+function judge(L, a, N) {
+  state.attempts++;
+  const err  = maxError(L, a, N);
+  const prev = N > 1 ? maxError(L, a, N - 1) : Infinity;
+  const fits = err <= L.tol;
+  const minimal = fits && prev > L.tol;
+  const freeCentre = !!L.freeCenter;
+
+  if (minimal) return winLevel(L, N);
+
+  state.tries.push({ N, a, err: isFinite(err) ? err : 1e6,
+                     kind: fits ? "over" : "short", freeCentre });
+  if (state.tries.length > 6) state.tries.shift();
+  state.ghosts.push({ a, N });
+  if (state.ghosts.length > 4) state.ghosts.shift();
+
+  if (fits) {
+    showBanner("warn", `${N} terms works — but it isn't the minimum`,
+      `Inside the ribbon, yet ${N - 1} terms would have been too. Find the smallest N that ` +
+      `just fits. Come down and try again.`);
+  } else {
+    const fn = FNS[L.fn];
+    let why = `${N} term${N===1?"":"s"} leaves a gap of ` +
+              `${isFinite(err) ? err.toFixed(3) : "∞"} — not enough reach.`;
+    if (fn.radius) {
+      const R = fn.radius(a);
+      const need = Math.max(Math.abs(L.interval[0] - a), Math.abs(L.interval[1] - a));
+      if (need > R * 1.02) {
+        const poleTxt = fn.pole < 0 ? `(−${fmt(-fn.pole)})` : fmt(fn.pole);
+        why = `From a = ${fmt(a)} the radius of convergence is |${fmt(a)} − ${poleTxt}| = ` +
+              `${R.toFixed(2)}, but your interval reaches ${need.toFixed(2)} away. Part of it ` +
+              `lies outside the radius — no number of terms will ever converge there. ` +
+              `Move the centre.`;
+      }
+    }
+    showBanner("warn", "Doesn't reach", why);
+  }
+
+  if (state.attempts >= ATTEMPT_ALLOWANCE) return concede(L);
+
+  document.getElementById("sculptBtn").disabled = false;
+  document.getElementById("termSlider").disabled = false;
+  document.getElementById("centerSlider").disabled = !L.freeCenter;
+  render();
+  beep(200, 0.16);
+}
+
+// Out of probes. Show the answer and how it was reachable — after four wrong
+// guesses, the reasoning teaches more than a fifth guess would.
+function concede(L) {
+  state.conceded = true;
+  state.score += 15;
+  state.center = L._bestCenter;
+  state.N = L._par;
+  state.built = L._par;
+
+  document.getElementById("sculptBtn").disabled = true;
+  document.getElementById("termSlider").disabled = true;
+  document.getElementById("centerSlider").disabled = true;
+  document.getElementById("nextBtn").style.display = "";
+
+  const d = Math.max(Math.abs(L.interval[0] - L._bestCenter),
+                     Math.abs(L.interval[1] - L._bestCenter));
+  showBanner("warn", `The answer was ${L._par} terms` +
+    (L.freeCenter ? ` centred at a = ${fmt(L._bestCenter)}` : ""),
+    `+15 points. The furthest your polynomial has to stretch is d = ${d.toFixed(2)} from the ` +
+    `centre, and the error after n terms is at most max|f⁽ⁿ⁾|·dⁿ/n!. Find the smallest n making ` +
+    `that under ${L.tol} and you land within a term of ${L._par}. That estimate beats guessing ` +
+    `every time — you get four probes, not twenty.`);
+  render();
+  beep(180, 0.3);
+}
+
+function winLevel(L, N) {
+  state.won = true;
+  const misses = state.attempts - 1;
+  const pts = Math.max(30, 100 - misses * 14) + (misses === 0 ? 25 : 0);
+  state.score += pts;
+  if (misses === 0) state.firstTry++;
+
+  document.getElementById("sculptBtn").disabled = true;
+  document.getElementById("termSlider").disabled = true;
+  document.getElementById("centerSlider").disabled = true;
+  document.getElementById("nextBtn").style.display = "";
+
+  showBanner("win", `Exactly ${N} terms — the minimum.`,
+    `+${pts} points${misses === 0 ? " including a first-attempt bonus" : ` after ${misses} miss${misses===1?"":"es"}`}. ` +
+    `P<sub>${N-1}</sub> stays within ${L.tol} of ${FNS[L.fn].label} across the whole interval, ` +
+    `and P<sub>${N-2}</sub> does not.`);
+  render();
+  [523, 659, 784, 1047].forEach((n, i) => setTimeout(() => beep(n, 0.13), i * 80));
+}
+
+function setCenter(v) {
+  const L = LEVELS[state.level];
+  if (state.won || state.conceded || anim.running || !L.freeCenter) return;
+  if (Math.abs(v - state.center) < 1e-9) return;
+  state.center = v;
+  state.built = 0;
+  hideBanner();
+  render();
+}
+
+function setN(v) {
+  if (state.won || state.conceded || anim.running) return;
+  state.N = v;
+  state.built = 0;
+  render();
+}
+
+// ── Flow ─────────────────────────────────────────────────
+function startGame() {
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("gameScreen").classList.remove("hidden");
+  loadLevel(0);
+}
+
+function loadLevel(i) {
+  if (anim.handle) cancelAnimationFrame(anim.handle);
+  const L = LEVELS[i];
+  computePar(L);                       // the answer, kept off screen until won
+
+  state.level = i; state.won = false; state.built = 0;
+  state.attempts = 0; state.tries = []; state.ghosts = []; state.conceded = false;
+  state.center = L.center; state.N = 1;
+  anim.running = false; anim.showing = 0;
+
+  const box = document.getElementById("centerBox");
+  const cs  = document.getElementById("centerSlider");
+  if (L.freeCenter) {
+    box.style.display = "";
+    cs.min = L.centerRange[0]; cs.max = L.centerRange[1];
+    cs.step = centerStep(L); cs.value = L.center; cs.disabled = false;
+  } else {
+    box.style.display = "none";
+  }
+
+  const ts = document.getElementById("termSlider");
+  ts.min = 1; ts.max = UI_MAX_N; ts.step = 1; ts.value = 1; ts.disabled = false;
+  document.getElementById("sculptBtn").disabled = false;
+
+  document.getElementById("levelName").textContent = L.name;
+  document.getElementById("taskText").innerHTML =
+    `Match <b>${FNS[L.fn].label}</b> on <b>[${fmt(L.interval[0])}, ${fmt(L.interval[1])}]</b> ` +
+    `to within <b>${L.tol}</b>, using the <b>fewest terms that will do it</b>` +
+    (L.freeCenter ? ` — and you choose the centre.` : ` — centred at a = ${fmt(L.center)}.`);
+  document.getElementById("hintBox").innerHTML =
+    L.hint + `<br><br><i>Estimating N:</i> ` + L.estimate;
+  document.getElementById("hintBox").classList.remove("show");
+  document.getElementById("nextBtn").style.display = "none";
+  hideBanner();
+  render();
+}
+
+function nextLevel() {
+  if (state.level + 1 >= LEVELS.length) return endGame();
+  loadLevel(state.level + 1);
+}
+
+function endGame() {
+  document.getElementById("gameScreen").classList.add("hidden");
+  document.getElementById("endScreen").classList.remove("hidden");
+  document.getElementById("finalScore").textContent = state.score + " pts";
+  document.getElementById("finalMsg").textContent =
+    state.firstTry >= 7 ? "Masterful — you're predicting term counts before building them."
+  : state.firstTry >= 4 ? "Strong work. You've got the instinct for where to anchor a series."
+  : "Solid finish. Try again and see how many you can call correctly first time.";
+  document.getElementById("finalBreak").textContent =
+    `${state.firstTry} of ${LEVELS.length} levels called correctly on the first attempt.`;
+}
+
+function showBanner(kind, title, body) {
+  const b = document.getElementById("banner");
+  b.className = `banner ${kind} show`;
+  b.innerHTML = `<b>${title}</b>${body}`;
+}
+function hideBanner() { document.getElementById("banner").className = "banner"; }
+function toggleHint() { document.getElementById("hintBox").classList.toggle("show"); }
+
+// ── Sound ────────────────────────────────────────────────
+let audioCtx = null, soundOn = true;
+function toggleSound(btn) {
+  soundOn = !soundOn;
+  btn.textContent = soundOn ? "🔊" : "🔇";
+  btn.setAttribute("aria-label", soundOn ? "Sound on" : "Sound off");
+  btn.setAttribute("title", soundOn ? "Turn sound off" : "Turn sound on");
+}
+function beep(freq, dur) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = freq; o.type = "sine";
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch (e) { /* audio is optional */ }
+}
+
+// ── Wiring ───────────────────────────────────────────────
+document.getElementById("centerSlider").addEventListener("input", e =>
+  setCenter(Math.round(parseFloat(e.target.value) * 1e6) / 1e6));
+document.getElementById("termSlider").addEventListener("input", e =>
+  setN(parseInt(e.target.value, 10)));
+
+document.addEventListener("keydown", e => {
+  if (document.getElementById("gameScreen").classList.contains("hidden")) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if (tag === "button" || tag === "input") return;
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    if (document.getElementById("nextBtn").style.display !== "none") nextLevel();
+    else sculpt();
+  }
+});
+</script>
+</body>
+</html>

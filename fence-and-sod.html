@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌱 Fence &amp; Sod</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;
+  padding:1rem;padding-bottom:3rem;min-height:100vh;
+}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#5c940d,#3f6212);color:#fff;text-align:center;
+  padding:16px 18px;border-radius:18px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:22px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.sound-btn{
+  position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:14px;
+}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:90px;background:#fff;border:2px solid #5c940d;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#3f6212;font-weight:800;display:block;margin-top:2px}
+
+.customer-bubble{
+  background:#fff;border:3px solid #5c940d;border-radius:18px;
+  padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;
+  box-shadow:0 4px 14px rgba(92,148,13,0.15);
+}
+.customer-avatar{
+  font-size:50px;line-height:1;flex-shrink:0;
+  background:#f2f9e6;border-radius:50%;padding:8px;
+  border:3px solid #5c940d;
+}
+.customer-text{
+  background:#fff8f0;padding:10px 14px;border-radius:14px;
+  position:relative;flex:1;font-size:15px;line-height:1.4;font-weight:600;color:#333;
+}
+.customer-text::before{
+  content:'';position:absolute;left:-10px;top:18px;
+  border:7px solid transparent;border-right-color:#fff8f0;
+}
+.customer-text .name{display:block;font-size:12px;color:#3f6212;font-weight:800;margin-bottom:2px}
+
+.math-hint{
+  background:#fff8dc;border:2px dashed #d4af37;border-radius:10px;
+  padding:8px 12px;margin-bottom:1rem;text-align:center;
+  font-size:16px;font-weight:800;color:#7c5d10;
+}
+.math-hint small{display:block;font-size:12px;font-weight:600;color:#9c7c40;margin-top:2px}
+
+.nudge{
+  background:#fff4e6;border:2px dashed #e8590c;border-radius:10px;
+  padding:10px 14px;margin-bottom:1rem;text-align:center;
+  font-size:14px;font-weight:700;color:#a1400b;line-height:1.5;
+}
+.note-box{
+  background:#f2f9e6;border:2px dashed #5c940d;border-radius:10px;
+  padding:11px 14px;margin-bottom:1rem;text-align:center;
+  font-size:14px;font-weight:700;color:#3f6212;line-height:1.55;
+}
+
+.yard-panel{
+  background:#fff;border:3px solid #5c940d;border-radius:18px;
+  padding:10px;margin-bottom:1rem;box-shadow:0 4px 14px rgba(92,148,13,0.12);
+}
+.yard-panel svg{display:block;width:100%;height:auto}
+
+.entry-box{
+  background:#fff;border:3px solid #5c940d;border-radius:14px;
+  padding:6px;margin-bottom:0.7rem;text-align:center;
+}
+.entry-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.entry-value{font-size:38px;font-weight:900;color:#3f6212;letter-spacing:3px;line-height:1.15}
+.entry-value.empty{color:#c9dba6}
+
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0.8rem}
+.key{
+  background:#fff;border:3px solid #5c940d;border-radius:14px;
+  padding:14px 8px;font-size:22px;font-weight:800;cursor:pointer;
+  color:#3f6212;font-family:inherit;transition:all 0.15s;
+  box-shadow:0 4px 0 #5c940d;
+}
+.key:hover:not(:disabled){background:#f4faea;transform:translateY(-2px)}
+.key:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #5c940d}
+.key:disabled{opacity:0.4;cursor:not-allowed}
+.key.blank{visibility:hidden}
+
+.action-row{display:flex;gap:8px;margin-bottom:1rem}
+.action-btn{
+  flex:1;background:linear-gradient(180deg,#5c940d,#3f6212);color:#fff;
+  border:3px solid #fff;border-radius:12px;padding:14px;font-weight:800;
+  cursor:pointer;font-size:16px;font-family:inherit;box-shadow:0 5px 0 #3f6212;
+}
+.action-btn:hover:not(:disabled){transform:translateY(-2px)}
+.action-btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 #3f6212}
+.action-btn:disabled{opacity:0.45;cursor:not-allowed}
+.action-btn.secondary{
+  background:linear-gradient(180deg,#bbb,#999);box-shadow:0 5px 0 #777;
+  flex:0 0 auto;padding:14px 18px;
+}
+.action-btn.secondary:active{box-shadow:0 2px 0 #777}
+
+.start-screen,.end-screen{
+  background:#fff;border:3px solid #5c940d;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-yard{font-size:80px;display:inline-block;animation:sway 2s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+
+.btn{
+  display:block;width:100%;max-width:300px;margin:1rem auto;padding:14px;
+  font-size:17px;background:linear-gradient(180deg,#5c940d,#3f6212);
+  color:#fff;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:800;font-family:inherit;box-shadow:0 5px 0 #3f6212;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #3f6212}
+
+.feedback-banner{
+  position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);
+  padding:1.2rem 2rem;border:4px solid #fff;border-radius:20px;
+  font-size:22px;font-weight:800;z-index:99;text-align:center;
+  pointer-events:none;animation:fb 1.8s forwards;color:#fff;max-width:90%;
+}
+.feedback-banner.good{
+  background:linear-gradient(180deg,#00b894,#00997a);
+  box-shadow:0 0 50px rgba(0,184,148,0.6);
+}
+.feedback-banner.bad{
+  background:linear-gradient(180deg,#e17055,#c0392b);
+  box-shadow:0 0 50px rgba(225,112,85,0.5);
+}
+.feedback-banner.hint{
+  background:linear-gradient(180deg,#fdcb6e,#e67e22);
+  box-shadow:0 0 50px rgba(253,203,110,0.6);
+  font-size:17px;line-height:1.5;
+}
+@keyframes fb{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.4) rotate(-8deg)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(3deg)}
+  30%{transform:translate(-50%,-50%) scale(1)}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}
+}
+
+.confetti{
+  position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px;
+}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+// === SOUND ===
+let audioCtx, soundOn=true;
+function beep(f,d,t='square',v=0.06){
+  if(!soundOn||!audioCtx) return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=t; o.frequency.value=f;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+d);
+}
+function tapSnd(){beep(800,0.05,'sine',0.04)}
+function chaChing(){beep(880,0.08); setTimeout(()=>beep(1320,0.08),60); setTimeout(()=>beep(1760,0.15),130)}
+function wrongSnd(){beep(220,0.25,'sawtooth',0.07)}
+function nextSnd(){beep(440,0.08); setTimeout(()=>beep(660,0.1),60)}
+function winSnd(){[523,659,784,1047,1319,1568,2093].forEach((n,i)=>setTimeout(()=>beep(n,0.22,'square',0.1),i*120))}
+function toggleSound(btn){soundOn=!soundOn; btn.textContent=soundOn?'🔊':'🔇'}
+
+// === YARD SHAPES ===
+// A yard is a list of grid cells. Grass = how many cells. Fence = how many cell
+// edges touch the outside. Works for any shape, so the L-shaped yard needs no
+// special handling.
+function rect(w,h){
+  const c=[];
+  for(let r=0;r<h;r++) for(let x=0;x<w;x++) c.push([r,x]);
+  return c;
+}
+function lshape(w,h,nw,nh){        // rectangle with a bite out of the top-right
+  const c=[];
+  for(let r=0;r<h;r++) for(let x=0;x<w;x++){
+    if(r<nh && x>=w-nw) continue;
+    c.push([r,x]);
+  }
+  return c;
+}
+const grassCount=cells=>cells.length;
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function fenceEdges(cells){
+  const S=new Set(cells.map(([r,c])=>r+','+c)), out=[];
+  for(const [r,c] of cells){
+    if(!S.has((r-1)+','+c)) out.push({r,c,side:'top'});
+    if(!S.has((r+1)+','+c)) out.push({r,c,side:'bottom'});
+    if(!S.has(r+','+(c-1))) out.push({r,c,side:'left'});
+    if(!S.has(r+','+(c+1))) out.push({r,c,side:'right'});
+  }
+  return out;
+}
+const fenceCount=cells=>fenceEdges(cells).length;
+
+// === THE DAY'S JOBS ===
+// Generated fresh each run. The NUMBERS vary; the teaching shape never does.
+// Every day contains, in order:
+//   • a small yard asked both ways      → grass and fence are different jobs
+//   • a medium yard                     → practice
+//   • two yards of EQUAL grass          → but noticeably different fence
+//   • a yard, then the same yard with a corner bitten out
+//                                       → less grass, identical fence
+const JOB_COUNT=9;
+
+const FACES=['👩🏽','🧔🏿','👨‍👩‍👧','👨🏻‍🦳','👩🏻','👴🏾','🧑🏼‍🌾','👵🏻','👨🏾','🧕🏽','👨🏼‍🦰','👩🏿'];
+const NAMES=['Mrs Patel','Mr Okafor','The Chens','Mr Silva','Ms Ito','Grandpa Joe',
+             'Farmer Bell','Auntie Rosa','Mr Adeyemi','Mrs Novak','The Kims','Miss Duval'];
+
+const SMALL=[[4,3],[5,3],[4,4],[5,4],[6,3],[3,4],[3,3],[4,5],[6,2],[3,5]];
+const MED  =[[6,5],[7,4],[6,4],[5,5],[7,5],[8,4],[6,6],[9,3],[8,3],[5,6],[7,3],[9,4]];
+const LBASE=[[5,4],[6,4],[5,5],[6,5],[7,4],[6,3],[4,4],[7,5],[8,4],[5,3],[7,3]];
+// rectangles grouped by grass count, so a pair can share an area
+const AREA_FAMS=[
+  {o:[[4,3],[6,2],[12,1]]},   // a 12×1 strip makes the point dramatically
+  // areas 16 and 18 are dropped: their only pairings need 4×4 or 6×3
+  {o:[[5,4],[10,2]]},
+  {o:[[6,4],[8,3],[12,2]]},
+  {o:[[6,5],[10,3]]},
+  {o:[[6,6],[12,3],[9,4]]},
+  {o:[[7,4],[4,7]]}          // equal perimeter, filtered out by the gap rule
+];
+
+function shuffle(a){
+  const r=[...a];
+  for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}
+  return r;
+}
+const perimOf=(w,h)=>2*(w+h);
+
+// A yard whose grass and fence come to the SAME number wrecks the whole point
+// — the note would read "12 squares of grass but 12 panels of fence". Exactly
+// two rectangles do this (4×4 and 6×3), and near-ties like 5×3 (15 vs 16) are
+// nearly as bad, so every yard must show a visible gap.
+const usable=([w,h])=>Math.abs(w*h-perimOf(w,h))>=2;
+
+// two rectangles with the same grass but a fence gap big enough to notice
+function equalAreaPair(){
+  for(const fam of shuffle(AREA_FAMS)){
+    const opts=shuffle(fam.o.filter(usable)), out=[];
+    for(let i=0;i<opts.length;i++) for(let j=i+1;j<opts.length;j++){
+      if(Math.abs(perimOf(...opts[i])-perimOf(...opts[j]))>=4) out.push([opts[i],opts[j]]);
+    }
+    if(out.length) return shuffle(shuffle(out)[0]);   // random which comes first
+  }
+  return [[6,4],[12,2]];
+}
+
+function buildDay(){
+  const faces=shuffle(FACES), names=shuffle(NAMES);
+  let n=0;
+  const who=()=>({face:faces[n],who:names[n++]});
+  const jobs=[];
+
+  // 1 & 2 — one small yard, asked both ways
+  const s=pick(SMALL.filter(usable)), sC=who();
+  const sG=grassCount(rect(...s)), sF=fenceCount(rect(...s));
+  jobs.push({...sC,cells:rect(...s),kind:'grass'});
+  jobs.push({...sC,cells:rect(...s),kind:'fence',
+    note:`Same yard as before! It needed <strong>${sG}</strong> squares of grass but `+
+         `<strong>${sF}</strong> panels of fence. Grass and fence are two different jobs.`});
+
+  // 3 — a medium yard, for practice
+  jobs.push({...who(),cells:rect(...pick(MED.filter(usable))),kind:'grass'});
+
+  // 4-7 — two yards with identical grass but different fence
+  const [A,B]=equalAreaPair(), aC=who(), bC=who();
+  const aG=grassCount(rect(...A)), aF=fenceCount(rect(...A)), bF=fenceCount(rect(...B));
+  const moreLess=bF>aF?'much more':'less';
+  jobs.push({...aC,cells:rect(...A),kind:'grass'});
+  jobs.push({...aC,cells:rect(...A),kind:'fence'});
+  jobs.push({...bC,cells:rect(...B),kind:'grass',
+    note:`Interesting! This yard is a totally different shape from ${aC.who}\u2019s, but it needs `+
+         `exactly the same <strong>${aG}</strong> squares of grass.`});
+  jobs.push({...bC,cells:rect(...B),kind:'fence',
+    note:`Now the surprise! Same grass as ${aC.who} (${aG} squares) \u2014 but this fence is `+
+         `<strong>${bF}</strong> panels and theirs was <strong>${aF}</strong>. `+
+         `A different shape needs ${moreLess} fence!`});
+
+  // 8 & 9 — a yard, then the same yard with a corner bitten out
+  const [w,h]=pick(LBASE.filter(usable)), cC=who();
+  const full=rect(w,h);
+  let bitten, guard=0;
+  do{
+    const nw=1+Math.floor(Math.random()*(w-2)), nh=1+Math.floor(Math.random()*(h-2));
+    bitten=lshape(w,h,nw,nh);
+  } while(Math.abs(grassCount(bitten)-fenceCount(bitten))<2 && ++guard<40);
+  jobs.push({...cC,cells:full,kind:'fence'});
+  jobs.push({...cC,cells:bitten,kind:'fence',
+    note:`Surprise the other way round! A corner is missing, so there is <strong>less grass</strong> `+
+         `(${grassCount(bitten)} squares instead of ${grassCount(full)}) \u2014 but the fence is still `+
+         `<strong>${fenceCount(bitten)}</strong> panels, exactly like the full yard. `+
+         `Biting a corner off does not change the fence at all.`});
+
+  return jobs;
+}
+
+const answerFor=j=>j.kind==='grass'?grassCount(j.cells):fenceCount(j.cells);
+
+let JOBS=buildDay();
+
+const SAY={
+  grass:'Could you lay <strong>grass</strong> over my whole yard, please?',
+  fence:'Could you build a <strong>fence</strong> all the way around my yard?'
+};
+const ASK={
+  grass:'🌱 How many grass squares?<small>count the squares INSIDE</small>',
+  fence:'🪵 How many fence panels?<small>count the panels AROUND THE EDGE</small>'
+};
+const HINT={
+  grass:'🌱 Count the squares <strong>inside</strong> the yard.<br>Quicker way: count one row, then multiply by the number of rows!',
+  fence:'🪵 Count the panels <strong>all the way around the edge</strong>.<br>Start at a corner and work around until you get back to it.'
+};
+
+// === STATE ===
+let state={phase:'start'};
+let reveal={active:false,upto:0};
+
+function newGame(){
+  JOBS=buildDay();
+  if(!audioCtx) try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  state={phase:'playing',jobNum:0,money:0,perfect:0,entry:'',tries:0,done:false,nudge:'',note:''};
+  reveal={active:false,upto:0};
+  render();
+}
+
+// === LAYOUT ===
+function bounds(cells){
+  let mr=0,mc=0;
+  for(const [r,c] of cells){mr=Math.max(mr,r);mc=Math.max(mc,c)}
+  return {rows:mr+1,cols:mc+1};
+}
+function layout(j){
+  const b=bounds(j.cells);
+  const cell=Math.max(20,Math.min(52,Math.floor(600/b.cols),Math.floor(300/b.rows)));
+  return {cell,b,w:b.cols*cell+20,h:b.rows*cell+20,x0:10,y0:10};
+}
+
+// === YARD DRAWING ===
+// Brown soil means the yard needs grass; green turf means it needs fencing.
+// The picture carries the instruction, so there is no rule to memorise.
+function yardSvg(j){
+  const g=layout(j), out=[], grassJob=j.kind==='grass';
+  j.cells.forEach(([r,c],i)=>{
+    const x=g.x0+c*g.cell, y=g.y0+r*g.cell;
+    const grown=grassJob&&reveal.active&&i<reveal.upto;
+    const base=grassJob&&!grown?'#b17f4b':'#5bbf5b';
+    out.push(
+      `<rect x="${x}" y="${y}" width="${g.cell}" height="${g.cell}" fill="${base}"/>`+
+      `<rect x="${x+2}" y="${y+2}" width="${g.cell-4}" height="${g.cell-4}" rx="3" fill="#fff" opacity="${grassJob&&!grown?0.07:0.13}"/>`+
+      `<rect x="${x}" y="${y}" width="${g.cell}" height="${g.cell}" fill="none" stroke="${grassJob&&!grown?'#8d6236':'#3f9142'}" stroke-width="1.5"/>`
+    );
+    if((!grassJob||grown)&&g.cell>=26){
+      out.push(`<text x="${x+g.cell/2}" y="${y+g.cell/2+6}" text-anchor="middle" font-size="${Math.round(g.cell*0.42)}" opacity="0.5">🌿</text>`);
+    }
+  });
+  // one short bar per boundary edge, drawn separately so they can be counted
+  fenceEdges(j.cells).forEach((e,i)=>{
+    const x=g.x0+e.c*g.cell, y=g.y0+e.r*g.cell, s=g.cell, t=7, pad=3;
+    const built=!grassJob&&reveal.active&&i<reveal.upto;
+    const col=grassJob?'#c9b79c':built?'#8b5a2b':'#c98a3c';
+    let rx,ry,rw,rh;
+    if(e.side==='top'){rx=x+pad;ry=y-t/2;rw=s-pad*2;rh=t}
+    if(e.side==='bottom'){rx=x+pad;ry=y+s-t/2;rw=s-pad*2;rh=t}
+    if(e.side==='left'){rx=x-t/2;ry=y+pad;rw=t;rh=s-pad*2}
+    if(e.side==='right'){rx=x+s-t/2;ry=y+pad;rw=t;rh=s-pad*2}
+    out.push(`<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="3" fill="${col}" opacity="${grassJob?0.45:1}"${grassJob||built?'':' stroke="#7a4a18" stroke-width="1.5"'}/>`);
+  });
+  return `<svg viewBox="0 0 ${g.w} ${g.h}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Customer yard">${out.join('')}</svg>`;
+}
+function renderYard(){
+  const el=document.getElementById('yard');
+  if(el) el.innerHTML=yardSvg(JOBS[state.jobNum]);
+}
+
+// === RENDER ===
+function render(){
+  const g=document.getElementById('game');
+  if(state.phase==='start') g.innerHTML=renderStart();
+  else if(state.phase==='end') g.innerHTML=renderEnd();
+  else g.innerHTML=renderPlay();
+}
+function renderHeader(){
+  return `<header>
+    <h1>🌱 Fence &amp; Sod 🪵</h1>
+    <p>Grass goes inside. Fence goes around!</p>
+    <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+  </header>`;
+}
+function statsHtml(){
+  return `<div id="stats-area"><div class="stats">
+    <div class="stat"><span class="stat-label">🏡 JOB</span>
+      <span class="stat-value">${state.jobNum+1}/${JOBS.length}</span></div>
+    <div class="stat"><span class="stat-label">💰 EARNED</span>
+      <span class="stat-value">$${state.money}</span></div>
+    <div class="stat"><span class="stat-label">⭐ PERFECT</span>
+      <span class="stat-value">${state.perfect}</span></div>
+  </div></div>`;
+}
+function renderStats(){
+  const el=document.getElementById('stats-area');
+  if(el) el.outerHTML=statsHtml();
+}
+
+function renderPlay(){
+  const j=JOBS[state.jobNum];
+  const keys=[1,2,3,4,5,6,7,8,9,'⌫',0,''];
+  const pad=keys.map(k=>k===''
+    ? `<button class="key blank" disabled></button>`
+    : `<button class="key" ${state.done?'disabled':''} onclick="${k==='⌫'?'delDigit()':'addDigit('+k+')'}">${k}</button>`
+  ).join('');
+
+  return `${renderHeader()}
+  ${statsHtml()}
+  <div class="customer-bubble">
+    <div class="customer-avatar">${j.face}</div>
+    <div class="customer-text"><span class="name">${j.who}</span>${SAY[j.kind]}</div>
+  </div>
+  <div class="math-hint">${ASK[j.kind]}</div>
+  <div class="yard-panel" id="yard">${yardSvg(j)}</div>
+  ${state.nudge?`<div class="nudge">${state.nudge}</div>`:''}
+  ${state.note?`<div class="note-box">👀 ${state.note}</div>`:''}
+  <div class="entry-box">
+    <span class="entry-label">YOUR ORDER</span>
+    <div class="entry-value ${state.entry===''?'empty':''}">${state.entry===''?'–':state.entry}</div>
+  </div>
+  <div class="pad">${pad}</div>
+  <div class="action-row">
+    ${state.done
+      ? `<button class="action-btn" onclick="nextJob()">${state.jobNum+1>=JOBS.length?'🏁 Closing time':'Next customer →'}</button>`
+      : `<button class="action-btn" onclick="deliver()">🚚 Deliver</button>
+         <button class="action-btn secondary" onclick="showHint()">💡</button>`}
+  </div>`;
+}
+
+function renderStart(){
+  return `${renderHeader()}
+  <div class="start-screen">
+    <div class="big-yard">🏡</div>
+    <h2 style="font-size:26px;color:#3f6212;margin:0.5rem 0">Welcome, gardener!</h2>
+    <p style="font-size:15px;color:#555;line-height:1.8;margin:1rem auto;text-align:left;max-width:400px">
+      ${JOB_COUNT} customers need work done today.<br><br>
+      🟫 A <strong>brown</strong> yard needs grass.<br>
+      Count the squares <strong>inside</strong>.<br><br>
+      🟩 A <strong>green</strong> yard needs a fence.<br>
+      Count the panels <strong>around the edge</strong>.<br><br>
+      🔢 Type your number, then press <strong>Deliver</strong>.<br>
+      💰 Right the first time pays <strong>$20</strong>!<br><br>
+      👀 Watch out — two yards can need the <strong>same grass</strong>
+      but a <strong>different fence</strong>.
+    </p>
+    <button class="btn" onclick="newGame()">🌱 Open for business!</button>
+  </div>`;
+}
+
+function renderEnd(){
+  const msg = state.perfect>=8 ? 'Best garden company in town! You never mixed up grass and fence.'
+            : state.perfect>=5 ? 'Great work today. Your customers are happy!'
+            : 'Good day\u2019s work! Come back tomorrow and try for more.';
+  return `${renderHeader()}
+  <div class="end-screen">
+    <div class="big-yard">🏆</div>
+    <h2 style="font-size:26px;color:#3f6212;margin:0.5rem 0">Closing time!</h2>
+    <p style="font-size:44px;font-weight:900;color:#5c940d;margin:0.6rem 0">$${state.money}</p>
+    <p style="font-size:16px;color:#555;line-height:1.6;max-width:380px;margin:0 auto">${msg}</p>
+    <p style="font-size:14px;color:#888;margin-top:12px">
+      ${state.perfect} of ${JOBS.length} jobs right the first time.</p>
+    <button class="btn" onclick="newGame()">🌱 Open again tomorrow</button>
+  </div>`;
+}
+
+// === INPUT ===
+function addDigit(d){
+  if(state.done||state.entry.length>=3) return;
+  state.entry+=String(d); tapSnd(); render();
+}
+function delDigit(){
+  if(state.done) return;
+  state.entry=state.entry.slice(0,-1); tapSnd(); render();
+}
+function showHint(){
+  showFeedback(HINT[JOBS[state.jobNum].kind],'hint');
+  beep(660,0.08,'sine',0.05);
+}
+
+// === DELIVER ===
+function deliver(){
+  if(state.done||state.entry==='') return;
+  const j=JOBS[state.jobNum], want=answerFor(j), got=parseInt(state.entry,10);
+  state.tries++;
+
+  if(got===want) return succeed(j,want);
+
+  if(state.tries===1){
+    // the classic mix-up is answering with the OTHER quantity — name it
+    const other=j.kind==='grass'?fenceCount(j.cells):grassCount(j.cells);
+    state.nudge = got===other
+      ? (j.kind==='grass'
+          ? 'That is how many <strong>fence panels</strong> go around the edge. This customer wants <strong>grass</strong> \u2014 count the squares <em>inside</em>.'
+          : 'That is how many <strong>grass squares</strong> fill the yard. This customer wants a <strong>fence</strong> \u2014 count the panels <em>around the edge</em>.')
+      : (got>want ? 'A bit too many. Count again carefully!' : 'Not quite enough. Count again carefully!');
+    state.entry='';
+    wrongSnd();
+    showFeedback('🤔 Try again!','bad');
+    render();
+    return;
+  }
+
+  // second miss: show them, no pay, move on
+  state.done=true; state.nudge='';
+  state.note = j.kind==='grass'
+    ? `The answer was <strong>${want}</strong> squares of grass. Watch them grow!`
+    : `The answer was <strong>${want}</strong> fence panels. Watch them go up!`;
+  wrongSnd();
+  render();
+  runReveal(j);
+}
+
+function succeed(j,want){
+  state.done=true; state.nudge='';
+  const pay=state.tries===1?20:10;
+  state.money+=pay;
+  if(state.tries===1) state.perfect++;
+  state.note=j.note||'';
+  chaChing();
+  showFeedback(`✨ ${want} ${j.kind==='grass'?'squares':'panels'}! +$${pay}`,'good');
+  render();
+  runReveal(j);
+}
+
+// Grass grows in, or the fence goes up, one piece at a time — so the count is
+// visible as it happens rather than just asserted.
+function runReveal(j){
+  const total=j.kind==='grass'?grassCount(j.cells):fenceCount(j.cells);
+  reveal.active=true; reveal.upto=0;
+  const per=Math.max(28,Math.min(90,1400/total));
+  const t0=Date.now();
+  const step=()=>{
+    const k=Math.min(total,Math.floor((Date.now()-t0)/per)+1);
+    if(k!==reveal.upto){reveal.upto=k; renderYard()}
+    if(k<total) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function nextJob(){
+  if(state.jobNum+1>=JOBS.length){
+    state.phase='end';
+    winSnd(); confetti(); setTimeout(confetti,800);
+    render();
+    return;
+  }
+  state.jobNum++;
+  state.entry=''; state.tries=0; state.done=false; state.nudge=''; state.note='';
+  reveal={active:false,upto:0};
+  nextSnd();
+  render();
+}
+
+// === EFFECTS ===
+function showFeedback(text,kind){
+  const el=document.createElement('div');
+  el.className='feedback-banner '+kind;
+  el.innerHTML=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1800);
+}
+function confetti(){
+  const emojis=['🎉','🌟','🌱','💰','✨','🌻','🪵','🏡'];
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=pick(emojis);
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDelay=Math.random()*0.8+'s';
+    c.style.animationDuration=(1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+// === KEYBOARD ===
+document.addEventListener('keydown',e=>{
+  if(state.phase!=='playing') return;
+  if((e.target.tagName||'').toLowerCase()==='button') return;
+  if(/^[0-9]$/.test(e.key)){e.preventDefault(); addDigit(+e.key)}
+  else if(e.key==='Backspace'){e.preventDefault(); delDigit()}
+  else if(e.key==='Enter'){e.preventDefault(); state.done?nextJob():deliver()}
+});
+
+render();
+</script>
+</body>
+</html>
