@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚂 Dispatch!</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8F0;
+  padding:1rem;padding-bottom:3rem;min-height:100vh;
+}
+.game{max-width:680px;margin:0 auto}
+
+header{
+  background:linear-gradient(180deg,#1864ab,#0f4377);color:#fff;text-align:center;
+  padding:16px 18px;border-radius:18px;margin-bottom:1rem;position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.1);
+}
+header h1{font-size:22px;font-weight:900;letter-spacing:0.5px}
+header p{font-size:13px;opacity:0.9;margin-top:4px}
+.sound-btn{
+  position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.2);
+  border:2px solid #fff;color:#fff;width:32px;height:32px;border-radius:50%;
+  cursor:pointer;font-size:14px;
+}
+
+.stats{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.stat{
+  flex:1;min-width:90px;background:#fff;border:2px solid #1864ab;
+  border-radius:14px;padding:8px 10px;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+.stat-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.stat-value{font-size:18px;color:#0f4377;font-weight:800;display:block;margin-top:2px}
+
+.customer-bubble{
+  background:#fff;border:3px solid #1864ab;border-radius:18px;
+  padding:14px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;
+  box-shadow:0 4px 14px rgba(24,100,171,0.15);
+}
+.customer-avatar{
+  font-size:50px;line-height:1;flex-shrink:0;
+  background:#e7f0f9;border-radius:50%;padding:8px;border:3px solid #1864ab;
+}
+.customer-text{
+  background:#fff8f0;padding:10px 14px;border-radius:14px;
+  position:relative;flex:1;font-size:15px;line-height:1.45;font-weight:600;color:#333;
+}
+.customer-text::before{
+  content:'';position:absolute;left:-10px;top:18px;
+  border:7px solid transparent;border-right-color:#fff8f0;
+}
+.customer-text .name{display:block;font-size:12px;color:#0f4377;font-weight:800;margin-bottom:2px}
+
+.math-hint{
+  background:#fff8dc;border:2px dashed #d4af37;border-radius:10px;
+  padding:8px 12px;margin-bottom:1rem;text-align:center;
+  font-size:16px;font-weight:800;color:#7c5d10;
+}
+
+.clock-row{display:flex;gap:8px;align-items:stretch;margin-bottom:1rem}
+.clock-card{
+  background:#fff;border:3px solid #1864ab;border-radius:18px;
+  padding:9px;text-align:center;flex:1;min-width:0;
+  box-shadow:0 4px 14px rgba(24,100,171,0.12);
+}
+.clock-card.muted{border-color:#ced4da;box-shadow:none;background:#fbfbfc}
+.clock-card h3{font-size:10px;letter-spacing:0.4px;color:#868e96;font-weight:800;
+  margin-bottom:3px;line-height:1.25;min-height:24px;display:flex;align-items:center;justify-content:center}
+.clock-card svg{display:block;width:100%;height:auto;max-width:170px;margin:0 auto}
+.digital{font-size:25px;font-weight:900;color:#0f4377;margin-top:3px;letter-spacing:1px}
+.clock-card.muted .digital{color:#6c757d}
+.clock-card .waiting{font-size:22px;font-weight:900;color:#ced4da;margin-top:3px;letter-spacing:2px}
+.gap-mark{
+  flex:0 0 34px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:900;color:#e8590c;
+}
+
+.entry-box{
+  background:#fff;border:3px solid #1864ab;border-radius:14px;
+  padding:7px;margin-bottom:0.7rem;text-align:center;
+}
+.entry-label{display:block;font-size:10px;color:#888;font-weight:700;letter-spacing:0.5px}
+.entry-value{font-size:40px;font-weight:900;color:#0f4377;letter-spacing:2px;line-height:1.15}
+.entry-value.empty{color:#c5d6e8}
+.entry-value .unit{font-size:20px;font-weight:800;color:#868e96;letter-spacing:0}
+.entry-warn{font-size:13px;font-weight:700;color:#c0392b;margin-top:1px;min-height:17px}
+
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0.8rem}
+.key{
+  background:#fff;border:3px solid #1864ab;border-radius:14px;
+  padding:14px 8px;font-size:22px;font-weight:800;cursor:pointer;
+  color:#0f4377;font-family:inherit;box-shadow:0 4px 0 #1864ab;
+}
+.key:hover:not(:disabled){background:#f1f7fd;transform:translateY(-2px)}
+.key:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #1864ab}
+.key:disabled{opacity:0.4;cursor:not-allowed}
+.key.blank{visibility:hidden}
+
+.action-row{display:flex;gap:8px;margin-bottom:1rem}
+.action-btn{
+  flex:1;background:linear-gradient(180deg,#1864ab,#0f4377);color:#fff;
+  border:3px solid #fff;border-radius:12px;padding:14px;font-weight:800;
+  cursor:pointer;font-size:16px;font-family:inherit;box-shadow:0 5px 0 #0f4377;
+}
+.action-btn:hover{transform:translateY(-2px)}
+.action-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #0f4377}
+.action-btn.secondary{
+  background:linear-gradient(180deg,#bbb,#999);box-shadow:0 5px 0 #777;
+  flex:0 0 auto;padding:14px 18px;
+}
+.action-btn.secondary:active{box-shadow:0 2px 0 #777}
+
+.nudge{
+  background:#fff4e6;border:2px dashed #e8590c;border-radius:10px;
+  padding:10px 14px;margin-bottom:1rem;text-align:center;
+  font-size:14px;font-weight:700;color:#a1400b;line-height:1.5;
+}
+.route-box{
+  background:#e7f0f9;border:2px dashed #1864ab;border-radius:10px;
+  padding:11px 13px;margin-bottom:1rem;text-align:center;
+  font-size:14.5px;font-weight:700;color:#0f4377;line-height:2;
+}
+.route-box .hop{display:inline-block;background:#fff;border-radius:7px;
+  padding:2px 9px;margin:2px 1px;font-weight:900}
+.route-box .plus{color:#e8590c;font-size:13px;font-weight:800;margin:0 1px}
+.route-box .tot{display:block;margin-top:4px;font-size:13.5px;color:#495057}
+
+.start-screen,.end-screen{
+  background:#fff;border:3px solid #1864ab;border-radius:20px;
+  padding:2rem 1.5rem;text-align:center;
+  box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+.big-train{font-size:80px;display:inline-block;animation:chug 1.6s ease-in-out infinite}
+@keyframes chug{0%,100%{transform:translateX(-7px)}50%{transform:translateX(7px)}}
+
+.btn{
+  display:block;width:100%;max-width:300px;margin:1rem auto;padding:14px;
+  font-size:17px;background:linear-gradient(180deg,#1864ab,#0f4377);
+  color:#fff;border:3px solid #fff;border-radius:12px;cursor:pointer;
+  font-weight:800;font-family:inherit;box-shadow:0 5px 0 #0f4377;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #0f4377}
+
+.feedback-banner{
+  position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);
+  padding:1.2rem 2rem;border:4px solid #fff;border-radius:20px;
+  font-size:22px;font-weight:800;z-index:99;text-align:center;
+  pointer-events:none;animation:fb 1.8s forwards;color:#fff;max-width:90%;
+}
+.feedback-banner.good{background:linear-gradient(180deg,#00b894,#00997a);
+  box-shadow:0 0 50px rgba(0,184,148,0.6)}
+.feedback-banner.bad{background:linear-gradient(180deg,#e17055,#c0392b);
+  box-shadow:0 0 50px rgba(225,112,85,0.5)}
+.feedback-banner.hint{background:linear-gradient(180deg,#fdcb6e,#e67e22);
+  box-shadow:0 0 50px rgba(253,203,110,0.6);font-size:17px;line-height:1.5}
+@keyframes fb{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.4) rotate(-8deg)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(3deg)}
+  30%{transform:translate(-50%,-50%) scale(1)}
+  75%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.1)}
+}
+
+.confetti{position:fixed;pointer-events:none;font-size:24px;
+  animation:fall 2.5s linear;z-index:1000;top:-30px}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+@media (max-width:430px){
+  .clock-card h3{font-size:9px}
+  .digital{font-size:21px}
+  .entry-value{font-size:34px}
+}
+</style>
+</head>
+<body>
+<div class="game" id="game"></div>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   DISPATCH!
+   Elapsed time: start + duration = end, solved for each part.
+
+   Every time sits between 1:00 and 11:00 on one half of the
+   clock, so the hour never wraps through 12 and there is no
+   am/pm for an eight-year-old to worry about.
+
+   Two clocks are always on screen. If one of them is blank you
+   are looking for a TIME; if both are filled you are looking
+   for the MINUTES between them. The picture says which.
+   ═══════════════════════════════════════════════════════════ */
+
+// === SOUND ===
+let audioCtx, soundOn=true;
+function beep(f,d,t='square',v=0.06){
+  if(!soundOn||!audioCtx) return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=t; o.frequency.value=f;
+  g.gain.setValueAtTime(v,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+d);
+}
+function tapSnd(){beep(800,0.05,'sine',0.04)}
+function whistle(){beep(1050,0.1,'sine',0.06); setTimeout(()=>beep(1400,0.16,'sine',0.06),90)}
+function chaChing(){beep(880,0.08); setTimeout(()=>beep(1320,0.08),60); setTimeout(()=>beep(1760,0.15),130)}
+function wrongSnd(){beep(220,0.25,'sawtooth',0.07)}
+function nextSnd(){beep(440,0.08); setTimeout(()=>beep(660,0.1),60)}
+function winSnd(){[523,659,784,1047,1319,1568,2093].forEach((n,i)=>setTimeout(()=>beep(n,0.22,'square',0.1),i*120))}
+function toggleSound(btn){soundOn=!soundOn; btn.textContent=soundOn?'🔊':'🔇'}
+
+// === TIME HELPERS ===
+const fmt=t=>{
+  const h=Math.floor(t/60), m=t%60;
+  return `${h%12===0?12:h%12}:${String(m).padStart(2,'0')}`;
+};
+const mins=n=>`${n} minute${n===1?'':'s'}`;
+
+// Counting on, landing on the round hour first — the way it is taught.
+function hops(start,dur){
+  const toHour=60-(start%60);
+  if(start%60===0||toHour>=dur) return [{add:dur,at:start+dur}];
+  return [{add:toHour,at:start+toHour},{add:dur-toHour,at:start+dur}];
+}
+
+// === GENERATION ===
+// Numbers change every run; the mix of question types never does.
+const PLACES=['Riverside','Hilltop','Oakfield','Bridgeton','Maple Bay','Fernwood',
+              'Kingsport','Larkspur','Two Rivers','Elmgrove'];
+const FACES=['🧑‍✈️','👩🏽‍✈️','🧔🏿','👵🏻','🧑🏼','👨🏾','👧🏻','🧕🏽','👴🏼','👩🏻‍🦰'];
+const NAMES=['Stationmaster Bell','Driver Osei','Mrs Patel','Grandpa Joe','Sam',
+             'Guard Rivera','Lily','Mr Adeyemi','Auntie Rosa','Conductor Novak'];
+const JOB_COUNT=8;
+
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r};
+// a time on a 5-minute mark, between loH:00 and hiH:00
+const someTime=(loH,hiH)=>{
+  const lo=loH*60, hi=hiH*60;
+  return lo+5*Math.floor(Math.random()*((hi-lo)/5));
+};
+const DAY_LO=13, DAY_HI=22;      // 1:00 to 10:00 — the hour never passes 12
+
+function buildDay(){
+  const faces=shuffle(FACES), names=shuffle(NAMES), places=shuffle(PLACES);
+  let n=0;
+  const who=()=>({face:faces[n%faces.length], who:names[n%names.length], place:places[n++%places.length]});
+  const J=[];
+
+  // 1 — arrive, staying inside the hour
+  {
+    const c=who(); let dep,dur;
+    do{ dep=someTime(DAY_LO,DAY_HI-1); dur=pick([10,15,20,25]); }
+    while(dep%60+dur>=60);
+    J.push({...c,kind:'arrive',dep,dur});
+  }
+  // 2 — arrive, crossing into the next hour
+  {
+    const c=who(); let dep,dur;
+    do{ dep=someTime(DAY_LO,DAY_HI-2); dur=pick([25,30,35,40,45]); }
+    while(dep%60+dur<=60);
+    J.push({...c,kind:'arrive',dep,dur});
+  }
+  // 3 — how long, inside one hour
+  {
+    const c=who(); let dep,dur;
+    do{ dep=someTime(DAY_LO,DAY_HI-1); dur=pick([10,15,20,25,30]); }
+    while(dep%60+dur>=60);
+    J.push({...c,kind:'howlong',dep,dur});
+  }
+  // 4 — how long, crossing the hour
+  {
+    const c=who(); let dep,dur;
+    do{ dep=someTime(DAY_LO,DAY_HI-2); dur=pick([30,35,40,45,50]); }
+    while(dep%60+dur<=60);
+    J.push({...c,kind:'howlong',dep,dur});
+  }
+  // 5 — a delay
+  {
+    const c=who();
+    const dep=someTime(DAY_LO,DAY_HI-2), dur=pick([10,15,20,25,30,35]);
+    J.push({...c,kind:'late',dep,dur});
+  }
+  // 6 — working backwards to a departure time
+  {
+    const c=who(); let arr,dur;
+    do{ arr=someTime(DAY_LO+1,DAY_HI); dur=pick([20,25,30,35,40,45]); }
+    while(arr-dur<DAY_LO*60);
+    J.push({...c,kind:'depart',dep:arr-dur,dur});
+  }
+  // 7 — waiting for a connection
+  {
+    const c=who();
+    const dep=someTime(DAY_LO,DAY_HI-2), dur=pick([10,15,20,25,30,35,40]);
+    J.push({...c,kind:'wait',dep,dur,place2:places[n++%places.length]});
+  }
+  // 8 — a long journey, over an hour
+  {
+    const c=who(); let dep,dur;
+    do{ dep=someTime(DAY_LO,DAY_HI-2); dur=pick([60,70,75,80,90]); }
+    while(dep+dur>DAY_HI*60);
+    J.push({...c,kind:'arrive',dep,dur});
+  }
+  return J;
+}
+
+// Everything a job needs to be drawn and marked, derived from kind/dep/dur.
+function detail(j){
+  const end=j.dep+j.dur;
+  switch(j.kind){
+    case 'arrive': return {
+      answerType:'time', answer:end,
+      say:`The ${j.place} train leaves at <strong>${fmt(j.dep)}</strong> and takes `+
+          `<strong>${mins(j.dur)}</strong>. What time does it get there?`,
+      ask:'🕐 Type the arrival time',
+      left:{label:'🚉 LEAVES AT',time:j.dep}, right:{label:'🏁 ARRIVES AT',time:null},
+      hopFrom:j.dep, hopDur:j.dur,
+      hint:'Start at the leaving time and count on. Hop to the next o\\u2019clock first, then count the rest.'
+    };
+    case 'late': return {
+      answerType:'time', answer:end,
+      say:`The ${j.place} train should leave at <strong>${fmt(j.dep)}</strong>, but it is running `+
+          `<strong>${mins(j.dur)}</strong> late. What time will it leave now?`,
+      ask:'🕐 Type the new leaving time',
+      left:{label:'🚉 SHOULD LEAVE',time:j.dep}, right:{label:'⏰ NOW LEAVES',time:null},
+      hopFrom:j.dep, hopDur:j.dur,
+      hint:'Add the delay on to the time it should have left.'
+    };
+    case 'depart': return {
+      answerType:'time', answer:j.dep,
+      say:`I need to be at ${j.place} by <strong>${fmt(end)}</strong>. The journey takes `+
+          `<strong>${mins(j.dur)}</strong>. What time must my train leave?`,
+      ask:'🕐 Type the leaving time',
+      // blank clock on the LEFT here: the departure comes first in time, and
+      // every other question reads earlier-on-the-left, so this must too
+      left:{label:'🚉 MUST LEAVE AT',time:null}, right:{label:'🏁 TO ARRIVE BY',time:end},
+      hopFrom:j.dep, hopDur:j.dur, backwards:true,
+      hint:'Count backwards from the arrival time \\u2014 or guess a leaving time and count forwards to check.'
+    };
+    case 'howlong': return {
+      answerType:'mins', answer:j.dur,
+      say:`The ${j.place} train leaves at <strong>${fmt(j.dep)}</strong> and gets there at `+
+          `<strong>${fmt(end)}</strong>. How long is the journey?`,
+      ask:'⏱️ Type how many minutes',
+      left:{label:'🚉 LEAVES AT',time:j.dep}, right:{label:'🏁 ARRIVES AT',time:end}, gap:true,
+      hopFrom:j.dep, hopDur:j.dur,
+      hint:'Count on from the first time to the second. Stop at the o\\u2019clock on the way and add the two jumps.'
+    };
+    case 'wait': return {
+      answerType:'mins', answer:j.dur,
+      say:`My train gets into ${j.place} at <strong>${fmt(j.dep)}</strong>. The next train to `+
+          `${j.place2} leaves at <strong>${fmt(end)}</strong>. How long do I have to wait?`,
+      ask:'⏱️ Type how many minutes',
+      left:{label:'🚉 YOU GET IN',time:j.dep}, right:{label:'🚆 NEXT TRAIN GOES',time:end}, gap:true,
+      hopFrom:j.dep, hopDur:j.dur,
+      hint:'Count on from when you arrive to when the next train goes.'
+    };
+  }
+}
+
+// === STATE ===
+let state={phase:'start'};
+let JOBS=buildDay();
+
+function newGame(){
+  if(!audioCtx) try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  JOBS=buildDay();
+  state={phase:'playing',jobNum:0,points:0,onTime:0,digits:'',tries:0,done:false,nudge:''};
+  render();
+}
+
+// === ENTRY ===
+// Times fill from the right, microwave-style: 3,2,5 → 3:25. Minute counts are
+// just a plain number.
+function parsed(){
+  const d=detail(JOBS[state.jobNum]), s=state.digits;
+  if(s==='') return null;
+  if(d.answerType==='mins'){
+    const v=parseInt(s,10);
+    return {mins:v, valid:v>0&&v<=300};
+  }
+  if(s.length<3) return null;
+  const h=parseInt(s.slice(0,-2),10), m=parseInt(s.slice(-2),10);
+  return {h,m,valid:h>=1&&h<=12&&m<=59};
+}
+function display(){
+  const d=detail(JOBS[state.jobNum]), s=state.digits;
+  if(s==='') return d.answerType==='mins'?'–':'–:––';
+  if(d.answerType==='mins') return s+' <span class="unit">min</span>';
+  if(s.length<3) return s;
+  return s.slice(0,-2)+':'+s.slice(-2);
+}
+// The typed time as minutes-past-midnight, kept on the same half-day so the
+// clock hands land where the child expects.
+function typedTime(){
+  const d=detail(JOBS[state.jobNum]), p=parsed();
+  if(d.answerType!=='time'||!p||!p.valid) return null;
+  return (p.h%12+12)*60+p.m;
+}
+function isRight(){
+  const d=detail(JOBS[state.jobNum]), p=parsed();
+  if(!p||!p.valid) return false;
+  if(d.answerType==='mins') return p.mins===d.answer;
+  return p.h===(Math.floor(d.answer/60)%12||12) && p.m===d.answer%60;
+}
+
+// === CLOCK ===
+function clockSvg(t,{size=170,lit=false}={}){
+  const R=size/2, cx=R, cy=R;
+  const rad=a=>a*Math.PI/180, pt=(a,r)=>[cx+Math.cos(rad(a))*r, cy+Math.sin(rad(a))*r];
+  const out=[`<circle cx="${cx}" cy="${cy}" r="${R-3}" fill="#fff" stroke="${lit?'#1864ab':'#adb5bd'}" stroke-width="5"/>`];
+  for(let i=0;i<60;i++){
+    const a=i*6-90, big=i%5===0;
+    const [x1,y1]=pt(a,R-(big?14:9)), [x2,y2]=pt(a,R-6);
+    out.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${big?'#495057':'#ced4da'}" stroke-width="${big?2.4:1.1}" stroke-linecap="round"/>`);
+  }
+  for(let k=1;k<=12;k++){
+    const [x,y]=pt(k*30-90,R-27);
+    out.push(`<text x="${x.toFixed(1)}" y="${(y+6).toFixed(1)}" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="${Math.round(size*0.105)}" font-weight="800" fill="#343a40">${k}</text>`);
+  }
+  if(t===null){
+    out.push(`<text x="${cx}" y="${cy+9}" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="${Math.round(size*0.18)}" font-weight="900" fill="#dee2e6">?</text>`);
+  }else{
+    const m=t%60, h=Math.floor(t/60)%12;
+    const [hx,hy]=pt(h*30+m*0.5-90,R*0.47), [mx,my]=pt(m*6-90,R*0.73);
+    out.push(`<line x1="${cx}" y1="${cy}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="#212529" stroke-width="${size*0.045}" stroke-linecap="round"/>`);
+    out.push(`<line x1="${cx}" y1="${cy}" x2="${mx.toFixed(1)}" y2="${my.toFixed(1)}" stroke="${lit?'#e8590c':'#495057'}" stroke-width="${size*0.03}" stroke-linecap="round"/>`);
+  }
+  out.push(`<circle cx="${cx}" cy="${cy}" r="${size*0.035}" fill="#212529"/>`);
+  return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${t===null?'clock, time not set yet':'clock showing '+fmt(t)}">${out.join('')}</svg>`;
+}
+
+// === RENDER ===
+function render(){
+  const g=document.getElementById('game');
+  if(state.phase==='start') g.innerHTML=renderStart();
+  else if(state.phase==='end') g.innerHTML=renderEnd();
+  else g.innerHTML=renderPlay();
+}
+function renderHeader(){
+  return `<header>
+    <h1>🚂 Dispatch! 🚉</h1>
+    <p>Keep every train running on time</p>
+    <button class="sound-btn" onclick="toggleSound(this)">${soundOn?'🔊':'🔇'}</button>
+  </header>`;
+}
+function statsHtml(){
+  return `<div id="stats-area"><div class="stats">
+    <div class="stat"><span class="stat-label">🚆 TRAIN</span>
+      <span class="stat-value">${state.jobNum+1}/${JOB_COUNT}</span></div>
+    <div class="stat"><span class="stat-label">⭐ POINTS</span>
+      <span class="stat-value">${state.points}</span></div>
+    <div class="stat"><span class="stat-label">⏱️ ON TIME</span>
+      <span class="stat-value">${state.onTime}</span></div>
+  </div></div>`;
+}
+
+function renderPlay(){
+  const j=JOBS[state.jobNum], d=detail(j), p=parsed();
+  const live = d.answerType==='time' ? typedTime() : null;
+  // either card may be the blank one, so both are built the same way
+  const card = side => {
+    const known = side.time!==null;
+    const t = known ? side.time : live;
+    return `<div class="clock-card ${known?'muted':''}">
+      <h3>${side.label}</h3>
+      ${clockSvg(t,{lit:!known})}
+      ${t===null?`<div class="waiting">–:––</div>`:`<div class="digital">${fmt(t)}</div>`}
+    </div>`;
+  };
+
+  const warn = p && !p.valid
+    ? (d.answerType==='mins' ? 'That is too many minutes!'
+       : (p.h<1||p.h>12 ? `There is no ${p.h} o\u2019clock!` : 'Minutes only go up to 59.'))
+    : '';
+
+  const keys=[1,2,3,4,5,6,7,8,9,'⌫',0,''];
+  const pad=keys.map(k=>k===''
+    ? `<button class="key blank" disabled></button>`
+    : `<button class="key" ${state.done?'disabled':''} onclick="${k==='⌫'?'del()':'add('+k+')'}">${k}</button>`
+  ).join('');
+
+  return `${renderHeader()}
+  ${statsHtml()}
+  <div class="customer-bubble">
+    <div class="customer-avatar">${j.face}</div>
+    <div class="customer-text"><span class="name">${j.who}</span>${d.say}</div>
+  </div>
+
+  <div class="clock-row">
+    ${card(d.left)}
+    ${d.gap?`<div class="gap-mark">?</div>`:''}
+    ${card(d.right)}
+  </div>
+
+  <div class="math-hint">${d.ask}</div>
+
+  <div class="entry-box">
+    <span class="entry-label">YOUR ANSWER</span>
+    <div class="entry-value ${state.digits===''?'empty':''}">${display()}</div>
+    <div class="entry-warn">${warn}</div>
+  </div>
+
+  <div class="pad">${pad}</div>
+  ${state.nudge?`<div class="nudge">${state.nudge}</div>`:''}
+  ${state.done?routeBox(d):''}
+
+  <div class="action-row">
+    ${state.done
+      ? `<button class="action-btn" onclick="nextJob()">${state.jobNum+1>=JOB_COUNT?'🏁 End of the day':'Next train →'}</button>`
+      : `<button class="action-btn" onclick="check()">🚦 Check</button>
+         <button class="action-btn secondary" onclick="showHint()">💡</button>`}
+  </div>`;
+}
+
+// The counting-on route, shown after answering — this is the teaching.
+function routeBox(d){
+  const hp=hops(d.hopFrom,d.hopDur);
+  const route=hp.map(h=>`<span class="plus">+${h.add}</span> <span class="hop">${fmt(h.at)}</span>`).join(' ');
+  const total=d.answerType==='mins'
+    ? `<span class="tot">${hp.map(h=>h.add).join(' + ')} = <strong>${d.answer} minutes</strong></span>`
+    : (d.backwards?`<span class="tot">So it must leave at <strong>${fmt(d.hopFrom)}</strong>.</span>`:'');
+  return `<div class="route-box">
+    <span class="hop">${fmt(d.hopFrom)}</span> ${route}${total}</div>`;
+}
+
+function renderStart(){
+  return `${renderHeader()}
+  <div class="start-screen">
+    <div class="big-train">🚂</div>
+    <h2 style="font-size:26px;color:#0f4377;margin:0.5rem 0">All aboard!</h2>
+    <p style="font-size:15px;color:#555;line-height:1.8;margin:1rem auto;text-align:left;max-width:400px">
+      ${JOB_COUNT} trains need you today.<br><br>
+      🕐 One clock blank? Work out the <strong>time</strong>.<br>
+      ⏱️ Both clocks filled? Work out the <strong>minutes</strong> in between.<br><br>
+      🔢 Type your answer and press <strong>Check</strong>.<br>
+      💡 Stuck? The lightbulb gives you a tip.<br><br>
+      🚂 Best trick: <strong>hop to the next o\u2019clock first</strong>,
+      then count the rest of the way.
+    </p>
+    <button class="btn" onclick="newGame()">🚦 Start the day!</button>
+  </div>`;
+}
+function renderEnd(){
+  const msg = state.onTime>=7 ? 'Every train ran like clockwork. The best dispatcher on the line!'
+            : state.onTime>=4 ? 'Good running today. Only a few trains held up.'
+            : 'A busy day! Come back tomorrow and get more trains away on time.';
+  return `${renderHeader()}
+  <div class="end-screen">
+    <div class="big-train">🏆</div>
+    <h2 style="font-size:26px;color:#0f4377;margin:0.5rem 0">End of the day!</h2>
+    <p style="font-size:44px;font-weight:900;color:#1864ab;margin:0.6rem 0">${state.points} pts</p>
+    <p style="font-size:16px;color:#555;line-height:1.6;max-width:380px;margin:0 auto">${msg}</p>
+    <p style="font-size:14px;color:#888;margin-top:12px">
+      ${state.onTime} of ${JOB_COUNT} trains away on time.</p>
+    <button class="btn" onclick="newGame()">🚂 Another day</button>
+  </div>`;
+}
+
+// === INPUT ===
+function add(k){
+  const d=detail(JOBS[state.jobNum]);
+  const max=d.answerType==='mins'?3:4;
+  if(state.done||state.digits.length>=max) return;
+  state.digits+=String(k); state.nudge=''; tapSnd(); render();
+}
+function del(){
+  if(state.done) return;
+  state.digits=state.digits.slice(0,-1); state.nudge=''; tapSnd(); render();
+}
+function showHint(){
+  showFeedback(detail(JOBS[state.jobNum]).hint,'hint');
+  beep(660,0.08,'sine',0.05);
+}
+
+// === CHECK ===
+function check(){
+  const j=JOBS[state.jobNum], d=detail(j), p=parsed();
+  if(state.done) return;
+  if(!p||!p.valid){
+    wrongSnd();
+    showFeedback(d.answerType==='mins'?'⏱️ Type a number of minutes!':'⏰ Type a real time!','bad');
+    return;
+  }
+  state.tries++;
+  if(isRight()){
+    const pay=state.tries===1?20:10;
+    state.points+=pay;
+    if(state.tries===1) state.onTime++;
+    state.done=true; state.nudge='';
+    chaChing(); whistle();
+    showFeedback(`🚂 Right on time! +${pay}`,'good');
+    render();
+    return;
+  }
+  if(state.tries===1){
+    // the usual slip is counting only to the o'clock, or only past it
+    state.nudge = nudgeFor(d,p);
+    state.digits='';
+    wrongSnd(); showFeedback('⏰ Not quite!','bad');
+    render();
+    return;
+  }
+  state.done=true; state.nudge='';
+  wrongSnd();
+  showFeedback('⏰ Here is how it works','bad');
+  render();
+}
+
+function nudgeFor(d,p){
+  const hp=hops(d.hopFrom,d.hopDur);
+  if(d.answerType==='mins'){
+    if(hp.length===2&&(p.mins===hp[0].add||p.mins===hp[1].add))
+      return `That is only <strong>part</strong> of the journey. You have to add <em>both</em> hops together.`;
+    return p.mins>d.answer ? 'A bit too long. Count again from the first clock.'
+                           : 'A bit too short. Count again from the first clock.';
+  }
+  const got=(p.h%12+12)*60+p.m;
+  if(hp.length===2&&got===hp[0].at)
+    return `That is only as far as the next o\u2019clock. Keep counting \u2014 there are `+
+           `<strong>${hp[1].add}</strong> more minutes to go.`;
+  if(got===d.hopFrom) return 'That is the time you started from. Now count the journey on.';
+  const diff=got-d.answer;
+  return Math.abs(diff)===60
+    ? 'The minutes are right but the hour is out by one. Check whether you cross an o\u2019clock.'
+    : (diff>0?'A little too late. Try again!':'A little too early. Try again!');
+}
+
+function nextJob(){
+  if(state.jobNum+1>=JOB_COUNT){
+    state.phase='end'; winSnd(); confetti(); setTimeout(confetti,800); render(); return;
+  }
+  state.jobNum++;
+  state.digits=''; state.tries=0; state.done=false; state.nudge='';
+  nextSnd(); render();
+}
+
+// === EFFECTS ===
+function showFeedback(text,kind){
+  const el=document.createElement('div');
+  el.className='feedback-banner '+kind;
+  el.innerHTML=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1800);
+}
+function confetti(){
+  const emojis=['🎉','🌟','🚂','🚆','✨','🎫','🕐','🚦'];
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.textContent=pick(emojis);
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDelay=Math.random()*0.8+'s';
+    c.style.animationDuration=(1.8+Math.random()*1.5)+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+// === KEYBOARD ===
+document.addEventListener('keydown',e=>{
+  if(state.phase!=='playing') return;
+  if((e.target.tagName||'').toLowerCase()==='button') return;
+  if(/^[0-9]$/.test(e.key)){e.preventDefault(); add(+e.key)}
+  else if(e.key==='Backspace'){e.preventDefault(); del()}
+  else if(e.key==='Enter'){e.preventDefault(); state.done?nextJob():check()}
+});
+
+render();
+</script>
+</body>
+</html>
